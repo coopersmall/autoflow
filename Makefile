@@ -4,7 +4,13 @@
 INFRA_DOCKER_FILE=./packages/backend/docker-compose.yml
 TEST_DOCKER_FILE=./packages/backend/testing/docker-compose.test.yml
 
-.PHONY: deps dev dev-api dev-worker dev-web dev-all start start-api start-worker start-web build db-push db-generate db-migrate test test-integration test-start test-stop lint format format-unsafe tsc help
+.PHONY: setup deps dev dev-api dev-worker dev-web dev-all start start-api start-worker start-web build db-push db-generate db-migrate install-pre-push infra-start infra-stop shell nix-shell nix-update nix-check nix-info test test-integration test-start test-stop lint format format-unsafe tsc help
+
+# === Setup ===
+setup:
+	@chmod +x ./scripts/setup/install-nix.sh
+	@chmod +x ./scripts/setup/bootstrap.sh
+	@./scripts/setup/bootstrap.sh
 
 # === Dependencies ===
 deps: install-pre-push
@@ -65,6 +71,23 @@ infra-start:
 infra-stop:
 	docker compose -f $(INFRA_DOCKER_FILE) down
 
+# === Nix Development Environment ===
+shell:
+	@echo "Entering Nix development shell..."
+	@echo "Note: Install direnv for automatic environment loading"
+	nix develop ./scripts/nix
+
+nix-shell: shell
+
+nix-update:
+	cd scripts/nix && nix flake update
+
+nix-check:
+	cd scripts/nix && nix flake check
+
+nix-info:
+	cd scripts/nix && nix flake metadata
+
 # === Testing ===
 test: test-start
 	bun test
@@ -120,11 +143,18 @@ help:
 	@echo "    make test-start       - Start test containers"
 	@echo "    make test-stop        - Stop test containers"
 	@echo ""
-    @echo "  Code Quality:"
+	@echo "  Code Quality:"
 	@echo "    make lint           - Run Biome linter"
 	@echo "    make format         - Format code with Biome"
 	@echo "    make format-unsafe  - Format code with Biome (unsafe fixes)"
 	@echo "    make tsc            - Type check"
 	@echo ""
+	@echo "  Nix Environment:"
+	@echo "    make shell          - Enter Nix development shell"
+	@echo "    make nix-update     - Update Nix flake dependencies"
+	@echo "    make nix-check      - Validate Nix flake configuration"
+	@echo "    make nix-info       - Show Nix flake metadata"
+	@echo ""
 	@echo "  Setup:"
-	@echo "    make deps         - Install dependencies"
+	@echo "    make setup          - Complete development environment setup (recommended)"
+	@echo "    make deps           - Install dependencies only"
