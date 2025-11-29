@@ -56,8 +56,8 @@ db-migrate:
 
 # === Infrastructure ===
 install-pre-push:
-	@chmod +x ./scripts/pre-push.sh
-	@ln -sf ../../scripts/pre-push.sh ./.git/hooks/pre-push
+	@chmod +x ./scripts/git/pre-push.sh
+	@ln -sf ../../scripts/git/pre-push.sh ./.git/hooks/pre-push
 
 infra-start:
 	docker compose -f $(INFRA_DOCKER_FILE) up -d --wait
