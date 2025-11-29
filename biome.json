@@ -1,9 +1,9 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.3.8/schema.json",
   "plugins": [
-    "./biome/no-throw.grit",
-    "./biome/no-process-env.grit",
-    "./biome/no-type-assertion.grit"
+    "./scripts/biome/no-throw.grit",
+    "./scripts/biome/no-process-env.grit",
+    "./scripts/biome/no-type-assertion.grit"
   ],
   "vcs": {
     "enabled": true,
