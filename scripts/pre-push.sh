@@ -1,4 +1,4 @@
 #!/bin/sh
 
-make lint
-make tsc
+bun run lint
+bun run tsc
