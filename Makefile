@@ -7,8 +7,7 @@ TEST_DOCKER_FILE=./packages/backend/testing/docker-compose.test.yml
 .PHONY: deps dev dev-api dev-worker dev-web dev-all start start-api start-worker start-web build db-push db-generate db-migrate test test-integration test-start test-stop lint format format-unsafe tsc help
 
 # === Dependencies ===
-deps:
-	@chmod +x ./.git/hooks/pre-push
+deps: install-pre-push
 	@ln -sf ./CONTRIBUTING.md ./AGENTS.md
 	bun install
 
@@ -56,6 +55,10 @@ db-migrate:
 	bun run db:migrate
 
 # === Infrastructure ===
+install-pre-push:
+	@chmod +x ./scripts/pre-push.sh
+	@ln -sf ./scripts/pre-push.sh ./.git/hooks/pre-push
+
 infra-start:
 	docker compose -f $(INFRA_DOCKER_FILE) up -d --wait
 
