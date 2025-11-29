@@ -18,52 +18,6 @@ autoflow/
 │   └── web/                  # Web server for frontend (port 3001)
 ```
 
-### Package Dependencies
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        apps/                                │
-│   ┌─────────┐    ┌──────────┐    ┌─────────┐               │
-│   │   api   │    │  worker  │    │   web   │               │
-│   └────┬────┘    └────┬─────┘    └────┬────┘               │
-│        │              │               │                     │
-│        └──────────────┼───────────────┘                     │
-│                       ▼                                     │
-├─────────────────────────────────────────────────────────────┤
-│                     packages/                               │
-│   ┌──────────────────────────────────────────────────────┐ │
-│   │                    backend                            │ │
-│   │  Services, Repos, Cache, HTTP handlers, Tasks        │ │
-│   └────────────────────────┬─────────────────────────────┘ │
-│                            │                                │
-│   ┌────────────┐           │           ┌────────────┐      │
-│   │   client   │           │           │    web     │      │
-│   │ HTTP client│           │           │ React UI   │      │
-│   └─────┬──────┘           │           └─────┬──────┘      │
-│         │                  │                 │              │
-│         └──────────────────┼─────────────────┘              │
-│                            ▼                                │
-│   ┌──────────────────────────────────────────────────────┐ │
-│   │                     core                              │ │
-│   │  Domain types, errors, validation, utilities         │ │
-│   └──────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-```
-
-## Tech Stack
-
-| Category | Technology |
-|----------|------------|
-| Runtime | [Bun](https://bun.sh) |
-| Language | TypeScript |
-| Frontend | React 19, Radix UI, Tailwind CSS |
-| Backend | Bun HTTP server |
-| Database | PostgreSQL with [Drizzle ORM](https://orm.drizzle.team) |
-| Cache | Redis with [ioredis](https://github.com/redis/ioredis) |
-| Task Queue | [BullMQ](https://docs.bullmq.io) |
-| Validation | [Zod](https://zod.dev) |
-| Error Handling | [neverthrow](https://github.com/supermacro/neverthrow) (Result types) |
-
 ## Quick Start
 
 ```bash
@@ -136,46 +90,16 @@ Background task worker entry point. Processes jobs from BullMQ queues.
 
 Web server for serving the React frontend on port 3001.
 
-## Key Architectural Decisions
+## Tech Stack
 
-### Workspace Structure
-
-Packages contain reusable libraries, while apps are deployable entry points. This separation allows:
-- Independent versioning of packages
-- Clear dependency boundaries
-- Separate deployment of API, workers, and web server
-
-### Result Types
-
-All fallible operations return `Result<T, Error>` from neverthrow instead of throwing exceptions. This makes error handling explicit and composable.
-
-```typescript
-const result = await service.create(data);
-if (result.isErr()) {
-  return err(result.error);
-}
-return ok(result.value);
-```
-
-### Shared/Standard Pattern
-
-Two base classes for different data access patterns:
-- **SharedRepo/SharedService** - For global data (users, config)
-- **StandardRepo/StandardService** - For user-scoped data (requires userId)
-
-### Dependency Injection
-
-Services use factory functions and context objects for dependencies, making them testable:
-
-```typescript
-const service = createUsersService({
-  logger,
-  appConfig,
-  repo: () => createUsersRepo(appConfig),
-  cache: () => createUsersCache(appConfig),
-});
-```
-
-## License
-
-Private
+| Category | Technology |
+|----------|------------|
+| Runtime | [Bun](https://bun.sh) |
+| Language | TypeScript |
+| Frontend | React 19, Radix UI, Tailwind CSS |
+| Backend | Bun HTTP server |
+| Database | PostgreSQL with [Drizzle ORM](https://orm.drizzle.team) |
+| Cache | Redis with [ioredis](https://github.com/redis/ioredis) |
+| Task Queue | [BullMQ](https://docs.bullmq.io) |
+| Validation | [Zod](https://zod.dev) |
+| Error Handling | [neverthrow](https://github.com/supermacro/neverthrow) (Result types) |
