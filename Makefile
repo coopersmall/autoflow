@@ -8,6 +8,7 @@ TEST_DOCKER_FILE=./packages/backend/testing/docker-compose.test.yml
 
 # === Dependencies ===
 deps:
+	@chmod +x ./.git/hooks/pre-push
 	@ln -sf ./CONTRIBUTING.md ./AGENTS.md
 	bun install
 
