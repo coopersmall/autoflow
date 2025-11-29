@@ -22,7 +22,7 @@ autoflow/
 
 ```bash
 # Install dependencies
-bun install
+make deps
 
 # Start development servers
 make dev-api      # API server on port 3000
@@ -32,23 +32,6 @@ make dev-web      # Web server on port 3001
 # Or start all at once
 make dev-all
 ```
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `make dev` | Start API server (default) |
-| `make dev-api` | Start API server |
-| `make dev-worker` | Start background workers |
-| `make dev-web` | Start web server |
-| `make dev-all` | Start all services |
-| `make test` | Run all tests |
-| `make test-integration` | Run integration tests |
-| `make lint` | Run linter |
-| `make tsc` | Type check |
-| `make db-push` | Push schema to database |
-| `make db-generate` | Generate migrations |
-| `make db-migrate` | Apply migrations |
 
 ## Packages
 
@@ -78,15 +61,15 @@ React UI components and frontend application code.
 
 ## Apps
 
-### [api](./apps/api)
+### [API](./apps/api)
 
 HTTP API server entry point. Starts the backend server on port 3000.
 
-### [worker](./apps/worker)
+### [Workers](./apps/worker)
 
 Background task worker entry point. Processes jobs from BullMQ queues.
 
-### [web](./apps/web)
+### [Web App](./apps/web)
 
 Web server for serving the React frontend on port 3001.
 
