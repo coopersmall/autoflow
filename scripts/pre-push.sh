@@ -1,4 +1,4 @@
 #!/bin/sh
 
-bun run lint
-bun run tsc
+bunx biome check ../.
+bunx tsgo
