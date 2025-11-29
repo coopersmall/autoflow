@@ -1,0 +1,44 @@
+{
+  "name": "@autoflow/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.tsx",
+  "scripts": {
+    "dev": "bun --hot src/app/index.tsx",
+    "build": "bun run build.ts",
+    "test": "bun test",
+    "tsc": "tsc --noEmit",
+    "lint": "biome check src/"
+  },
+  "dependencies": {
+    "@autoflow/core": "workspace:*",
+    "@autoflow/client": "workspace:*",
+    "zod": "catalog:",
+    "neverthrow": "catalog:",
+    "react": "catalog:react",
+    "react-dom": "catalog:react",
+    "react-cookie": "catalog:react",
+    "react-hook-form": "catalog:react",
+    "@hookform/resolvers": "^4.1.0",
+    "@radix-ui/react-icons": "catalog:ui",
+    "@radix-ui/react-label": "catalog:ui",
+    "@radix-ui/react-select": "catalog:ui",
+    "@radix-ui/react-slot": "catalog:ui",
+    "@radix-ui/themes": "catalog:ui",
+    "lucide-react": "catalog:ui",
+    "tailwindcss": "catalog:ui",
+    "tailwind-merge": "catalog:ui",
+    "class-variance-authority": "catalog:ui",
+    "clsx": "catalog:ui",
+    "styled-components": "^6.1.19",
+    "react-rnd": "^10.5.2",
+    "immer": "^10.1.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "bun-plugin-tailwind": "^0.0.14",
+    "tailwindcss-animate": "^1.0.7"
+  }
+}

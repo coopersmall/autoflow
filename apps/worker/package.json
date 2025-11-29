@@ -1,0 +1,15 @@
+{
+  "name": "@autoflow/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --hot src/index.ts",
+    "start": "NODE_ENV=production bun src/index.ts",
+    "build": "echo 'No build step required for Bun runtime'",
+    "tsc": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@autoflow/backend": "workspace:*"
+  }
+}

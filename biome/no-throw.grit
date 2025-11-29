@@ -1,0 +1,14 @@
+engine biome(1.0)
+language js(typescript)
+
+file(name=$filename, body=$program) where {
+    $program <: contains `throw $expr` where {
+        not $filename <: includes ".test.ts",
+        not $filename <: includes "__tests__",
+        not $filename <: includes "__mocks__",
+        register_diagnostic(
+            span = $expr,
+            message = "Throwing errors is not allowed. Use Result types from neverthrow instead."
+        )
+    }
+}

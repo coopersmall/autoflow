@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "bun:test": ["../../node_modules/bun-types/test.d.ts"],
+      "bun": ["../../node_modules/bun-types/bun.d.ts"],
+      "@web/*": ["./src/*"],
+      "@autoflow/core": ["../core/src"],
+      "@autoflow/client": ["../client/src"],
+      "@core/*": ["../core/src/*"],
+      "@client/*": ["../client/src/*"]
+    }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "build.ts"],
+  "exclude": ["node_modules", "dist"]
+}

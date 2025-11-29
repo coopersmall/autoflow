@@ -1,0 +1,37 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "moduleResolution": "bundler",
+    "module": "Preserve",
+    "allowImportingTsExtensions": true,
+    "strictNullChecks": true,
+    "verbatimModuleSyntax": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+
+    "types": ["bun-types"],
+    "paths": {
+      "@autoflow/core": ["./packages/core/src"],
+      "@autoflow/backend": ["./packages/backend/src"],
+      "@autoflow/client": ["./packages/client/src"],
+      "@autoflow/web": ["./packages/web/src"],
+      "@core/*": ["./packages/core/src/*"],
+      "@backend/*": ["./packages/backend/src/*", "./packages/backend/*"],
+      "@client/*": ["./packages/client/src/*"],
+      "@web/*": ["./packages/web/src/*"]
+    }
+  },
+  "include": [
+    "packages/*/src/**/*.ts",
+    "packages/*/src/**/*.tsx",
+    "packages/backend/testing/**/*.ts",
+    "apps/*/src/**/*.ts"
+  ],
+  "exclude": ["dist", "node_modules"]
+}

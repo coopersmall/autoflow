@@ -1,0 +1,435 @@
+# Services Guide
+
+This guide explains how to create new services in Autoflow, following our established patterns for repos, caches, actions, and service registration.
+
+## Quick Start
+
+Creating a new service involves:
+1. Define domain model in `packages/core/src/domain/`
+2. Create service structure in `packages/backend/src/services/`
+3. Register in `ServiceFactory.ts`
+4. Add HTTP handlers if needed
+
+## When to Create a Service
+
+Create a service when you need to:
+- Manage a new domain entity (Users, Secrets, etc.)
+- Provide business logic operations on data
+- Coordinate repos, caches, and external APIs
+- Expose functionality to HTTP handlers or other services
+
+## Service Types
+
+### SharedService - Global Data
+
+Use for data not owned by specific users:
+
+**Examples**: Users, global templates, system configurations
+
+```typescript
+class UsersService extends SharedService<UserId, User> {
+  async get(id: UserId): Promise<Result<User, Error>>
+  async all(): Promise<Result<User[], Error>>
+  async create(data: PartialUser): Promise<Result<User, Error>>
+}
+```
+
+### StandardService - User-Scoped Data
+
+Use for data owned by individual users:
+
+**Examples**: Secrets, user settings, user-specific resources
+
+```typescript
+class SecretsService extends StandardService<SecretId, Secret> {
+  async get(userId: UserId, id: SecretId): Promise<Result<Secret, Error>>
+  async all(userId: UserId): Promise<Result<Secret[], Error>>
+  async create(userId: UserId, data: PartialSecret): Promise<Result<Secret, Error>>
+}
+```
+
+## Step-by-Step: Creating a Service
+
+### Step 1: Create Domain Model
+
+See [Domain Modeling Guide](./domain-modeling.md) for details.
+
+```typescript
+// packages/core/src/domain/widget/widget.ts
+
+import { newId } from '@core/domain/Id';
+import { createItemSchema } from '@core/domain/Item';
+import zod from 'zod';
+
+export type WidgetId = zod.infer<typeof widgetIdSchema>;
+export const WidgetId = newId<WidgetId>;
+
+export const widgetIdSchema = zod
+  .string()
+  .brand<'WidgetId'>()
+  .describe('the id of a widget');
+
+const baseWidgetSchema = createItemSchema(widgetIdSchema).extend({
+  name: zod.string().min(1).describe('the widget name'),
+  value: zod.number().describe('the widget value'),
+});
+
+const widgetV1Schema = baseWidgetSchema.extend({
+  schemaVersion: zod.literal(1),
+});
+
+export const widgetSchema = zod.discriminatedUnion('schemaVersion', [
+  widgetV1Schema,
+]);
+
+export type Widget = zod.infer<typeof widgetSchema>;
+```
+
+Create validation:
+
+```typescript
+// packages/core/src/domain/widget/validation/validWidget.ts
+
+import { validate } from '@core/validation/validate';
+import { widgetSchema, type Widget } from '@core/domain/widget/widget';
+
+export function validWidget(input: unknown): Result<Widget, ValidationError> {
+  return validate(widgetSchema, input);
+}
+```
+
+### Step 2: Create Service Structure
+
+```
+packages/backend/src/services/widgets/
+├── WidgetsService.ts           # Service implementation
+├── domain/
+│   └── WidgetsService.ts        # Interface definition
+├── repos/
+│   └── WidgetsRepo.ts           # Database operations
+├── cache/
+│   └── WidgetsCache.ts          # Cache layer
+├── actions/
+│   ├── processWidget.ts         # Business logic
+│   └── __tests__/
+│       └── processWidget.test.ts
+├── __tests__/
+│   └── WidgetsService.integration.test.ts
+└── __mocks__/
+    └── WidgetsService.mock.ts
+```
+
+### Step 3: Define Service Interface
+
+```typescript
+// packages/backend/src/services/widgets/domain/WidgetsService.ts
+
+import type { Widget, WidgetId } from '@core/domain/widget/widget';
+import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { Result } from 'neverthrow';
+
+export interface IWidgetsService {
+  get(id: WidgetId): Promise<Result<Widget, ErrorWithMetadata>>;
+  all(): Promise<Result<Widget[], ErrorWithMetadata>>;
+  create(data: PartialWidget): Promise<Result<Widget, ErrorWithMetadata>>;
+  update(id: WidgetId, data: UpdateWidget): Promise<Result<Widget, ErrorWithMetadata>>;
+  delete(id: WidgetId): Promise<Result<Widget, ErrorWithMetadata>>;
+}
+```
+
+### Step 4: Create Repository
+
+```typescript
+// packages/backend/src/services/widgets/repos/WidgetsRepo.ts
+
+import type { IAppConfigurationService } from '@backend/services/configuration/AppConfigurationService';
+import { SharedRepo } from '@backend/repos/SharedRepo';
+import { validWidget } from '@core/domain/widget/validation/validWidget';
+import { type Widget, WidgetId } from '@core/domain/widget/widget';
+
+export { createWidgetsRepo };
+
+function createWidgetsRepo(config: {
+  appConfig: IAppConfigurationService;
+}) {
+  return new SharedRepo<WidgetId, Widget>(
+    config.appConfig,
+    'widgets',
+    validWidget,
+  );
+}
+```
+
+### Step 5: Create Cache (if needed)
+
+```typescript
+// packages/backend/src/services/widgets/cache/WidgetsCache.ts
+
+import type { ILogger } from '@backend/logger/Logger';
+import type { IAppConfigurationService } from '@backend/services/configuration/AppConfigurationService';
+import { StandardCache } from '@backend/cache/StandardCache';
+import { validWidget } from '@core/domain/widget/validation/validWidget';
+import { type Widget, WidgetId } from '@core/domain/widget/widget';
+
+export { createWidgetsCache };
+
+function createWidgetsCache(config: {
+  logger: ILogger;
+  appConfig: IAppConfigurationService;
+}) {
+  return new StandardCache<WidgetId, Widget>({
+    ...config,
+    keyPrefix: 'widget',
+    validator: validWidget,
+  });
+}
+```
+
+### Step 6: Implement Service
+
+```typescript
+// packages/backend/src/services/widgets/WidgetsService.ts
+
+import type { ILogger } from '@backend/logger/Logger';
+import type { IAppConfigurationService } from '@backend/services/configuration/AppConfigurationService';
+import { SharedService } from '@backend/services/shared/SharedService';
+import { type Widget, WidgetId } from '@core/domain/widget/widget';
+import { createWidgetsCache } from './cache/WidgetsCache';
+import type { IWidgetsService } from './domain/WidgetsService';
+import { createWidgetsRepo } from './repos/WidgetsRepo';
+
+export { createWidgetsService };
+export type { IWidgetsService };
+
+function createWidgetsService(ctx: WidgetsServiceContext): WidgetsService {
+  return new WidgetsService(ctx);
+}
+
+interface WidgetsServiceContext {
+  appConfig: () => IAppConfigurationService;
+  logger: ILogger;
+}
+
+class WidgetsService
+  extends SharedService<WidgetId, Widget>
+  implements IWidgetsService
+{
+  constructor(
+    readonly context: WidgetsServiceContext,
+    private readonly dependencies = {
+      createWidgetsRepo,
+      createWidgetsCache,
+    },
+  ) {
+    const appConfig = context.appConfig();
+
+    super('widgets', {
+      ...context,
+      repo: () => this.dependencies.createWidgetsRepo({ appConfig }),
+      cache: () =>
+        this.dependencies.createWidgetsCache({
+          logger: context.logger,
+          appConfig,
+        }),
+      newId: WidgetId,
+    });
+  }
+}
+```
+
+### Step 7: Create Mock
+
+```typescript
+// packages/backend/src/services/widgets/__mocks__/WidgetsService.mock.ts
+
+import type { IWidgetsService } from '@backend/services/widgets/domain/WidgetsService';
+import type { ExtractMockMethods } from '@core/types';
+import { mock } from 'bun:test';
+
+export function getMockedWidgetsService(): ExtractMockMethods<IWidgetsService> {
+  return {
+    get: mock(),
+    all: mock(),
+    create: mock(),
+    update: mock(),
+    delete: mock(),
+  };
+}
+```
+
+### Step 8: Register in ServiceFactory
+
+```typescript
+// packages/backend/src/services/ServiceFactory.ts
+
+import {
+  createWidgetsService,
+  type IWidgetsService,
+} from './widgets/WidgetsService';
+
+interface IServices {
+  // ... existing services
+  widgets: () => IWidgetsService;
+}
+
+function createServices({ logger }: { logger: ILogger }): IServices {
+  const appConfig = () => createAppConfigurationService();
+  
+  const widgets = () => createWidgetsService({
+    logger,
+    appConfig,
+  });
+
+  return {
+    // ... existing services
+    widgets,
+  };
+}
+```
+
+## Adding Business Logic (Actions)
+
+Actions are pure functions for business logic:
+
+```typescript
+// packages/backend/src/services/widgets/actions/processWidget.ts
+
+import type { ILogger } from '@backend/logger/Logger';
+import type { Widget } from '@core/domain/widget/widget';
+import { ok, type Result } from 'neverthrow';
+
+export interface ProcessWidgetContext {
+  logger: ILogger;
+}
+
+export interface ProcessWidgetRequest {
+  widget: Widget;
+  multiplier: number;
+}
+
+export function processWidget(
+  ctx: ProcessWidgetContext,
+  request: ProcessWidgetRequest,
+): Result<number, never> {
+  const result = request.widget.value * request.multiplier;
+  
+  ctx.logger.debug('Processed widget', {
+    widgetId: request.widget.id,
+    result,
+  });
+  
+  return ok(result);
+}
+```
+
+Use in service:
+
+```typescript
+class WidgetsService extends SharedService<WidgetId, Widget> {
+  async process(id: WidgetId, multiplier: number): Promise<Result<number, Error>> {
+    const widgetResult = await this.get(id);
+    if (widgetResult.isErr()) {
+      return err(widgetResult.error);
+    }
+    
+    return processWidget(
+      { logger: this.context.logger },
+      { widget: widgetResult.value, multiplier },
+    );
+  }
+}
+```
+
+## Testing Services
+
+### Integration Tests
+
+```typescript
+// packages/backend/src/services/widgets/__tests__/WidgetsService.integration.test.ts
+
+import { createWidgetsService } from '@backend/services/widgets/WidgetsService';
+import { setupIntegrationTest } from '@backend/testing/integration/integrationTest';
+import { describe, expect, it } from 'bun:test';
+
+describe('WidgetsService Integration Tests', () => {
+  const { getConfig, getLogger } = setupIntegrationTest();
+
+  const setup = () => {
+    return createWidgetsService({
+      appConfig: () => getConfig(),
+      logger: getLogger(),
+    });
+  };
+
+  describe('create()', () => {
+    it('should create a widget in database', async () => {
+      expect.assertions(3);
+      
+      const service = setup();
+
+      const result = await service.create({
+        schemaVersion: 1,
+        name: 'Test Widget',
+        value: 42,
+      });
+
+      expect(result.isOk()).toBe(true);
+      const widget = result._unsafeUnwrap();
+      expect(widget.id).toBeDefined();
+      expect(widget.name).toBe('Test Widget');
+    });
+  });
+});
+```
+
+See [Testing Guide](./testing.md) for more patterns.
+
+## HTTP Handlers
+
+Create handlers to expose your service via HTTP:
+
+```typescript
+// packages/backend/src/http/handlers/widgets/getWidget.ts
+
+import type { IWidgetsService } from '@backend/services/widgets/domain/WidgetsService';
+import { WidgetId } from '@core/domain/widget/widget';
+
+export async function getWidget(
+  request: Request,
+  services: { widgets: () => IWidgetsService },
+): Promise<Response> {
+  const id = WidgetId(request.params.id);
+  
+  const result = await services.widgets().get(id);
+  
+  if (result.isErr()) {
+    return new Response(JSON.stringify({ error: result.error.message }), {
+      status: 404,
+    });
+  }
+  
+  return new Response(JSON.stringify(result.value), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+```
+
+## Best Practices
+
+1. **Use SharedService or StandardService** - Don't create custom base classes
+2. **Keep services thin** - Delegate business logic to actions
+3. **Return Result types** - Never throw errors
+4. **Use dependency injection** - Pass context objects
+5. **Write integration tests** - Test the full stack
+6. **Mock external dependencies** - Use factory pattern for testability
+7. **Log operations** - Include context for debugging
+8. **Validate inputs** - Use Zod schemas
+
+## Next Steps
+
+- [Domain Modeling Guide](./domain-modeling.md) - Create domain models
+- [Architecture Guide](./architecture.md) - Understand patterns
+- [Testing Guide](./testing.md) - Test your service
+- [HTTP Handlers Guide](./http-handlers.md) - Expose via API
+- [Background Tasks Guide](./background-tasks.md) - Add async operations

@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    hostname: postgres
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_DB: autoflow
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+
+  cache:
+    image: redis:6.2
+    hostname: redis
+    ports:
+      - '6379:6379'

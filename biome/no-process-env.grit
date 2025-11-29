@@ -1,0 +1,14 @@
+engine biome(1.0)
+language js(typescript)
+
+file(name=$filename, body=$program) where {
+    $program <: contains `process.env` as $match where {
+        not $filename <: includes ".test.ts",
+        not $filename <: includes "__tests__",
+        not $filename <: includes "__mocks__",
+        register_diagnostic(
+            span = $match,
+            message = "Direct access to process.env is not allowed. Use the AppConfigurationService instead."
+        )
+    }
+}

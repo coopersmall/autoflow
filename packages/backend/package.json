@@ -1,0 +1,52 @@
+{
+  "name": "@autoflow/backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./db/*": "./src/db/*",
+    "./repos/*": "./src/repos/*",
+    "./cache/*": "./src/cache/*",
+    "./services/*": "./src/services/*",
+    "./http/*": "./src/http/*",
+    "./tasks/*": "./src/tasks/*"
+  },
+  "scripts": {
+    "dev": "bun --hot src/server.ts",
+    "test": "bun test --ignore '**/integration*'",
+    "test:integration": "bun test --filter '*.integration.*'",
+    "test:start": "docker compose -f ./testing/docker-compose.test.yml up -d --wait",
+    "test:stop": "docker compose -f ./testing/docker-compose.test.yml down",
+    "tsc": "tsc --noEmit",
+    "lint": "biome check src/",
+    "db:push": "bun drizzle-kit push",
+    "db:generate": "bun drizzle-kit generate",
+    "db:migrate": "bun drizzle-kit migrate"
+  },
+  "dependencies": {
+    "@autoflow/core": "workspace:*",
+    "zod": "catalog:",
+    "neverthrow": "catalog:",
+    "lodash": "catalog:",
+    "drizzle-orm": "catalog:backend",
+    "postgres": "catalog:backend",
+    "ioredis": "catalog:backend",
+    "bullmq": "catalog:backend",
+    "pino": "catalog:backend",
+    "jose": "catalog:backend",
+    "ai": "catalog:ai",
+    "@ai-sdk/anthropic": "catalog:ai",
+    "@ai-sdk/openai": "catalog:ai",
+    "@ai-sdk/google": "catalog:ai",
+    "@ai-sdk/groq": "catalog:ai",
+    "@openrouter/ai-sdk-provider": "catalog:ai",
+    "@polygon.io/client-js": "^8.2.0"
+  },
+  "devDependencies": {
+    "@types/lodash": "catalog:",
+    "drizzle-kit": "^0.31.4"
+  }
+}

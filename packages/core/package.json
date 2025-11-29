@@ -1,0 +1,29 @@
+{
+  "name": "@autoflow/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./domain/*": "./src/domain/*",
+    "./errors/*": "./src/errors/*",
+    "./validation/*": "./src/validation/*"
+  },
+  "scripts": {
+    "test": "bun test",
+    "tsc": "tsc --noEmit",
+    "lint": "biome check src/"
+  },
+  "dependencies": {
+    "zod": "catalog:",
+    "neverthrow": "catalog:",
+    "nanoid": "catalog:",
+    "lodash": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/lodash": "catalog:"
+  }
+}

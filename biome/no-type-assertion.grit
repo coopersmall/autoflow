@@ -1,0 +1,15 @@
+engine biome(1.0)
+language js(typescript)
+
+file(name=$filename, body=$program) where {
+    $program <: contains `$expr as $type` where {
+        not $type <: r"const",
+        not $filename <: includes ".test.ts",
+        not $filename <: includes "__tests__",
+        not $filename <: includes "__mocks__",
+        register_diagnostic(
+            span = $expr,
+            message = "Type assertions with 'as' are not allowed. Use validation functions or type guards instead."
+        )
+    }
+}

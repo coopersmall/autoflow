@@ -1,0 +1,33 @@
+{
+  "name": "@autoflow/client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./hooks/*": "./src/hooks/*",
+    "./http-client/*": "./src/http-client/*"
+  },
+  "scripts": {
+    "test": "bun test",
+    "tsc": "tsc --noEmit",
+    "lint": "biome check src/"
+  },
+  "dependencies": {
+    "@autoflow/core": "workspace:*",
+    "zod": "catalog:",
+    "neverthrow": "catalog:",
+    "lodash": "catalog:",
+    "react": "catalog:react",
+    "react-cookie": "catalog:react",
+    "ts-option": "^2.0.0"
+  },
+  "devDependencies": {
+    "@types/lodash": "catalog:"
+  },
+  "peerDependencies": {
+    "react": "^18 || ^19"
+  }
+}
