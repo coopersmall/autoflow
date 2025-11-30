@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
-import { getMockedLogger } from '@backend/logger/__mocks__/Logger.mock';
-import { getMockedAppConfigurationService } from '@backend/services/configuration/__mocks__/AppConfigurationService.mock';
+import { getMockedAppConfigurationService } from '@backend/infrastructure/configuration/__mocks__/AppConfigurationService.mock';
+import { getMockedLogger } from '@backend/infrastructure/logger/__mocks__/Logger.mock';
+import { createTestQueueJob } from '@backend/infrastructure/queue/__mocks__/QueueClient.mock';
 import { defineTask } from '@backend/tasks/domain/TaskDefinition';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
-import { createTestQueueJob } from '@backend/tasks/queue/__mocks__/QueueClient.mock';
 import { getMockedTaskQueue } from '@backend/tasks/queue/__mocks__/TaskQueue.mock';
 import { getMockedTasksRepo } from '@backend/tasks/repos/__mocks__/TasksRepo.mock';
 import { createTaskScheduler } from '@backend/tasks/scheduler/TaskScheduler';

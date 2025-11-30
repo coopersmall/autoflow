@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
-import { getMockedLogger } from '@backend/logger/__mocks__/Logger.mock';
-import { getMockedAppConfigurationService } from '@backend/services/configuration/__mocks__/AppConfigurationService.mock';
-import { TaskId } from '@backend/tasks/domain/TaskId';
-import type { TaskQueueConfig } from '@backend/tasks/domain/TaskQueueConfig';
+import { getMockedAppConfigurationService } from '@backend/infrastructure/configuration/__mocks__/AppConfigurationService.mock';
+import { getMockedLogger } from '@backend/infrastructure/logger/__mocks__/Logger.mock';
 import {
   createTestQueueJob,
   getMockedQueueClient,
-} from '@backend/tasks/queue/__mocks__/QueueClient.mock';
-import { getMockedQueueClientFactory } from '@backend/tasks/queue/__mocks__/QueueClientFactory.mock';
+} from '@backend/infrastructure/queue/__mocks__/QueueClient.mock';
+import { getMockedQueueClientFactory } from '@backend/infrastructure/queue/__mocks__/QueueClientFactory.mock';
+import type { QueueConfig } from '@backend/infrastructure/queue/domain/QueueConfig';
+import { TaskId } from '@backend/tasks/domain/TaskId';
 import { createTaskQueue } from '@backend/tasks/queue/TaskQueue';
 import {
   createTestTaskRecord,
@@ -24,10 +24,7 @@ describe('TaskQueue', () => {
   const mockTasksRepo = getMockedTasksRepo();
   const mockQueueClientFactory = getMockedQueueClientFactory();
 
-  const createQueue = (
-    queueName = 'test-queue',
-    queueConfig?: TaskQueueConfig,
-  ) => {
+  const createQueue = (queueName = 'test-queue', queueConfig?: QueueConfig) => {
     return createTaskQueue(
       {
         queueName,
@@ -84,7 +81,15 @@ describe('TaskQueue', () => {
 
       await queue.enqueue(correlationId, task);
 
-      expect(mockQueueClient.enqueue).toHaveBeenCalledWith(correlationId, task);
+      // Expect QueueJobInput format (converted from TaskRecord)
+      expect(mockQueueClient.enqueue).toHaveBeenCalledWith(correlationId, {
+        id: task.id,
+        name: task.taskName,
+        data: task.payload,
+        priority: task.priority,
+        delay: undefined,
+        maxAttempts: task.maxAttempts,
+      });
     });
 
     it('should update task record with external job ID', async () => {

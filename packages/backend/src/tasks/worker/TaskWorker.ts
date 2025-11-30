@@ -1,16 +1,16 @@
-import type { ILogger } from '@backend/logger/Logger';
-import type { IAppConfigurationService } from '@backend/services/configuration/AppConfigurationService';
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import { createWorkerClientFactory } from '@backend/infrastructure/queue/clients/WorkerClientFactory';
+import type {
+  IWorkerClient,
+  WorkerJob,
+} from '@backend/infrastructure/queue/domain/WorkerClient';
 import type { TaskContext } from '@backend/tasks/domain/TaskContext';
 import type { TaskDefinition } from '@backend/tasks/domain/TaskDefinition';
 import { TaskId } from '@backend/tasks/domain/TaskId';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 import type { ITasksRepo } from '@backend/tasks/domain/TasksRepo';
-import type {
-  IWorkerClient,
-  WorkerJob,
-} from '@backend/tasks/domain/WorkerClient';
 import { createTasksRepo } from '@backend/tasks/repos/TasksRepo';
-import { createWorkerClientFactory } from '@backend/tasks/worker/clients/WorkerClientFactory';
 import { CorrelationId } from '@core/domain/CorrelationId';
 import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import { err, ok, type Result } from 'neverthrow';

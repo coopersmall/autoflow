@@ -7,12 +7,14 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./auth": "./src/auth/index.ts",
     "./db/*": "./src/db/*",
     "./repos/*": "./src/repos/*",
     "./cache/*": "./src/cache/*",
     "./services/*": "./src/services/*",
     "./http/*": "./src/http/*",
-    "./tasks/*": "./src/tasks/*"
+    "./tasks": "./src/tasks/index.ts",
+    "./users": "./src/users/index.ts"
   },
   "scripts": {
     "dev": "bun --hot src/server.ts",

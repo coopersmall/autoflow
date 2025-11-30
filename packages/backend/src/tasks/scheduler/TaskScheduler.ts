@@ -1,8 +1,8 @@
-import type { ILogger } from '@backend/logger/Logger';
-import type { IAppConfigurationService } from '@backend/services/configuration/AppConfigurationService';
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import type { QueueConfig } from '@backend/infrastructure/queue/domain/QueueConfig';
 import type { TaskDefinition } from '@backend/tasks/domain/TaskDefinition';
 import type { ITaskQueue } from '@backend/tasks/domain/TaskQueue';
-import type { TaskQueueConfig } from '@backend/tasks/domain/TaskQueueConfig';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 import { newTaskRecord } from '@backend/tasks/domain/TaskRecord';
 import type { ITasksRepo } from '@backend/tasks/domain/TasksRepo';
@@ -53,7 +53,7 @@ interface ITaskScheduler {
 interface TaskSchedulerConfig {
   logger: ILogger;
   appConfig: IAppConfigurationService;
-  queueConfig?: TaskQueueConfig;
+  queueConfig?: QueueConfig;
 }
 
 /**
@@ -111,7 +111,7 @@ class TaskScheduler implements ITaskScheduler {
   private readonly logger: ILogger;
   private readonly appConfig: IAppConfigurationService;
   private readonly tasksRepo: ITasksRepo;
-  private readonly queueConfig?: TaskQueueConfig;
+  private readonly queueConfig?: QueueConfig;
   private readonly queues: Map<string, ITaskQueue> = new Map();
 
   constructor(

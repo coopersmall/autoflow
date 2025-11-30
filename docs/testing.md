@@ -593,27 +593,105 @@ describe('UsersService', () => {
 
 ### Testing HTTP Handlers
 
+#### Integration Tests
+
 ```typescript
 import { setupHttpIntegrationTest } from '@backend/testing/integration/httpIntegrationTest';
+import { createUsersService } from '@backend/users';
+import { createAPIUserHandlers } from '@backend/users';
 
 describe('GET /users/:id', () => {
-  const { request, getServices } = setupHttpIntegrationTest();
+  const { getHttpServer, getHttpClient, getTestAuth, getConfig, getLogger, getRouteFactory } = 
+    setupHttpIntegrationTest();
+
+  beforeAll(async () => {
+    const config = getConfig();
+    const logger = getLogger();
+    const routeFactory = getRouteFactory();
+
+    // Create and start HTTP server with handlers
+    const handlers = [
+      createAPIUserHandlers({ logger, appConfig: config, routeFactory }),
+    ];
+
+    await getHttpServer().start(handlers);
+  });
 
   it('should return user by id', async () => {
     expect.assertions(3);
 
-    const services = getServices();
-    const createResult = await services.users().create({ schemaVersion: 1 });
+    // Create service for test setup
+    const usersService = createUsersService({
+      logger: getLogger(),
+      appConfig: () => getConfig(),
+    });
+
+    const createResult = await usersService.create({ 
+      schemaVersion: 1,
+      email: 'test@example.com',
+      name: 'Test User',
+    });
     const user = createResult._unsafeUnwrap();
 
-    const response = await request(`/users/${user.id}`, {
-      method: 'GET',
-    });
+    // Make HTTP request
+    const client = getHttpClient();
+    const auth = getTestAuth();
+    const headers = await auth.createAdminHeaders();
+
+    const response = await client.get(`/api/users/${user.id}`, { headers });
 
     expect(response.status).toBe(200);
     const body = await response.json();
     expect(body.id).toBe(user.id);
     expect(body.schemaVersion).toBe(1);
+  });
+});
+```
+
+#### Unit Tests with Middleware
+
+When testing routes with middleware configuration:
+
+```typescript
+import { describe, expect, it, mock } from 'bun:test';
+import { getMockedLogger } from '@backend/infrastructure/logger/__mocks__/Logger.mock';
+import { getMockMiddleware } from '@backend/infrastructure/http/handlers/middleware/__mocks__/HttpMiddleware.mock';
+
+describe('createRoute with middleware', () => {
+  it('should apply middleware to api routes', () => {
+    expect.assertions(2);
+
+    const logger = getMockedLogger();
+    const middleware = getMockMiddleware('success');
+    
+    // Create middleware factory that returns middleware
+    const mockMiddlewareFactory = mock(() => [middleware]);
+    
+    const middlewareConfig = {
+      api: [mockMiddlewareFactory],
+      app: [],
+      public: [],
+    };
+
+    const route = createRoute(
+      { logger, middlewareConfig, appConfig },
+      {
+        path: '/api/test',
+        method: 'GET',
+        routeType: 'api',
+        requiredPermissions: ['read:users'],
+        handler: async () => new Response('OK'),
+      },
+    );
+
+    // Verify middleware factory was called with permissions
+    expect(mockMiddlewareFactory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requiredPermissions: ['read:users'],
+      }),
+    );
+    
+    expect(route.path).toBe('/api/test');
   });
 });
 ```

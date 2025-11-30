@@ -1,9 +1,9 @@
-import type { ISharedService } from '@backend/services/shared/SharedService';
+import type { QueueStats } from '@backend/infrastructure/queue/domain/QueueStats';
+import type { ISharedService } from '@backend/infrastructure/services/SharedService';
 import type { CorrelationId } from '@core/domain/CorrelationId';
 import type { UserId } from '@core/domain/user/user';
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import type { Result } from 'neverthrow';
-import type { QueueStats } from './QueueStats';
 import type { TaskId } from './TaskId';
 import type { TaskRecord } from './TaskRecord';
 import type { TaskStatus } from './TaskStatus';

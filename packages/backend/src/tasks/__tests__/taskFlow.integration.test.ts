@@ -11,10 +11,10 @@
  */
 
 import { beforeEach, describe, expect, it } from 'bun:test';
+import { FAST_RETRY_CONFIG } from '@backend/infrastructure/queue/domain/QueueConfig';
 import type { TaskContext } from '@backend/tasks/domain/TaskContext';
 import { defineTask } from '@backend/tasks/domain/TaskDefinition';
 import type { TaskError } from '@backend/tasks/domain/TaskError';
-import { FAST_RETRY_QUEUE_CONFIG } from '@backend/tasks/domain/TaskQueueConfig';
 import type { TaskResult } from '@backend/tasks/domain/TaskResult';
 import { createTaskQueue } from '@backend/tasks/queue/TaskQueue';
 import { createTasksRepo } from '@backend/tasks/repos/TasksRepo';
@@ -225,7 +225,7 @@ describe('Task Flow Integration Tests', () => {
   });
 
   describe('Schedule → Process → Fail → Retry', () => {
-    // This test uses FAST_RETRY_QUEUE_CONFIG (100ms backoff) for fast execution
+    // This test uses FAST_RETRY_CONFIG (100ms backoff) for fast execution
     // With maxAttempts=3 and 100ms exponential backoff:
     // - Attempt 1: immediate
     // - Attempt 2: after 100ms delay
@@ -241,7 +241,7 @@ describe('Task Flow Integration Tests', () => {
       const scheduler = createTaskScheduler({
         logger,
         appConfig: config,
-        queueConfig: FAST_RETRY_QUEUE_CONFIG,
+        queueConfig: FAST_RETRY_CONFIG,
       });
       const worker = createTaskWorker({
         logger,

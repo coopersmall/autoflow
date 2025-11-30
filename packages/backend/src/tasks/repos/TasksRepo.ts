@@ -1,6 +1,6 @@
-import { validateRawDatabaseQuery } from '@backend/repos/domain/RawDatabaseQuery';
-import { SharedRepo } from '@backend/repos/SharedRepo';
-import type { IAppConfigurationService } from '@backend/services/configuration/AppConfigurationService';
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import { validateRawDatabaseQuery } from '@backend/infrastructure/repos/domain/RawDatabaseQuery';
+import { SharedRepo } from '@backend/infrastructure/repos/SharedRepo';
 import type { TaskId } from '@backend/tasks/domain/TaskId';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 import type { TaskStatus } from '@backend/tasks/domain/TaskStatus';

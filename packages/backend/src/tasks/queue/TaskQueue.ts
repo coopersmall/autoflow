@@ -1,19 +1,46 @@
-import type { ILogger } from '@backend/logger/Logger';
-import type { IAppConfigurationService } from '@backend/services/configuration/AppConfigurationService';
-import type { IQueueClient, QueueJob } from '@backend/tasks/domain/QueueClient';
-import type { QueueStats } from '@backend/tasks/domain/QueueStats';
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import { createQueueClientFactory } from '@backend/infrastructure/queue/clients/QueueClientFactory';
+import type {
+  IQueueClient,
+  QueueJob,
+  QueueJobInput,
+} from '@backend/infrastructure/queue/domain/QueueClient';
+import type { QueueConfig } from '@backend/infrastructure/queue/domain/QueueConfig';
+import type { QueueStats } from '@backend/infrastructure/queue/domain/QueueStats';
 import type { TaskId } from '@backend/tasks/domain/TaskId';
 import type { ITaskQueue } from '@backend/tasks/domain/TaskQueue';
-import type { TaskQueueConfig } from '@backend/tasks/domain/TaskQueueConfig';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 import type { ITasksRepo } from '@backend/tasks/domain/TasksRepo';
-import { createQueueClientFactory } from '@backend/tasks/queue/clients/QueueClientFactory';
 import { createTasksRepo } from '@backend/tasks/repos/TasksRepo';
 import type { CorrelationId } from '@core/domain/CorrelationId';
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import { err, ok, type Result } from 'neverthrow';
 
 export { createTaskQueue };
+
+/**
+ * Convert TaskRecord to generic QueueJobInput
+ * This is the adapter layer between task domain and queue infrastructure
+ */
+function taskToQueueJobInput(task: TaskRecord): QueueJobInput {
+  // Calculate delay if delayUntil is set
+  let delay: number | undefined;
+  if (task.delayUntil) {
+    const now = Date.now();
+    const delayUntilMs = task.delayUntil.getTime();
+    delay = Math.max(0, delayUntilMs - now);
+  }
+
+  return {
+    id: task.id,
+    name: task.taskName,
+    data: task.payload,
+    priority: task.priority,
+    delay,
+    maxAttempts: task.maxAttempts,
+  };
+}
 
 /**
  * Dependencies for TaskQueue (for testing)
@@ -30,7 +57,7 @@ interface TaskQueueDependencies {
  * @param logger - Logger instance
  * @param appConfig - Application configuration service
  * @param queueConfig - Optional queue configuration for retry behavior.
- *                      Use FAST_RETRY_QUEUE_CONFIG for integration tests.
+ *                      Use FAST_RETRY_CONFIG for integration tests.
  * @param dependencies - Optional dependencies for testing
  */
 function createTaskQueue(
@@ -43,7 +70,7 @@ function createTaskQueue(
     queueName: string;
     logger: ILogger;
     appConfig: IAppConfigurationService;
-    queueConfig?: TaskQueueConfig;
+    queueConfig?: QueueConfig;
   },
   dependencies?: TaskQueueDependencies,
 ): ITaskQueue {
@@ -81,7 +108,7 @@ class TaskQueue implements ITaskQueue {
     private readonly logger: ILogger,
     private readonly appConfig: IAppConfigurationService,
     private readonly queueName: string,
-    private readonly queueConfig?: TaskQueueConfig,
+    private readonly queueConfig?: QueueConfig,
     private readonly dependencies = {
       createQueueClientFactory,
       createTasksRepo,
@@ -114,7 +141,8 @@ class TaskQueue implements ITaskQueue {
     }
 
     const client = clientResult.value;
-    const enqueueResult = await client.enqueue(correlationId, task);
+    const jobInput = taskToQueueJobInput(task);
+    const enqueueResult = await client.enqueue(correlationId, jobInput);
 
     if (enqueueResult.isErr()) {
       this.logger.error('Failed to enqueue task', enqueueResult.error, {

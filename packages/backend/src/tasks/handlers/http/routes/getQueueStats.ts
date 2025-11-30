@@ -1,5 +1,5 @@
-import type { RequestContext } from '@backend/http/handlers/domain/RequestContext';
-import { buildHttpErrorResponse } from '@backend/http/handlers/errors/buildHttpErrorResponse';
+import type { RequestContext } from '@backend/infrastructure/http/handlers/domain/RequestContext';
+import { buildHttpErrorResponse } from '@backend/infrastructure/http/handlers/errors/buildHttpErrorResponse';
 import type { ITasksService } from '@backend/tasks/domain/TasksService';
 import { string } from '@core/validation/validate';
 

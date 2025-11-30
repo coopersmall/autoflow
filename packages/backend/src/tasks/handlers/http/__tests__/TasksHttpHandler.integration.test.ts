@@ -29,8 +29,14 @@ interface QueueStatsResponse {
 }
 
 describe('TasksHttpHandler Integration Tests', () => {
-  const { getHttpServer, getHttpClient, getTestAuth, getConfig, getLogger } =
-    setupHttpIntegrationTest();
+  const {
+    getHttpServer,
+    getHttpClient,
+    getTestAuth,
+    getConfig,
+    getLogger,
+    getRouteFactory,
+  } = setupHttpIntegrationTest();
 
   // Helper to create a task directly in the database for testing
   // Note: BullMQ doesn't allow colons in queue names, so we use 'test-task' instead of 'test:task'
@@ -58,11 +64,13 @@ describe('TasksHttpHandler Integration Tests', () => {
   beforeAll(async () => {
     const config = getConfig();
     const logger = getLogger();
+    const routeFactory = getRouteFactory();
 
     const handlers = [
       createTasksHttpHandler({
         logger,
         appConfig: config,
+        routeFactory,
       }),
     ];
 

@@ -1,4 +1,4 @@
 import { type Id, newId } from './Id';
 
-export type CorrelationId = Id<'CorrelationId'>;
+export type CorrelationId = Readonly<Id<'CorrelationId'>>;
 export const CorrelationId = newId<CorrelationId>;

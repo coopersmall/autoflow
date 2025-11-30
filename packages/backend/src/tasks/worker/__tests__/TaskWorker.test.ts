@@ -1,17 +1,17 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
-import { getMockedLogger } from '@backend/logger/__mocks__/Logger.mock';
-import { getMockedAppConfigurationService } from '@backend/services/configuration/__mocks__/AppConfigurationService.mock';
-import { defineTask } from '@backend/tasks/domain/TaskDefinition';
-import type { WorkerEvents } from '@backend/tasks/domain/WorkerClient';
-import {
-  createTestTaskRecord,
-  getMockedTasksRepo,
-} from '@backend/tasks/repos/__mocks__/TasksRepo.mock';
+import { getMockedAppConfigurationService } from '@backend/infrastructure/configuration/__mocks__/AppConfigurationService.mock';
+import { getMockedLogger } from '@backend/infrastructure/logger/__mocks__/Logger.mock';
 import {
   createTestProviderContext,
   createTestWorkerJob,
   getMockedWorkerClient,
-} from '@backend/tasks/worker/__mocks__/WorkerClient.mock';
+} from '@backend/infrastructure/queue/__mocks__/WorkerClient.mock';
+import type { WorkerEvents } from '@backend/infrastructure/queue/domain/WorkerClient';
+import { defineTask } from '@backend/tasks/domain/TaskDefinition';
+import {
+  createTestTaskRecord,
+  getMockedTasksRepo,
+} from '@backend/tasks/repos/__mocks__/TasksRepo.mock';
 import { createTaskWorker } from '@backend/tasks/worker/TaskWorker';
 import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import { validate } from '@core/validation/validate';

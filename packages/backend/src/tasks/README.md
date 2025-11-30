@@ -366,8 +366,10 @@ A **Service** for managing all task operations:
 ### Querying Task History
 
 ```typescript
-// Via TasksService
-const tasksService = serviceFactory.getService('tasks');
+// Create TasksService
+import { createTasksService } from '@backend/tasks';
+
+const tasksService = createTasksService({ logger, appConfig: () => config });
 
 // Get all failed tasks
 const recentFailures = await tasksService.getByStatus('failed');
@@ -397,8 +399,10 @@ const stats = await tasksService.getQueueStats(
 ### Retry/Cancel Operations
 
 ```typescript
-// Via TasksService
-const tasksService = serviceFactory.getService('tasks');
+// Create TasksService
+import { createTasksService } from '@backend/tasks';
+
+const tasksService = createTasksService({ logger, appConfig: () => config });
 
 // Retry a failed task
 await tasksService.retryTask(correlationId, taskId);
@@ -412,32 +416,57 @@ await tasksService.cancelTask(correlationId, taskId);
 ## Directory Structure
 
 ```
-src/
-├── db/
-│   └── schema.ts                                # Drizzle schema (tasks table)
+packages/backend/src/
+├── infrastructure/
+│   └── db/
+│       └── schema.ts                            # Drizzle schema (tasks table)
 │
-└── lib/
-    ├── services/
-    │   ├── ServiceFactory.ts                    # Register all services
-    │   └── [other services...]
+└── tasks/                                       # ← Task feature module
+    ├── README.md                                # This file
+    ├── index.ts                                 # Public exports
     │
-    └── tasks/                                   # ← Task infrastructure
-        ├── README.md                            # This file
-        │
-        ├── services/                            # Service layer
-        │   ├── TasksService.ts                  # Unified task management
-        │   ├── actions/                         # Action functions
-        │   │   ├── operations/
-        │   │   │   ├── cancelTask.ts            # Cancel operation
-        │   │   │   ├── retryTask.ts             # Retry operation
-        │   │   │   └── __tests__/
-        │   │   └── queries/
-        │   │       ├── getTasksByStatus.ts
-        │   │       ├── getTasksByTaskName.ts
-        │   │       ├── getTasksByUserId.ts
-        │   │       ├── listTasks.ts
-        │   │       ├── getQueueStats.ts
-        │   │       └── __tests__/
+    ├── TasksService.ts                          # Unified task management
+    ├── domain/
+    │   └── TasksService.ts                      # Service interface
+    ├── actions/                                 # Action functions
+    │   ├── operations/
+    │   │   ├── cancelTask.ts                    # Cancel operation
+    │   │   ├── retryTask.ts                     # Retry operation
+    │   │   └── __tests__/
+    │   └── queries/
+    │       ├── getTasksByStatus.ts
+    │       ├── getTasksByTaskName.ts
+    │       ├── getTasksByUserId.ts
+    │       ├── listTasks.ts
+    │       ├── getQueueStats.ts
+    │       └── __tests__/
+    ├── __tests__/
+    │   └── TasksService.integration.test.ts
+    ├── __mocks__/
+    │   └── TasksService.mock.ts
+    │
+    ├── scheduler/                               # Task scheduling
+    │   ├── TaskScheduler.ts                     # Factory: createTaskScheduler()
+    │   ├── __tests__/
+    │   └── __mocks__/
+    │
+    ├── worker/                                  # Task processing
+    │   ├── TaskWorker.ts                        # Factory: createTaskWorker()
+    │   ├── clients/
+    │   │   ├── WorkerClientFactory.ts
+    │   │   └── bullmq/
+    │   │       ├── BullMQWorkerClient.ts
+    │   │       └── __tests__/
+    │   ├── __tests__/
+    │   └── __mocks__/
+    │
+    ├── queue/                                   # Queue clients
+    │   ├── TaskQueue.ts                         # Factory: createTaskQueue()
+    │   ├── clients/
+    │   │   ├── QueueClientFactory.ts
+    │   │   └── bullmq/
+    │   │       ├── BullMQQueueClient.ts
+    │   │       └── __tests__/
         │   ├── __tests__/
         │   │   └── TasksService.integration.test.ts
         │   └── __mocks__/
@@ -1042,8 +1071,10 @@ process.on('SIGTERM', async () => {
 ### Managing Tasks (Admin)
 
 ```typescript
-// Query tasks via TasksService
-const tasksService = serviceFactory.getService('tasks');
+// Create TasksService
+import { createTasksService } from '@backend/tasks';
+
+const tasksService = createTasksService({ logger, appConfig: () => config });
 
 // Get failed tasks
 const failures = await tasksService.getByStatus('failed');

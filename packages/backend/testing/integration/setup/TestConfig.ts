@@ -2,7 +2,7 @@ import { generateKeyPairSync } from 'node:crypto';
 import {
   createAppConfigurationService,
   type IAppConfigurationService,
-} from '@backend/services/configuration/AppConfigurationService';
+} from '@backend/infrastructure/configuration/AppConfigurationService';
 
 export interface TestUrls {
   databaseUrl: string;
