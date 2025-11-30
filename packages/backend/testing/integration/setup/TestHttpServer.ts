@@ -15,13 +15,13 @@
  * - Making HTTP requests (use TestHttpClient)
  * - Managing authentication (use TestAuth)
  */
-import type { IHttpHandler } from '@backend/http/domain/HttpHandler';
+import type { IHttpHandler } from '@backend/infrastructure/http/domain/HttpHandler';
 import type {
   IHttpServer,
   StopFunction,
-} from '@backend/http/domain/HttpServer';
-import { createServer } from '@backend/http/server/HttpServer';
-import type { ILogger } from '@backend/logger/Logger';
+} from '@backend/infrastructure/http/domain/HttpServer';
+import { createServer } from '@backend/infrastructure/http/server/HttpServer';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
 
 /**
  * Test HTTP server for integration testing.

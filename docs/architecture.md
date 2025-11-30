@@ -369,50 +369,103 @@ services/users/
 
 ## Dependency Injection
 
-### ServiceFactory Pattern
+### Direct Service Creation
 
-Central registry for all services:
+Services are created directly using factory functions where needed:
 
 ```typescript
-// packages/backend/src/services/ServiceFactory.ts
+// In HTTP handlers
+import { createUsersService } from '@backend/users';
 
-export interface IServiceFactory {
-  getService<T extends ServiceName>(serviceName: T): ServiceConstructor<T>;
-}
-
-function createServices({ logger }: { logger: ILogger }): IServices {
-  const appConfig = () => createAppConfigurationService();
-  
-  const users = () => createUsersService({
-    logger,
-    appConfig,
-  });
-  
-  const secrets = () => createSecretsService({
-    logger,
-    appConfig,
-    encryptionService: () => createRSAEncryptionService({ logger }),
-  });
-  
-  return {
-    appConfig,
-    users,
-    secrets,
-    // ... other services
-  };
+class UsersHttpHandler {
+  constructor(ctx: { logger: ILogger; appConfig: IAppConfigurationService }) {
+    const usersService = createUsersService({
+      logger: ctx.logger,
+      appConfig: () => ctx.appConfig,
+    });
+    
+    // Use service...
+  }
 }
 ```
 
-### Using Services
+### Composing Services
+
+When one service depends on another, create them in the constructor:
 
 ```typescript
-// In HTTP handlers or other services
-const serviceFactory = createServiceFactory({ logger });
+// Service that depends on other services
+export function createSecretsService(ctx: SecretsServiceContext) {
+  return new SecretsService(ctx);
+}
 
-const usersService = serviceFactory.getService('users')();
-const secretsService = serviceFactory.getService('secrets')();
+interface SecretsServiceContext {
+  logger: ILogger;
+  appConfig: () => IAppConfigurationService;
+  encryptionService: () => IEncryptionService;
+}
 
-const userResult = await usersService.get(userId);
+class SecretsService {
+  constructor(
+    readonly ctx: SecretsServiceContext,
+    dependencies = {
+      createSecretsRepo,
+      createSecretsCache,
+    }
+  ) {
+    // Services created on-demand
+    const appConfig = ctx.appConfig();
+    
+    super('secrets', {
+      ...ctx,
+      repo: () => dependencies.createSecretsRepo({ appConfig }),
+      cache: () => dependencies.createSecretsCache({ logger: ctx.logger, appConfig }),
+      newId: SecretId,
+    });
+  }
+}
+
+// Usage - create encryption service first, then pass to secrets service
+const encryptionService = createRSAEncryptionService({ logger });
+const secretsService = createSecretsService({
+  logger,
+  appConfig: () => config,
+  encryptionService: () => encryptionService,
+});
+```
+
+### Handler Pattern
+
+HTTP handlers receive dependencies and create services internally:
+
+```typescript
+// apps/api/src/handlers.manifest.ts
+export function createHandlers(deps: {
+  logger: ILogger;
+  appConfig: IAppConfigurationService;
+}): IHttpHandler[] {
+  const routeFactory = createRouteFactory(deps);
+  
+  return [
+    createAPIUserHandlers({ ...deps, routeFactory }),
+    createTasksHttpHandler({ ...deps, routeFactory }),
+  ];
+}
+
+// packages/backend/src/users/handlers/http/UsersHttpHandler.ts
+export function createAPIUserHandlers(ctx: {
+  logger: ILogger;
+  appConfig: IAppConfigurationService;
+  routeFactory: IHttpRouteFactory;
+}): IHttpHandler {
+  // Service created inside handler
+  const usersService = createUsersService({
+    logger: ctx.logger,
+    appConfig: () => ctx.appConfig,
+  });
+  
+  return new UsersHttpHandler({ ...ctx, service: usersService });
+}
 ```
 
 ## Error Handling Strategy
@@ -613,7 +666,7 @@ Key architectural patterns:
 3. **Context Objects**: Pass dependencies via structured context
 4. **Action Pattern**: Pure business logic in `actions/` folder
 5. **Service Patterns**: SharedService for global data, StandardService for user-scoped data
-6. **Dependency Injection**: ServiceFactory manages service creation
+6. **Dependency Injection**: Direct service creation via factory functions
 7. **Immutability**: Prefer const, avoid mutations
 
 ## Next Steps

@@ -1,11 +1,8 @@
-import type { IHttpHandler } from '@backend/http/domain/HttpHandler';
-import type { IHttpRoute } from '@backend/http/domain/HttpRoute';
-import {
-  createHttpRouteFactory,
-  type IHttpHandlerFactoryService,
-} from '@backend/http/handlers/factory/HttpHandlerFactory';
-import type { ILogger } from '@backend/logger/Logger';
-import type { IAppConfigurationService } from '@backend/services/configuration/AppConfigurationService';
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { IHttpHandler } from '@backend/infrastructure/http/domain/HttpHandler';
+import type { IHttpRoute } from '@backend/infrastructure/http/domain/HttpRoute';
+import type { IHttpRouteFactory } from '@backend/infrastructure/http/handlers/domain/HttpRouteFactory';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { ITasksService } from '@backend/tasks/domain/TasksService';
 import { createTasksService } from '@backend/tasks/services/TasksService';
 import { cancelTaskHandler } from './routes/cancelTask';
@@ -23,6 +20,7 @@ export function createTasksHttpHandler(
 interface TasksHttpHandlerContext {
   logger: ILogger;
   appConfig: IAppConfigurationService;
+  routeFactory: IHttpRouteFactory;
 }
 
 /**
@@ -39,20 +37,16 @@ interface TasksHttpHandlerContext {
  * HTTP infrastructure for authentication and authorization.
  */
 class TasksHttpHandler implements IHttpHandler {
-  private readonly factory: IHttpHandlerFactoryService;
+  private readonly factory: IHttpRouteFactory;
   private readonly tasksService: ITasksService;
 
   constructor(
     readonly ctx: TasksHttpHandlerContext,
     readonly dependencies = {
-      createHttpRouteFactory,
       createTasksService,
     },
   ) {
-    this.factory = dependencies.createHttpRouteFactory({
-      appConfig: ctx.appConfig,
-      logger: ctx.logger,
-    });
+    this.factory = ctx.routeFactory;
 
     this.tasksService = dependencies.createTasksService({
       logger: ctx.logger,

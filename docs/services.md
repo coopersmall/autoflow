@@ -6,8 +6,8 @@ This guide explains how to create new services in Autoflow, following our establ
 
 Creating a new service involves:
 1. Define domain model in `packages/core/src/domain/`
-2. Create service structure in `packages/backend/src/services/`
-3. Register in `ServiceFactory.ts`
+2. Create service structure in `packages/backend/src/<feature>/`
+3. Export from feature module's `index.ts`
 4. Add HTTP handlers if needed
 
 ## When to Create a Service
@@ -100,8 +100,10 @@ export function validWidget(input: unknown): Result<Widget, ValidationError> {
 
 ### Step 2: Create Service Structure
 
+Services are organized by feature module in `packages/backend/src/<feature>/`:
+
 ```
-packages/backend/src/services/widgets/
+packages/backend/src/widgets/
 ├── WidgetsService.ts           # Service implementation
 ├── domain/
 │   └── WidgetsService.ts        # Interface definition
@@ -113,16 +115,20 @@ packages/backend/src/services/widgets/
 │   ├── processWidget.ts         # Business logic
 │   └── __tests__/
 │       └── processWidget.test.ts
+├── handlers/
+│   └── http/
+│       └── WidgetsHttpHandler.ts
 ├── __tests__/
 │   └── WidgetsService.integration.test.ts
-└── __mocks__/
-    └── WidgetsService.mock.ts
+├── __mocks__/
+│   └── WidgetsService.mock.ts
+└── index.ts                     # Public exports
 ```
 
 ### Step 3: Define Service Interface
 
 ```typescript
-// packages/backend/src/services/widgets/domain/WidgetsService.ts
+// packages/backend/src/widgets/domain/WidgetsService.ts
 
 import type { Widget, WidgetId } from '@core/domain/widget/widget';
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
@@ -140,10 +146,10 @@ export interface IWidgetsService {
 ### Step 4: Create Repository
 
 ```typescript
-// packages/backend/src/services/widgets/repos/WidgetsRepo.ts
+// packages/backend/src/widgets/repos/WidgetsRepo.ts
 
-import type { IAppConfigurationService } from '@backend/services/configuration/AppConfigurationService';
-import { SharedRepo } from '@backend/repos/SharedRepo';
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import { SharedRepo } from '@backend/infrastructure/repos/SharedRepo';
 import { validWidget } from '@core/domain/widget/validation/validWidget';
 import { type Widget, WidgetId } from '@core/domain/widget/widget';
 
@@ -163,11 +169,11 @@ function createWidgetsRepo(config: {
 ### Step 5: Create Cache (if needed)
 
 ```typescript
-// packages/backend/src/services/widgets/cache/WidgetsCache.ts
+// packages/backend/src/widgets/cache/WidgetsCache.ts
 
-import type { ILogger } from '@backend/logger/Logger';
-import type { IAppConfigurationService } from '@backend/services/configuration/AppConfigurationService';
-import { StandardCache } from '@backend/cache/StandardCache';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import { SharedCache } from '@backend/infrastructure/cache/SharedCache';
 import { validWidget } from '@core/domain/widget/validation/validWidget';
 import { type Widget, WidgetId } from '@core/domain/widget/widget';
 
@@ -177,7 +183,7 @@ function createWidgetsCache(config: {
   logger: ILogger;
   appConfig: IAppConfigurationService;
 }) {
-  return new StandardCache<WidgetId, Widget>({
+  return new SharedCache<WidgetId, Widget>({
     ...config,
     keyPrefix: 'widget',
     validator: validWidget,
@@ -188,11 +194,11 @@ function createWidgetsCache(config: {
 ### Step 6: Implement Service
 
 ```typescript
-// packages/backend/src/services/widgets/WidgetsService.ts
+// packages/backend/src/widgets/WidgetsService.ts
 
-import type { ILogger } from '@backend/logger/Logger';
-import type { IAppConfigurationService } from '@backend/services/configuration/AppConfigurationService';
-import { SharedService } from '@backend/services/shared/SharedService';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import { SharedService } from '@backend/infrastructure/services/SharedService';
 import { type Widget, WidgetId } from '@core/domain/widget/widget';
 import { createWidgetsCache } from './cache/WidgetsCache';
 import type { IWidgetsService } from './domain/WidgetsService';
@@ -201,7 +207,7 @@ import { createWidgetsRepo } from './repos/WidgetsRepo';
 export { createWidgetsService };
 export type { IWidgetsService };
 
-function createWidgetsService(ctx: WidgetsServiceContext): WidgetsService {
+function createWidgetsService(ctx: WidgetsServiceContext): IWidgetsService {
   return new WidgetsService(ctx);
 }
 
@@ -240,9 +246,9 @@ class WidgetsService
 ### Step 7: Create Mock
 
 ```typescript
-// packages/backend/src/services/widgets/__mocks__/WidgetsService.mock.ts
+// packages/backend/src/widgets/__mocks__/WidgetsService.mock.ts
 
-import type { IWidgetsService } from '@backend/services/widgets/domain/WidgetsService';
+import type { IWidgetsService } from '@backend/widgets/domain/WidgetsService';
 import type { ExtractMockMethods } from '@core/types';
 import { mock } from 'bun:test';
 
@@ -257,33 +263,46 @@ export function getMockedWidgetsService(): ExtractMockMethods<IWidgetsService> {
 }
 ```
 
-### Step 8: Register in ServiceFactory
+### Step 8: Export from Feature Module
+
+Create an `index.ts` file that exports your service and any handlers:
 
 ```typescript
-// packages/backend/src/services/ServiceFactory.ts
+// packages/backend/src/widgets/index.ts
 
-import {
-  createWidgetsService,
-  type IWidgetsService,
-} from './widgets/WidgetsService';
+export { createWidgetsService, type IWidgetsService } from './WidgetsService';
+export { createWidgetsHttpHandler } from './handlers/http/WidgetsHttpHandler';
+```
 
-interface IServices {
-  // ... existing services
-  widgets: () => IWidgetsService;
-}
+This allows other modules to import your service:
 
-function createServices({ logger }: { logger: ILogger }): IServices {
-  const appConfig = () => createAppConfigurationService();
-  
-  const widgets = () => createWidgetsService({
-    logger,
-    appConfig,
-  });
+```typescript
+// In handlers or other modules
+import { createWidgetsService } from '@backend/widgets';
 
-  return {
-    // ... existing services
-    widgets,
-  };
+const widgetsService = createWidgetsService({
+  logger,
+  appConfig: () => config,
+});
+```
+
+### Step 9: Add to Handlers Manifest (Optional)
+
+If you created HTTP handlers, add them to the API handlers manifest:
+
+```typescript
+// apps/api/src/handlers.manifest.ts
+
+import { createWidgetsHttpHandler } from '@autoflow/backend/widgets';
+
+export function createHandlers(deps: HandlerDeps): IHttpHandler[] {
+  const routeFactory = createRouteFactory(deps);
+
+  return [
+    createAPIUserHandlers({ ...deps, routeFactory }),
+    createTasksHttpHandler({ ...deps, routeFactory }),
+    createWidgetsHttpHandler({ ...deps, routeFactory }), // <- Add here
+  ];
 }
 ```
 
@@ -292,9 +311,9 @@ function createServices({ logger }: { logger: ILogger }): IServices {
 Actions are pure functions for business logic:
 
 ```typescript
-// packages/backend/src/services/widgets/actions/processWidget.ts
+// packages/backend/src/widgets/actions/processWidget.ts
 
-import type { ILogger } from '@backend/logger/Logger';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { Widget } from '@core/domain/widget/widget';
 import { ok, type Result } from 'neverthrow';
 
@@ -345,9 +364,9 @@ class WidgetsService extends SharedService<WidgetId, Widget> {
 ### Integration Tests
 
 ```typescript
-// packages/backend/src/services/widgets/__tests__/WidgetsService.integration.test.ts
+// packages/backend/src/widgets/__tests__/WidgetsService.integration.test.ts
 
-import { createWidgetsService } from '@backend/services/widgets/WidgetsService';
+import { createWidgetsService } from '@backend/widgets/WidgetsService';
 import { setupIntegrationTest } from '@backend/testing/integration/integrationTest';
 import { describe, expect, it } from 'bun:test';
 
@@ -386,34 +405,78 @@ See [Testing Guide](./testing.md) for more patterns.
 
 ## HTTP Handlers
 
-Create handlers to expose your service via HTTP:
+Create handlers to expose your service via HTTP using `SharedHTTPHandler`:
 
 ```typescript
-// packages/backend/src/http/handlers/widgets/getWidget.ts
+// packages/backend/src/widgets/handlers/http/WidgetsHttpHandler.ts
 
-import type { IWidgetsService } from '@backend/services/widgets/domain/WidgetsService';
-import { WidgetId } from '@core/domain/widget/widget';
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { IHttpHandler } from '@backend/infrastructure/http/domain/HttpHandler';
+import type { IHttpRouteFactory } from '@backend/infrastructure/http/handlers/domain/HttpRouteFactory';
+import { SharedHTTPHandler } from '@backend/infrastructure/http/handlers/SharedHttpHandler';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import { createWidgetsService, type IWidgetsService } from '@backend/widgets';
+import type { Widget, WidgetId } from '@core/domain/widget/widget';
+import {
+  validPartialWidget,
+  validUpdateWidget,
+  validWidget,
+  validWidgetId,
+} from '@core/domain/widget/validation/validWidget';
 
-export async function getWidget(
-  request: Request,
-  services: { widgets: () => IWidgetsService },
-): Promise<Response> {
-  const id = WidgetId(request.params.id);
-  
-  const result = await services.widgets().get(id);
-  
-  if (result.isErr()) {
-    return new Response(JSON.stringify({ error: result.error.message }), {
-      status: 404,
+export function createWidgetsHttpHandler(
+  context: WidgetsHttpHandlerContext,
+): IHttpHandler {
+  return new WidgetsHttpHandler(context);
+}
+
+interface WidgetsHttpHandlerContext {
+  logger: ILogger;
+  appConfig: IAppConfigurationService;
+  routeFactory: IHttpRouteFactory;
+}
+
+class WidgetsHttpHandler
+  extends SharedHTTPHandler<WidgetId, Widget>
+  implements IHttpHandler
+{
+  constructor(readonly ctx: WidgetsHttpHandlerContext) {
+    // Create service directly in constructor
+    const widgetsService: IWidgetsService = createWidgetsService({
+      logger: ctx.logger,
+      appConfig: () => ctx.appConfig,
+    });
+
+    super({
+      ...ctx,
+      service: () => widgetsService,
+      validators: {
+        id: validWidgetId,
+        item: validWidget,
+        partial: validPartialWidget,
+        update: validUpdateWidget,
+      },
     });
   }
-  
-  return new Response(JSON.stringify(result.value), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
+
+  routes() {
+    return super.routes({
+      type: 'api',
+      readPermissions: ['admin', 'read:widgets'],
+      writePermissions: ['admin', 'write:widgets'],
+    });
+  }
 }
 ```
+
+This automatically creates CRUD endpoints:
+- `GET /api/widgets/:id` - Get single widget
+- `GET /api/widgets` - Get all widgets
+- `POST /api/widgets` - Create widget
+- `PUT /api/widgets/:id` - Update widget
+- `DELETE /api/widgets/:id` - Delete widget
+
+See [HTTP Handlers Guide](./http-handlers.md) for more details.
 
 ## Best Practices
 

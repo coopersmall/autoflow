@@ -20,13 +20,13 @@
  *   beforeAll(async () => {
  *     const config = getConfig();
  *     const logger = getLogger();
- *     const serviceFactory = createServiceFactory({ logger });
+ *     const service = createMyService({ logger });
  *
  *     const handlers = [
  *       createMyHandler({
  *         logger,
  *         appConfig: config,
- *         service: serviceFactory.getService('myService'),
+ *         service: () => service,
  *       }),
  *     ];
  *
@@ -45,10 +45,19 @@
  */
 
 import { afterAll, beforeAll, beforeEach } from 'bun:test';
-import { getMockedLogger } from '@backend/logger/__mocks__/Logger.mock';
-import type { ILogger } from '@backend/logger/Logger';
-import type { IAppConfigurationService } from '@backend/services/configuration/AppConfigurationService';
-import { createJWTService } from '@backend/services/jwt/JWTService';
+import {
+  createAuthMiddlewareFactories,
+  createAuthService,
+} from '@backend/auth';
+import {
+  createHttpRouteFactory,
+  type IHttpRouteFactory,
+  type RouteMiddlewareConfig,
+} from '@backend/infrastructure';
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import { createEncryptionService } from '@backend/infrastructure/encryption';
+import { getMockedLogger } from '@backend/infrastructure/logger/__mocks__/Logger.mock';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import { TestAuth } from '@backend/testing/integration/setup/TestAuth';
 import { TestCache } from '@backend/testing/integration/setup/TestCache';
 import { createTestConfig } from '@backend/testing/integration/setup/TestConfig';
@@ -109,6 +118,20 @@ export interface HttpIntegrationTestContext {
    * ```
    */
   getTestAuth: () => TestAuth;
+
+  /**
+   * Returns the HTTP route factory with middleware configuration.
+   * Use this to create handlers that need route factories.
+   *
+   * @example
+   * ```typescript
+   * const routeFactory = getRouteFactory();
+   * const handlers = [
+   *   createMyHandler({ logger, appConfig: config, routeFactory }),
+   * ];
+   * ```
+   */
+  getRouteFactory: () => IHttpRouteFactory;
 }
 
 /**
@@ -165,6 +188,7 @@ export function setupHttpIntegrationTest(): HttpIntegrationTestContext {
   let httpServer: TestHttpServer;
   let httpClient: TestHttpClient;
   let testAuth: TestAuth;
+  let routeFactory: IHttpRouteFactory;
   let port: number;
 
   beforeAll(async () => {
@@ -190,9 +214,29 @@ export function setupHttpIntegrationTest(): HttpIntegrationTestContext {
     // Create HTTP client pointing to server
     httpClient = new TestHttpClient(httpServer.getBaseUrl());
 
-    // Create auth helper with JWT service
-    const jwtService = createJWTService({ logger });
-    testAuth = new TestAuth(config, jwtService);
+    // Create auth helper with auth service
+    const authService = createAuthService({
+      logger,
+      appConfig: () => config,
+    });
+
+    // Create encryption service for auth
+    const encryptionService = createEncryptionService({ logger });
+
+    testAuth = new TestAuth(config, authService, encryptionService);
+
+    // Create route factory with auth middleware
+    const auth = createAuthMiddlewareFactories({ logger, appConfig: config });
+    const middlewareConfig: RouteMiddlewareConfig = {
+      api: [auth.bearerToken],
+      app: [auth.cookie],
+      public: [],
+    };
+    routeFactory = createHttpRouteFactory({
+      appConfig: config,
+      logger,
+      middlewareConfig,
+    });
   });
 
   beforeEach(async () => {
@@ -224,5 +268,6 @@ export function setupHttpIntegrationTest(): HttpIntegrationTestContext {
     getHttpServer: () => httpServer,
     getHttpClient: () => httpClient,
     getTestAuth: () => testAuth,
+    getRouteFactory: () => routeFactory,
   };
 }

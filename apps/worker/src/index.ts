@@ -2,8 +2,8 @@ import {
   createAppConfigurationService,
   createTaskWorker,
   getLogger,
-  tasks,
 } from '@autoflow/backend';
+import { tasks } from './tasks.manifest';
 
 /**
  * Worker application entry point.

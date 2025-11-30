@@ -3,8 +3,8 @@
  *
  * Provides utilities for generating JWT tokens with configurable permissions
  * to test various authentication and authorization scenarios. Uses the real
- * JWT service (not mocks) to create valid tokens that will be accepted by
- * authentication middleware.
+ * auth and encryption services (not mocks) to create valid tokens that will
+ * be accepted by authentication middleware.
  *
  * Supports testing:
  * - 401 Unauthorized (no token, invalid token, expired token)
@@ -13,7 +13,7 @@
  *
  * Usage:
  * ```typescript
- * const auth = new TestAuth(config, jwtService);
+ * const auth = new TestAuth(config, authService);
  *
  * // Test with admin permissions
  * const adminHeaders = await auth.createAdminHeaders();
@@ -25,8 +25,10 @@
  * await client.post('/api/users', data, { headers }); // 403
  * ```
  */
-import type { IAppConfigurationService } from '@backend/services/configuration/AppConfigurationService';
-import type { IJWTService } from '@backend/services/jwt/JWTService';
+
+import type { IAuthService } from '@backend/auth/domain/AuthService';
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { IEncryptionService } from '@backend/infrastructure/encryption';
 import type { Permission } from '@core/domain/permissions/permissions';
 import { UserId } from '@core/domain/user/user';
 
@@ -48,7 +50,7 @@ export interface CreateTokenOptions {
 
   /**
    * Token expiration time in seconds.
-   * If not provided, uses default from JWT service.
+   * If not provided, uses default from auth service.
    * Use -1 to create an expired token.
    */
   expirationTime?: number;
@@ -59,7 +61,7 @@ export interface CreateTokenOptions {
  *
  * @example
  * ```typescript
- * const auth = new TestAuth(config, jwtService);
+ * const auth = new TestAuth(config, authService);
  * const token = await auth.createAdminToken();
  * const headers = auth.createBearerHeaders(token);
  * ```
@@ -69,11 +71,12 @@ export class TestAuth {
    * Creates a new test auth helper.
    *
    * @param config - App configuration service (provides JWT keys)
-   * @param jwtService - JWT service for token generation
+   * @param authService - Auth service for token generation
    */
   constructor(
     private readonly config: IAppConfigurationService,
-    private readonly jwtService: IJWTService,
+    private readonly authService: IAuthService,
+    private readonly encryptionService: IEncryptionService,
   ) {}
 
   /**
@@ -101,15 +104,20 @@ export class TestAuth {
       expirationTime,
     } = options;
 
-    const tokenResult = await this.jwtService.createAndEncode({
+    const tokenResult = this.authService.createClaim({
       userId,
       permissions,
       expirationTime,
-      privateKey: this.config.jwtPrivateKey!,
-      appConfig: () => this.config,
     });
 
-    return tokenResult._unsafeUnwrap();
+    const token = tokenResult._unsafeUnwrap();
+
+    const encodedTokenResult = await this.encryptionService.encodeJWT({
+      claim: token,
+      privateKey: this.config.jwtPrivateKey!,
+    });
+
+    return encodedTokenResult._unsafeUnwrap();
   }
 
   /**

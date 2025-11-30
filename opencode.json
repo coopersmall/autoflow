@@ -1,0 +1,42 @@
+{
+  "enabled_providers": [
+    "anthropic"
+  ],
+  "small_model": "anthropic/claude-haiku-4-5",
+  "agent": {
+    "plan": {
+        "mode": "primary",
+        "model": "anthropic/claude-opus-4-5",
+        "tools": {
+            "write": true,
+            "edit": false,
+            "bash": false
+        }
+    },
+    "build": {
+        "mode": "primary",
+        "model": "anthropic/claude-sonnet-4-5",
+        "tools": {
+            "write": true,
+            "edit": true,
+            "bash": true
+        }
+    },
+  },
+  "formatter": {
+    "biome": {
+      "command": ["bunx", "biome", "format"],
+      "extensions": [".js", ".ts", ".jsx", ".tsx"]
+    }
+  },
+  "keybinds": {
+    "messages_half_page_up": "ctrl+k",
+    "messages_half_page_down": "ctrl+j",
+    "model_list": "ctrl+m",
+    "session_compact": "ctrl+l",
+    "session_new": "ctrl+n",
+    "session_list": "ctrl+o"
+  },
+  "mcp": {},
+  "$schema": "https://opencode.ai/config.json"
+}

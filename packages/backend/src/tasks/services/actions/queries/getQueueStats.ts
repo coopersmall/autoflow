@@ -1,4 +1,4 @@
-import type { QueueStats } from '@backend/tasks/domain/QueueStats';
+import type { QueueStats } from '@backend/infrastructure/queue/domain/QueueStats';
 import type { ITaskQueue } from '@backend/tasks/domain/TaskQueue';
 import type { CorrelationId } from '@core/domain/CorrelationId';
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';

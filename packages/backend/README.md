@@ -262,49 +262,61 @@ await scheduler.schedule(correlationId, sendEmailTask, {
 
 ```
 src/
-├── services/             # Business logic
-│   ├── shared/           # SharedService base
-│   ├── standard/         # StandardService base
-│   ├── users/            # User management
-│   ├── secrets/          # Encrypted secrets
-│   ├── integrations/     # External services
-│   ├── auth/             # Authentication
-│   ├── jwt/              # JWT operations
-│   ├── ai/               # AI interactions
-│   └── ServiceFactory.ts # Service registry
+├── infrastructure/       # Core infrastructure
+│   ├── services/         # SharedService & StandardService base classes
+│   ├── repos/            # SharedRepo & StandardRepo base classes
+│   ├── cache/            # SharedCache & StandardCache base classes
+│   ├── http/             # HTTP server, handlers, middleware
+│   ├── logger/           # Pino logging wrapper
+│   ├── configuration/    # App configuration service
+│   ├── db/               # Database schema (Drizzle)
+│   ├── queue/            # Queue infrastructure (BullMQ)
+│   └── encryption/       # Encryption services
 │
-├── repos/                # Data access
-│   ├── SharedRepo.ts     # Global data access
-│   ├── StandardRepo.ts   # User-scoped data access
-│   ├── adapters/         # Database adapters
-│   └── clients/          # Database clients
+├── auth/                 # Authentication & authorization
+│   ├── services/         # AuthService
+│   ├── middleware/       # Auth middleware factories
+│   └── actions/          # JWT creation, validation
 │
-├── cache/                # Caching
-│   ├── SharedCache.ts    # Global cache
-│   ├── StandardCache.ts  # User-scoped cache
-│   ├── adapters/         # Cache adapters
-│   └── clients/          # Cache clients (Redis)
+├── users/                # User management feature
+│   ├── UsersService.ts   # User service
+│   ├── handlers/         # HTTP handlers
+│   ├── repos/            # User repository
+│   ├── cache/            # User cache
+│   └── index.ts          # Public exports
 │
-├── http/                 # HTTP layer
-│   ├── handlers/         # Request handlers
-│   ├── server/           # Server setup
-│   └── actions/          # Server factories
+├── secrets/              # Secrets management feature
+│   ├── SecretsService.ts # Secrets service
+│   ├── handlers/         # HTTP handlers
+│   ├── repos/            # Secrets repository
+│   ├── cache/            # Secrets cache
+│   └── index.ts          # Public exports
 │
-├── tasks/                # Background jobs
+├── integrations/         # External integrations feature
+│   ├── IntegrationsService.ts
+│   ├── handlers/
+│   └── index.ts
+│
+├── tasks/                # Background job processing
+│   ├── TasksService.ts   # Task management service
 │   ├── scheduler/        # Task scheduling
 │   ├── worker/           # Task processing
+│   ├── handlers/         # HTTP handlers for tasks
 │   ├── queue/            # Queue clients
-│   ├── services/         # TasksService
 │   └── domain/           # Task types
 │
-├── db/                   # Database
-│   └── schema.ts         # Drizzle schema
-│
-├── logger/               # Logging
-│   └── Logger.ts         # Pino wrapper
+├── ai/                   # AI services
+│   ├── AIService.ts
+│   └── actions/
 │
 └── index.ts              # Public exports
 ```
+
+**Organization Pattern:**
+- Features are in their own top-level directories (users, secrets, tasks, etc.)
+- Shared infrastructure lives in `infrastructure/`
+- Each feature exports its public API from `index.ts`
+- Services are created directly via factory functions, no central registry
 
 ## Usage
 

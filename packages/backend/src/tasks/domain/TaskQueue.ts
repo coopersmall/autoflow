@@ -1,8 +1,8 @@
+import type { QueueJob } from '@backend/infrastructure/queue/domain/QueueClient';
+import type { QueueStats } from '@backend/infrastructure/queue/domain/QueueStats';
 import type { CorrelationId } from '@core/domain/CorrelationId';
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import type { Result } from 'neverthrow';
-import type { QueueJob } from './QueueClient';
-import type { QueueStats } from './QueueStats';
 import type { TaskId } from './TaskId';
 import type { TaskRecord } from './TaskRecord';
 

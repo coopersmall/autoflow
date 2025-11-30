@@ -1,4 +1,4 @@
-import type { ILogger } from '@backend/logger/Logger';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { TaskId } from '@backend/tasks/domain/TaskId';
 import type { ITaskQueue } from '@backend/tasks/domain/TaskQueue';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';

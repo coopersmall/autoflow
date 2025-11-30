@@ -1,4 +1,5 @@
-import * as schema from '@backend/db/schema';
+import path from 'node:path';
+import * as schema from '@backend/infrastructure/db/schema';
 import { getTableName } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { migrate } from 'drizzle-orm/postgres-js/migrator';
@@ -31,7 +32,7 @@ export class TestDatabase {
 
     if (!initialized) {
       await migrate(this.db, {
-        migrationsFolder: './packages/backend/drizzle',
+        migrationsFolder: path.resolve(import.meta.dir, '../../../drizzle'),
       });
       initialized = true;
     }

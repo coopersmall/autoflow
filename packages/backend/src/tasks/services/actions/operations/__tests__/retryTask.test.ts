@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
-import { getMockedLogger } from '@backend/logger/__mocks__/Logger.mock';
+import { getMockedLogger } from '@backend/infrastructure/logger/__mocks__/Logger.mock';
 import { TaskId } from '@backend/tasks/domain/TaskId';
 import {
   getMockedTaskQueue,

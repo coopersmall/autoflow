@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach } from 'bun:test';
-import { getMockedLogger } from '@backend/logger/__mocks__/Logger.mock';
-import type { ILogger } from '@backend/logger/Logger';
-import type { IAppConfigurationService } from '@backend/services/configuration/AppConfigurationService';
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import { getMockedLogger } from '@backend/infrastructure/logger/__mocks__/Logger.mock';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import { TestCache } from '@backend/testing/integration/setup/TestCache';
 import { createTestConfig } from '@backend/testing/integration/setup/TestConfig';
 import { TestDatabase } from '@backend/testing/integration/setup/TestDatabase';

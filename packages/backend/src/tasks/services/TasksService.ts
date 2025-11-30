@@ -1,7 +1,7 @@
-import type { ILogger } from '@backend/logger/Logger';
-import type { IAppConfigurationService } from '@backend/services/configuration/AppConfigurationService';
-import { SharedService } from '@backend/services/shared/SharedService';
-import type { QueueStats } from '@backend/tasks/domain/QueueStats';
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import type { QueueStats } from '@backend/infrastructure/queue/domain/QueueStats';
+import { SharedService } from '@backend/infrastructure/services/SharedService';
 import type { TaskId } from '@backend/tasks/domain/TaskId';
 import { TaskId as TaskIdConstructor } from '@backend/tasks/domain/TaskId';
 import type { ITaskQueue } from '@backend/tasks/domain/TaskQueue';

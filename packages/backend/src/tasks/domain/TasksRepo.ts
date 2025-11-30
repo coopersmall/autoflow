@@ -1,4 +1,4 @@
-import type { ISharedRepo } from '@backend/repos/SharedRepo';
+import type { ISharedRepo } from '@backend/infrastructure/repos/SharedRepo';
 import type { TaskId } from '@backend/tasks/domain/TaskId';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 import type { TaskStatus } from '@backend/tasks/domain/TaskStatus';
