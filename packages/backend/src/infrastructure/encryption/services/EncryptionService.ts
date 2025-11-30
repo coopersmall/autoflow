@@ -38,6 +38,15 @@ interface EncryptionServiceContext {
   logger: ILogger;
 }
 
+interface EncryptionServiceActions {
+  encryptRSA: typeof encryptRSA;
+  decryptRSA: typeof decryptRSA;
+  generateSalt: typeof generateSalt;
+  generateKeyPair: typeof generateKeyPair;
+  encodeToken: typeof encodeToken;
+  decodeToken: typeof decodeToken;
+}
+
 /**
  * Unified service for all encryption operations.
  * Provides RSA encryption/decryption, JWT token encoding/decoding, and key generation.
@@ -45,7 +54,7 @@ interface EncryptionServiceContext {
 class EncryptionService implements IEncryptionService {
   constructor(
     private readonly context: EncryptionServiceContext,
-    private readonly actions = {
+    private readonly actions: EncryptionServiceActions = {
       encryptRSA,
       decryptRSA,
       generateSalt,

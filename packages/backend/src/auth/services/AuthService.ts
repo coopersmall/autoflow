@@ -30,7 +30,7 @@ export function createAuthService(ctx: AuthServiceContext): IAuthService {
 
 interface AuthServiceContext {
   logger: ILogger;
-  appConfig: () => IAppConfigurationService;
+  appConfig: IAppConfigurationService;
 }
 
 interface AuthServiceActions {

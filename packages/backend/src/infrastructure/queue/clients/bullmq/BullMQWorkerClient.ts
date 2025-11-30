@@ -6,7 +6,7 @@ import type {
   WorkerEvents,
   WorkerJob,
   WorkerJobHandler,
-} from '../../domain/WorkerClient';
+} from '../../domain/WorkerClient.ts';
 
 /**
  * Generate a simple unique ID for jobs without an ID
@@ -34,7 +34,7 @@ const defaultWorkerFactory: WorkerFactory = (name, processor, options) =>
 /**
  * Dependencies that can be injected for testing
  */
-export interface BullMQWorkerClientDeps {
+interface BullMQWorkerClientDeps {
   createWorker?: WorkerFactory;
 }
 

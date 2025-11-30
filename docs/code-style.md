@@ -264,6 +264,198 @@ export function createUsersService(ctx: UsersServiceContext): IUsersService {
 
 **Enforcement**: Not enforced by Biome, but encouraged in code reviews.
 
+### 9. Class Definition Rules
+
+**Why**: Consistent class patterns improve testability, type safety, and prevent accidental mutations across the codebase.
+
+All classes in the backend must follow these 5 standardization rules:
+
+#### Rule 1: Factory Functions with Object.freeze()
+
+Factory functions must wrap `new ClassName()` with `Object.freeze()` to prevent mutations:
+
+```typescript
+// ❌ BAD - mutable instance
+export function createUsersService(ctx: UsersServiceContext): IUsersService {
+  return new UsersService(ctx);
+}
+
+// ✅ GOOD - frozen instance
+export function createUsersService(ctx: UsersServiceContext): IUsersService {
+  return Object.freeze(new UsersService(ctx));
+}
+```
+
+**Exception**: Classes with mutable state that is intentionally modified after construction (e.g., `BullMQWorkerClient`, `TaskWorker`, `TaskScheduler`).
+
+#### Rule 2: Direct appConfig Type
+
+Context interfaces should use `appConfig: IAppConfigurationService` (direct type), not `appConfig: () => IAppConfigurationService` (lazy getter):
+
+```typescript
+// ❌ BAD - lazy getter
+interface UsersServiceContext {
+  logger: ILogger;
+  appConfig: () => IAppConfigurationService;  // Wrong!
+}
+
+// ✅ GOOD - direct type
+interface UsersServiceContext {
+  logger: ILogger;
+  appConfig: IAppConfigurationService;  // Correct!
+}
+```
+
+**Reason**: Simplifies type signatures and makes dependency injection clearer.
+
+#### Rule 3: No Direct Class Exports
+
+Only export factory functions, not classes directly. Classes should not have `export` keyword:
+
+```typescript
+// ❌ BAD - exporting class directly
+export class UsersService extends SharedService<UserId, User> {
+  // ...
+}
+
+// ✅ GOOD - class not exported, only factory function
+class UsersService extends SharedService<UserId, User> {
+  // ...
+}
+
+export function createUsersService(ctx: UsersServiceContext): IUsersService {
+  return Object.freeze(new UsersService(ctx));
+}
+```
+
+**Exception**: Infrastructure base classes (`SharedService`, `StandardService`, `SharedRepo`, `StandardRepo`, `SharedCache`, `StandardCache`, `SharedHTTPHandler`, `StandardHTTPHandler`) are intentionally exported for inheritance.
+
+#### Rule 4: Private Readonly Context
+
+Constructor context parameters must use `private readonly`:
+
+```typescript
+// ❌ BAD - missing private readonly
+class UsersService extends SharedService<UserId, User> {
+  constructor(readonly context: UsersServiceContext) {  // Wrong!
+    super(/*...*/);
+  }
+}
+
+// ✅ GOOD - private readonly context
+class UsersService extends SharedService<UserId, User> {
+  constructor(private readonly context: UsersServiceContext) {  // Correct!
+    super(/*...*/);
+  }
+}
+```
+
+**Reason**: Prevents external access and accidental modifications to context.
+
+#### Rule 5: Explicit Interface Types
+
+Define explicit `*Actions` and `*Dependencies` interfaces for constructor parameters (not exported):
+
+```typescript
+// ❌ BAD - inline types, no explicit interfaces
+class UsersService extends SharedService<UserId, User> {
+  constructor(
+    private readonly context: UsersServiceContext,
+    private readonly dependencies = {  // No interface!
+      createUsersRepo,
+      createUsersCache,
+    },
+  ) {
+    super(/*...*/);
+  }
+}
+
+// ✅ GOOD - explicit interfaces
+interface UsersServiceDependencies {
+  readonly createUsersRepo: typeof createUsersRepo;
+  readonly createUsersCache: typeof createUsersCache;
+}
+
+class UsersService extends SharedService<UserId, User> {
+  constructor(
+    private readonly context: UsersServiceContext,
+    private readonly dependencies: UsersServiceDependencies = {
+      createUsersRepo,
+      createUsersCache,
+    },
+  ) {
+    super(/*...*/);
+  }
+}
+```
+
+**Reason**: Improves testability by making dependencies explicit and easier to mock.
+
+#### Complete Example
+
+Putting it all together:
+
+```typescript
+// packages/backend/src/widgets/WidgetsService.ts
+
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import { SharedService } from '@backend/infrastructure/services/SharedService';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import { type Widget, WidgetId } from '@core/domain/widget/widget';
+import { createWidgetsCache } from './cache/WidgetsCache';
+import type { IWidgetsService } from './domain/WidgetsService';
+import { createWidgetsRepo } from './repos/WidgetsRepo';
+
+export { createWidgetsService };
+export type { IWidgetsService };
+
+// ✅ Rule 1: Factory function with Object.freeze()
+function createWidgetsService(ctx: WidgetsServiceContext): IWidgetsService {
+  return Object.freeze(new WidgetsService(ctx));
+}
+
+// ✅ Rule 2: Direct appConfig type (not lazy getter)
+interface WidgetsServiceContext {
+  readonly appConfig: IAppConfigurationService;
+  readonly logger: ILogger;
+}
+
+// ✅ Rule 5: Explicit dependencies interface (not exported)
+interface WidgetsServiceDependencies {
+  readonly createWidgetsRepo: typeof createWidgetsRepo;
+  readonly createWidgetsCache: typeof createWidgetsCache;
+}
+
+// ✅ Rule 3: Class not exported (only factory function)
+class WidgetsService
+  extends SharedService<WidgetId, Widget>
+  implements IWidgetsService
+{
+  // ✅ Rule 4: private readonly context
+  constructor(
+    private readonly context: WidgetsServiceContext,
+    private readonly dependencies: WidgetsServiceDependencies = {
+      createWidgetsRepo,
+      createWidgetsCache,
+    },
+  ) {
+    super('widgets', {
+      ...context,
+      repo: () => this.dependencies.createWidgetsRepo({ 
+        appConfig: context.appConfig 
+      }),
+      cache: () => this.dependencies.createWidgetsCache({
+        logger: context.logger,
+        appConfig: context.appConfig,
+      }),
+      newId: WidgetId,
+    });
+  }
+}
+```
+
+**Enforcement**: Not enforced by Biome, but required in code reviews.
+
 ## Path Aliases
 
 Use these path aliases for imports:
@@ -517,5 +709,6 @@ Key rules:
 6. ✅ Use path aliases, ❌ no relative imports up
 7. ✅ Use functional array methods (map, filter, find, forEach), ❌ avoid for loops when not needed
 8. ✅ Use `Readonly<T>` and `Object.freeze()` for immutability
+9. ✅ Follow class definition rules: `Object.freeze()`, direct `appConfig`, no class exports, `private readonly`, explicit interfaces
 
 Run `make lint` and `make format` before every commit!

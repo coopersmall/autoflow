@@ -6,13 +6,16 @@ import type {
   WorkerJob,
 } from '@backend/infrastructure/queue/domain/WorkerClient';
 import { createCachedGetter } from '@backend/infrastructure/utils/createCachedGetter';
-import type { TaskContext } from '@backend/tasks/domain/TaskContext';
 import type { TaskDefinition } from '@backend/tasks/domain/TaskDefinition';
-import { TaskId } from '@backend/tasks/domain/TaskId';
-import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 import type { ITasksRepo } from '@backend/tasks/domain/TasksRepo';
 import { createTasksRepo } from '@backend/tasks/repos/TasksRepo';
-import { CorrelationId } from '@core/domain/CorrelationId';
+import {
+  handleTaskCompletion,
+  handleTaskFailure,
+  type PendingTaskUpdate,
+  processBulkUpdates,
+  processJob,
+} from '@backend/tasks/worker/actions';
 import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import { produce } from 'immer';
 import { err, ok, type Result } from 'neverthrow';
@@ -50,15 +53,6 @@ function createTaskWorker<TPayload>(
   },
 ): TaskWorker<TPayload> {
   return new TaskWorker(config, dependencies);
-}
-
-/**
- * Represents a pending database update for a task.
- */
-interface PendingTaskUpdate {
-  taskId: TaskId;
-  data: Partial<TaskRecord>;
-  onSuccess?: () => void;
 }
 
 /**
@@ -102,6 +96,12 @@ class TaskWorker<TPayload> {
     private readonly dependencies = {
       createTasksRepo,
       createWorkerClientFactory,
+    },
+    private readonly taskWorkerActions = {
+      processJob,
+      handleTaskCompletion,
+      handleTaskFailure,
+      processBulkUpdates,
     },
   ) {
     this.logger = config.logger;
@@ -193,72 +193,14 @@ class TaskWorker<TPayload> {
   private async processJob(
     job: WorkerJob,
   ): Promise<Result<unknown, ErrorWithMetadata>> {
-    const taskId = TaskId(job.id);
-    const correlationId = CorrelationId();
-
-    // Build task context
-    const context: TaskContext = {
-      correlationId,
-      taskId,
-      logger: this.logger,
-    };
-
-    // Validate payload using the task's validator
-    const payloadValidation = this.task.validator(job.data);
-    if (payloadValidation.isErr()) {
-      const error = new ErrorWithMetadata(
-        'Task payload validation failed',
-        'BadRequest',
-        {
-          correlationId,
-          taskId,
-          queueName: this.task.queueName,
-          validationError: payloadValidation.error.message,
-        },
-      );
-      this.logger.error('Task payload validation failed', error, {
-        correlationId,
-        taskId,
-        queueName: this.task.queueName,
-      });
-      return err(error);
-    }
-
-    const validPayload = payloadValidation.value;
-
-    // Update task status to 'active' in database
-    const updateResult = await this.repo.update(taskId, {
-      status: 'active',
-      startedAt: new Date(),
-    });
-
-    if (updateResult.isErr()) {
-      this.logger.error(
-        'Failed to update task status to active',
-        updateResult.error,
-        { correlationId, taskId, queueName: this.task.queueName },
-      );
-      // Continue processing - don't fail the job for a status update issue
-    }
-
-    // Execute the task handler
-    const result = await this.task.handler(validPayload, context);
-
-    if (result.isErr()) {
-      const error = new ErrorWithMetadata(
-        'Task execution failed',
-        'InternalServer',
-        {
-          correlationId,
-          taskId,
-          queueName: this.task.queueName,
-          taskError: result.error,
-        },
-      );
-      return err(error);
-    }
-
-    return ok(result.value);
+    return this.taskWorkerActions.processJob(
+      {
+        task: this.task,
+        repo: this.repo,
+        logger: this.logger,
+      },
+      { job },
+    );
   }
 
   /**
@@ -292,50 +234,29 @@ class TaskWorker<TPayload> {
   /**
    * Called when a job completes successfully.
    */
-  private onCompleted(jobId: string, _result: unknown): void {
-    const taskId = TaskId(jobId);
-
-    this.enqueueUpdate({
-      taskId,
-      data: {
-        status: 'completed',
-        completedAt: new Date(),
+  private onCompleted(jobId: string, result: unknown): void {
+    this.taskWorkerActions.handleTaskCompletion(
+      {
+        logger: this.logger,
+        queueName: this.task.queueName,
+        enqueueUpdate: this.enqueueUpdate.bind(this),
       },
-      onSuccess: () => {
-        this.logger.info('Task completed successfully', {
-          taskId,
-          jobId,
-          queueName: this.task.queueName,
-        });
-      },
-    });
+      { jobId, result },
+    );
   }
 
   /**
    * Called when a job fails (after all retries exhausted).
    */
   private onFailed(jobId: string, error: Error): void {
-    const taskId = TaskId(jobId);
-
-    this.logger.error('Task failed permanently', error, {
-      taskId,
-      jobId,
-      queueName: this.task.queueName,
-    });
-
-    this.enqueueUpdate({
-      taskId,
-      data: {
-        status: 'failed',
-        failedAt: new Date(),
-        error: {
-          success: false,
-          reason: error.message,
-          stackTrace: error.stack,
-          lastAttemptAt: new Date(),
-        },
+    this.taskWorkerActions.handleTaskFailure(
+      {
+        logger: this.logger,
+        queueName: this.task.queueName,
+        enqueueUpdate: this.enqueueUpdate.bind(this),
       },
-    });
+      { jobId, error },
+    );
   }
 
   /**
@@ -362,28 +283,20 @@ class TaskWorker<TPayload> {
 
     this.isProcessingUpdates = true;
 
-    while (this.updateQueue.length > 0) {
-      const batch = this.updateQueue.slice(0, this.maxUpdateBatchSize);
-      this.updateQueue = this.updateQueue.slice(this.maxUpdateBatchSize);
-
-      const updates = batch.map((update) => ({
-        id: update.taskId,
-        data: update.data,
-      }));
-
-      const result = await this.repo.bulkUpdate(updates);
-
-      if (result.isErr()) {
-        this.logger.error('Failed to bulk update tasks', result.error, {
-          queueName: this.task.queueName,
-          batchSize: batch.length,
-        });
-      } else {
-        batch.forEach((update) => {
-          update.onSuccess?.();
-        });
-      }
-    }
+    await this.taskWorkerActions.processBulkUpdates(
+      {
+        repo: this.repo,
+        logger: this.logger,
+        queueName: this.task.queueName,
+        maxUpdateBatchSize: this.maxUpdateBatchSize,
+      },
+      {
+        updateQueue: this.updateQueue,
+        onComplete: (remainingQueue) => {
+          this.updateQueue = remainingQueue;
+        },
+      },
+    );
 
     this.isProcessingUpdates = false;
   }

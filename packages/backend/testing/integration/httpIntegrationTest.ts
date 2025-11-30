@@ -217,7 +217,7 @@ export function setupHttpIntegrationTest(): HttpIntegrationTestContext {
     // Create auth helper with auth service
     const authService = createAuthService({
       logger,
-      appConfig: () => config,
+      appConfig: config,
     });
 
     // Create encryption service for auth

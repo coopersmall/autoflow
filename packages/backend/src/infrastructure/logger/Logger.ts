@@ -29,5 +29,5 @@ class Logger implements ILogger {
 }
 
 export function getLogger(baseMetadata?: Record<string, unknown>): ILogger {
-  return new Logger(baseMetadata);
+  return Object.freeze(new Logger(baseMetadata));
 }

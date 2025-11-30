@@ -1,5 +1,5 @@
-import { baseIntegrationSchema } from '@core/domain/integrations/BaseIntegration';
-import { secretIdSchema } from '@core/domain/secrets/Secret';
+import { baseIntegrationSchema } from '@core/domain/integrations/BaseIntegration.ts';
+import { secretIdSchema } from '@core/domain/secrets/Secret.ts';
 import zod from 'zod';
 
 export type AiProviderIntegration = Readonly<

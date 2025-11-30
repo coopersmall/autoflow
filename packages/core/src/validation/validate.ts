@@ -1,4 +1,4 @@
-import { ValidationError } from '@core/errors/ValidationError';
+import { ValidationError } from '@core/errors/ValidationError.ts';
 import { isEmpty } from 'lodash';
 import { err, ok, type Result } from 'neverthrow';
 import zod from 'zod';

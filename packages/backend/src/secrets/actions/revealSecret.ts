@@ -8,7 +8,7 @@ import {
 } from '@core/domain/secrets/Secret';
 import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import { err, ok, type Result } from 'neverthrow';
-import { decryptSecret } from './decryptSecret';
+import { decryptSecret } from './decryptSecret.ts';
 
 export interface RevealSecretContext {
   appConfig: IAppConfigurationService;

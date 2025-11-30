@@ -1,4 +1,4 @@
-import { type ErrorMetadata, ErrorWithMetadata } from './ErrorWithMetadata';
+import { type ErrorMetadata, ErrorWithMetadata } from './ErrorWithMetadata.ts';
 
 export class NotFoundError extends ErrorWithMetadata {
   constructor(resource: string, metadata?: ErrorMetadata) {

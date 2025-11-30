@@ -1,7 +1,7 @@
 import type { CorrelationId } from '@core/domain/CorrelationId';
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import type { Result } from 'neverthrow';
-import type { QueueStats } from './QueueStats';
+import type { QueueStats } from './QueueStats.ts';
 
 /**
  * Generic job representation (decoupled from BullMQ)

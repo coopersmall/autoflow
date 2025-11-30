@@ -1,5 +1,5 @@
 import { mock } from 'bun:test';
-import type { AppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
 import type { ExtractMockMethods } from '@core/types';
 
 /**
@@ -7,7 +7,7 @@ import type { ExtractMockMethods } from '@core/types';
  * as spy-able mock functions. Each getter becomes a mock function that returns a
 default value.
  */
-export function getMockedAppConfigurationService(): ExtractMockMethods<AppConfigurationService> {
+export function getMockedAppConfigurationService(): ExtractMockMethods<IAppConfigurationService> {
   return {
     polygonKey: 'polygon-key',
     openAIKey: 'openai-key',

@@ -53,11 +53,16 @@ import type { StandardService } from '@backend/infrastructure/services/StandardS
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
 import type { Permission } from '@core/domain/permissions/permissions';
-import { validUserId } from '@core/domain/user/validation/validUser';
 import type { ExtractMethods } from '@core/types';
 import type { Validator } from '@core/validation/validate';
-import type { IHttpRouteFactory } from './domain/HttpRouteFactory';
-import { buildHttpErrorResponse } from './errors/buildHttpErrorResponse';
+import {
+  handleAll,
+  handleCreate,
+  handleDelete,
+  handleGet,
+  handleUpdate,
+} from './actions/standard/index.ts';
+import type { IHttpRouteFactory } from './domain/HttpRouteFactory.ts';
 
 /**
  * Type alias for StandardHTTPHandler interface extraction.
@@ -109,6 +114,14 @@ interface IStandardHTTPHandlerContext<
   service: () => StandardService<ID, T>;
 }
 
+interface StandardHTTPHandlerActions {
+  handleGet: typeof handleGet;
+  handleAll: typeof handleAll;
+  handleCreate: typeof handleCreate;
+  handleUpdate: typeof handleUpdate;
+  handleDelete: typeof handleDelete;
+}
+
 /**
  * Base class for user-scoped resource HTTP handlers.
  *
@@ -122,7 +135,16 @@ export class StandardHTTPHandler<ID extends Id<string>, T extends Item<ID>> {
    * Creates a new standard (user-scoped) HTTP handler.
    * @param ctx - Context with validators, logger, config, service, routeFactory
    */
-  constructor(private readonly ctx: IStandardHTTPHandlerContext<ID, T>) {
+  constructor(
+    private readonly ctx: IStandardHTTPHandlerContext<ID, T>,
+    private readonly actions: StandardHTTPHandlerActions = {
+      handleGet,
+      handleAll,
+      handleCreate,
+      handleUpdate,
+      handleDelete,
+    },
+  ) {
     this.factory = this.ctx.routeFactory;
   }
 
@@ -202,23 +224,15 @@ export class StandardHTTPHandler<ID extends Id<string>, T extends Item<ID>> {
       method: 'GET',
       routeType: type,
       requiredPermissions: allowed,
-      handler: async ({ getParam }) => {
-        const id = getParam('id', this.ctx.validators.id);
-        if (id.isErr()) {
-          return buildHttpErrorResponse(id.error);
-        }
-
-        const userId = getParam('userId', validUserId);
-        if (userId.isErr()) {
-          return buildHttpErrorResponse(userId.error);
-        }
-
-        const result = await this.ctx.service().get(id.value, userId.value);
-        if (result.isErr()) {
-          return buildHttpErrorResponse(result.error);
-        }
-
-        return Response.json(result.value, { status: 200 });
+      handler: async (requestContext) => {
+        return this.actions.handleGet(
+          {
+            service: this.ctx.service(),
+            validators: { id: this.ctx.validators.id },
+          },
+          {},
+          requestContext,
+        );
       },
     });
   }
@@ -235,18 +249,12 @@ export class StandardHTTPHandler<ID extends Id<string>, T extends Item<ID>> {
       method: 'GET',
       routeType: type,
       requiredPermissions: allowed,
-      handler: async ({ getParam }) => {
-        const userId = getParam('userId', validUserId);
-        if (userId.isErr()) {
-          return buildHttpErrorResponse(userId.error);
-        }
-
-        const result = await this.ctx.service().all(userId.value);
-        if (result.isErr()) {
-          return buildHttpErrorResponse(result.error);
-        }
-
-        return Response.json(result.value, { status: 200 });
+      handler: async (requestContext) => {
+        return this.actions.handleAll(
+          { service: this.ctx.service() },
+          {},
+          requestContext,
+        );
       },
     });
   }
@@ -263,25 +271,15 @@ export class StandardHTTPHandler<ID extends Id<string>, T extends Item<ID>> {
       method: 'POST',
       routeType: type,
       requiredPermissions: allowed,
-      handler: async ({ getParam, getBody }) => {
-        const userId = getParam('userId', validUserId);
-        if (userId.isErr()) {
-          return buildHttpErrorResponse(userId.error);
-        }
-
-        const body = await getBody(this.ctx.validators.partial);
-        if (body.isErr()) {
-          return buildHttpErrorResponse(body.error);
-        }
-
-        const result = await this.ctx
-          .service()
-          .create(userId.value, body.value);
-        if (result.isErr()) {
-          return buildHttpErrorResponse(result.error);
-        }
-
-        return Response.json(result.value, { status: 201 });
+      handler: async (requestContext) => {
+        return this.actions.handleCreate(
+          {
+            service: this.ctx.service(),
+            validators: { partial: this.ctx.validators.partial },
+          },
+          {},
+          requestContext,
+        );
       },
     });
   }
@@ -298,30 +296,18 @@ export class StandardHTTPHandler<ID extends Id<string>, T extends Item<ID>> {
       method: 'PUT',
       routeType: type,
       requiredPermissions: allowed,
-      handler: async ({ getParam, getBody }) => {
-        const id = getParam('id', this.ctx.validators.id);
-        if (id.isErr()) {
-          return buildHttpErrorResponse(id.error);
-        }
-
-        const userId = getParam('userId', validUserId);
-        if (userId.isErr()) {
-          return buildHttpErrorResponse(userId.error);
-        }
-
-        const body = await getBody(this.ctx.validators.update);
-        if (body.isErr()) {
-          return buildHttpErrorResponse(body.error);
-        }
-
-        const result = await this.ctx
-          .service()
-          .update(id.value, userId.value, body.value);
-        if (result.isErr()) {
-          return buildHttpErrorResponse(result.error);
-        }
-
-        return Response.json(result.value, { status: 200 });
+      handler: async (requestContext) => {
+        return this.actions.handleUpdate(
+          {
+            service: this.ctx.service(),
+            validators: {
+              id: this.ctx.validators.id,
+              update: this.ctx.validators.update,
+            },
+          },
+          {},
+          requestContext,
+        );
       },
     });
   }
@@ -338,23 +324,15 @@ export class StandardHTTPHandler<ID extends Id<string>, T extends Item<ID>> {
       method: 'DELETE',
       routeType: type,
       requiredPermissions: allowed,
-      handler: async ({ getParam }) => {
-        const id = getParam('id', this.ctx.validators.id);
-        if (id.isErr()) {
-          return buildHttpErrorResponse(id.error);
-        }
-
-        const userId = getParam('userId', validUserId);
-        if (userId.isErr()) {
-          return buildHttpErrorResponse(userId.error);
-        }
-
-        const result = await this.ctx.service().delete(id.value, userId.value);
-        if (result.isErr()) {
-          return buildHttpErrorResponse(result.error);
-        }
-
-        return Response.json({ success: true }, { status: 200 });
+      handler: async (requestContext) => {
+        return this.actions.handleDelete(
+          {
+            service: this.ctx.service(),
+            validators: { id: this.ctx.validators.id },
+          },
+          {},
+          requestContext,
+        );
       },
     });
   }

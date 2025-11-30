@@ -13,10 +13,17 @@ import type { TaskId } from '@backend/tasks/domain/TaskId';
 import type { ITaskQueue } from '@backend/tasks/domain/TaskQueue';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 import type { ITasksRepo } from '@backend/tasks/domain/TasksRepo';
+import {
+  closeQueue,
+  enqueueTask,
+  getJob,
+  getJobCounts,
+  removeTask,
+} from '@backend/tasks/queue/actions';
 import { createTasksRepo } from '@backend/tasks/repos/TasksRepo';
 import type { CorrelationId } from '@core/domain/CorrelationId';
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
-import { err, ok, type Result } from 'neverthrow';
+import { err, type Result } from 'neverthrow';
 
 export { createTaskQueue };
 
@@ -75,7 +82,9 @@ function createTaskQueue(
   },
   dependencies?: TaskQueueDependencies,
 ): ITaskQueue {
-  return new TaskQueue(logger, appConfig, queueName, queueConfig, dependencies);
+  return Object.freeze(
+    new TaskQueue(logger, appConfig, queueName, queueConfig, dependencies),
+  );
 }
 
 /**
@@ -117,6 +126,13 @@ class TaskQueue implements ITaskQueue {
       createQueueClientFactory,
       createTasksRepo,
     },
+    private readonly taskQueueActions = {
+      enqueueTask,
+      removeTask,
+      getJob,
+      getJobCounts,
+      closeQueue,
+    },
   ) {
     // Create tasks repository for database operations
     this.tasksRepo = dependencies.createTasksRepo({ appConfig });
@@ -155,49 +171,16 @@ class TaskQueue implements ITaskQueue {
       return err(clientResult.error);
     }
 
-    const client = clientResult.value;
-    const jobInput = taskToQueueJobInput(task);
-    const enqueueResult = await client.enqueue(correlationId, jobInput);
-
-    if (enqueueResult.isErr()) {
-      this.logger.error('Failed to enqueue task', enqueueResult.error, {
-        correlationId,
-        taskId: task.id,
-        queueName: task.queueName,
-      });
-      return enqueueResult;
-    }
-
-    const queueJob = enqueueResult.value;
-
-    const updateResult = await this.tasksRepo.update(task.id, {
-      externalId: queueJob.id,
-    });
-
-    if (updateResult.isErr()) {
-      this.logger.error(
-        'Failed to update task with external ID',
-        updateResult.error,
-        {
-          correlationId,
-          taskId: task.id,
-          queueName: task.queueName,
-          externalId: queueJob.id,
-        },
-      );
-      // Don't fail the enqueue operation - job is already in queue
-      // This is a non-fatal error
-    }
-
-    this.logger.info('Task enqueued successfully', {
-      correlationId,
-      taskId: task.id,
-      externalId: queueJob.id,
-      queueName: task.queueName,
-      taskName: task.taskName,
-    });
-
-    return ok(queueJob);
+    return this.taskQueueActions.enqueueTask(
+      {
+        client: clientResult.value,
+        tasksRepo: this.tasksRepo,
+        logger: this.logger,
+        queueName: this.queueName,
+        taskToQueueJobInput,
+      },
+      { correlationId, task },
+    );
   }
 
   /**
@@ -221,29 +204,14 @@ class TaskQueue implements ITaskQueue {
       return err(clientResult.error);
     }
 
-    const client = clientResult.value;
-    const removeResult = await client.remove(correlationId, taskId);
-
-    if (removeResult.isErr()) {
-      this.logger.error(
-        'Failed to remove task from queue',
-        removeResult.error,
-        {
-          correlationId,
-          taskId,
-          queueName: this.queueName,
-        },
-      );
-      return removeResult;
-    }
-
-    this.logger.info('Task removed from queue', {
-      correlationId,
-      taskId,
-      queueName: this.queueName,
-    });
-
-    return ok(undefined);
+    return this.taskQueueActions.removeTask(
+      {
+        client: clientResult.value,
+        logger: this.logger,
+        queueName: this.queueName,
+      },
+      { correlationId, taskId },
+    );
   }
 
   /**
@@ -264,19 +232,14 @@ class TaskQueue implements ITaskQueue {
       return err(clientResult.error);
     }
 
-    const client = clientResult.value;
-    const result = await client.getJob(correlationId, jobId);
-
-    if (result.isErr()) {
-      this.logger.error('Failed to get job', result.error, {
-        correlationId,
-        jobId,
+    return this.taskQueueActions.getJob(
+      {
+        client: clientResult.value,
+        logger: this.logger,
         queueName: this.queueName,
-      });
-      return result;
-    }
-
-    return result;
+      },
+      { correlationId, jobId },
+    );
   }
 
   /**
@@ -295,18 +258,14 @@ class TaskQueue implements ITaskQueue {
       return err(clientResult.error);
     }
 
-    const client = clientResult.value;
-    const result = await client.getStats(correlationId);
-
-    if (result.isErr()) {
-      this.logger.error('Failed to get job counts', result.error, {
-        correlationId,
+    return this.taskQueueActions.getJobCounts(
+      {
+        client: clientResult.value,
+        logger: this.logger,
         queueName: this.queueName,
-      });
-      return result;
-    }
-
-    return result;
+      },
+      { correlationId },
+    );
   }
 
   /**
@@ -323,8 +282,10 @@ class TaskQueue implements ITaskQueue {
       return;
     }
 
-    const client = clientResult.value;
-    await client.close();
-    this.logger.info('TaskQueue closed', { queueName: this.queueName });
+    return this.taskQueueActions.closeQueue({
+      client: clientResult.value,
+      logger: this.logger,
+      queueName: this.queueName,
+    });
   }
 }

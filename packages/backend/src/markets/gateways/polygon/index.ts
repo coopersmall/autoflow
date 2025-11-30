@@ -1,18 +1,36 @@
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
-import { MarketGateway } from './markets/MarketGateway';
-import { OptionsGateway } from './options/OptionsGateway';
-import { getPolygonClient } from './shared/client';
-import { StocksGateway } from './stocks/StocksGateway';
+import {
+  createMarketGateway,
+  type IMarketGateway,
+} from './markets/MarketGateway.ts';
+import {
+  createOptionsGateway,
+  type IOptionsGateway,
+} from './options/OptionsGateway.ts';
+import { getPolygonClient } from './shared/client.ts';
+import {
+  createStocksGateway,
+  type IStocksGateway,
+} from './stocks/StocksGateway.ts';
 
-// Export gateway classes
-export { MarketGateway } from './markets/MarketGateway';
-export { OptionsGateway } from './options/OptionsGateway';
-export { StocksGateway } from './stocks/StocksGateway';
+// Export gateway types and factories
+export {
+  createMarketGateway,
+  type IMarketGateway,
+} from './markets/MarketGateway.ts';
+export {
+  createOptionsGateway,
+  type IOptionsGateway,
+} from './options/OptionsGateway.ts';
+export {
+  createStocksGateway,
+  type IStocksGateway,
+} from './stocks/StocksGateway.ts';
 
 export interface PolygonGateway {
-  stocks: StocksGateway;
-  markets: MarketGateway;
-  options: OptionsGateway;
+  stocks: IStocksGateway;
+  markets: IMarketGateway;
+  options: IOptionsGateway;
 }
 
 export function createPolygonGateway(
@@ -21,8 +39,8 @@ export function createPolygonGateway(
   const client = getPolygonClient(appConfig);
 
   return Object.freeze({
-    stocks: new StocksGateway(client),
-    markets: new MarketGateway(client),
-    options: new OptionsGateway(client),
+    stocks: createStocksGateway(client),
+    markets: createMarketGateway(client),
+    options: createOptionsGateway(client),
   });
 }

@@ -23,6 +23,21 @@
         }
     },
   },
+  "permission": {
+    "bash": {
+      "*": "allow",
+      "rm": "ask",
+      "sed": "ask",
+      "perl": "ask",
+      "awk": "ask",
+      "curl": "ask",
+      "wget": "ask",
+      "kill": "ask",
+      "dd": "ask",
+      "chmod": "ask",
+      "sudo": "deny"
+    }
+  },
   "formatter": {
     "biome": {
       "command": ["bunx", "biome", "format"],

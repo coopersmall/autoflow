@@ -4,7 +4,7 @@ import {
   type HttpRequestError,
 } from '@autoflow/core';
 import { err, ok, type Result } from 'neverthrow';
-import type { StreamResponse } from './httpClient';
+import type { StreamResponse } from './httpClient.ts';
 
 export async function sendStreamRequest(
   url: string,

@@ -5,21 +5,26 @@ import {
   type Integration,
   IntegrationId,
 } from '@core/domain/integrations/Integration';
-import { createIntegrationsCache } from '../cache/IntegrationsCache';
-import type { IIntegrationsService } from '../domain/IntegrationsService';
-import { createIntegrationsRepo } from '../repos/IntegrationsRepo';
+import { createIntegrationsCache } from '../cache/IntegrationsCache.ts';
+import type { IIntegrationsService } from '../domain/IntegrationsService.ts';
+import { createIntegrationsRepo } from '../repos/IntegrationsRepo.ts';
 
 export { createIntegrationsService };
 
 function createIntegrationsService(
   ctx: IntegrationsServiceContext,
 ): IIntegrationsService {
-  return new IntegrationsService(ctx);
+  return Object.freeze(new IntegrationsService(ctx));
 }
 
 interface IntegrationsServiceContext {
   logger: ILogger;
-  appConfig: () => IAppConfigurationService;
+  appConfig: IAppConfigurationService;
+}
+
+interface IntegrationsServiceDependencies {
+  createIntegrationsRepo: typeof createIntegrationsRepo;
+  createIntegrationsCache: typeof createIntegrationsCache;
 }
 
 class IntegrationsService
@@ -27,13 +32,13 @@ class IntegrationsService
   implements IIntegrationsService
 {
   constructor(
-    ctx: IntegrationsServiceContext,
-    dependencies = {
+    private readonly ctx: IntegrationsServiceContext,
+    private readonly dependencies: IntegrationsServiceDependencies = {
       createIntegrationsRepo,
       createIntegrationsCache,
     },
   ) {
-    const appConfig = ctx.appConfig();
+    const appConfig = ctx.appConfig;
 
     super('integrations', {
       ...ctx,

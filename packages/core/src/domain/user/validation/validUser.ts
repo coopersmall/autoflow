@@ -5,9 +5,9 @@ import {
   updateUserSchema,
   userIdSchema,
   userSchema,
-} from '@core/domain/user/user';
-import type { ValidationError } from '@core/errors/ValidationError';
-import { validate } from '@core/validation/validate';
+} from '@core/domain/user/user.ts';
+import type { ValidationError } from '@core/errors/ValidationError.ts';
+import { validate } from '@core/validation/validate.ts';
 import type { Result } from 'neverthrow';
 
 export function validUser(input: unknown): Result<User, ValidationError> {

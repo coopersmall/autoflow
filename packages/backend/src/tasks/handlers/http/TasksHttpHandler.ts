@@ -5,22 +5,26 @@ import type { IHttpRouteFactory } from '@backend/infrastructure/http/handlers/do
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { ITasksService } from '@backend/tasks/domain/TasksService';
 import { createTasksService } from '@backend/tasks/services/TasksService';
-import { cancelTaskHandler } from './routes/cancelTask';
-import { getQueueStatsHandler } from './routes/getQueueStats';
-import { getTaskByIdHandler } from './routes/getTaskById';
-import { listTasksHandler } from './routes/listTasks';
-import { retryTaskHandler } from './routes/retryTask';
+import { cancelTaskHandler } from './routes/cancelTask.ts';
+import { getQueueStatsHandler } from './routes/getQueueStats.ts';
+import { getTaskByIdHandler } from './routes/getTaskById.ts';
+import { listTasksHandler } from './routes/listTasks.ts';
+import { retryTaskHandler } from './routes/retryTask.ts';
 
 export function createTasksHttpHandler(
   context: TasksHttpHandlerContext,
 ): IHttpHandler {
-  return new TasksHttpHandler(context);
+  return Object.freeze(new TasksHttpHandler(context));
 }
 
 interface TasksHttpHandlerContext {
   logger: ILogger;
   appConfig: IAppConfigurationService;
   routeFactory: IHttpRouteFactory;
+}
+
+interface TasksHttpHandlerDependencies {
+  createTasksService: typeof createTasksService;
 }
 
 /**
@@ -41,8 +45,8 @@ class TasksHttpHandler implements IHttpHandler {
   private readonly tasksService: ITasksService;
 
   constructor(
-    readonly ctx: TasksHttpHandlerContext,
-    readonly dependencies = {
+    private readonly ctx: TasksHttpHandlerContext,
+    private readonly dependencies: TasksHttpHandlerDependencies = {
       createTasksService,
     },
   ) {

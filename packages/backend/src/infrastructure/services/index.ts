@@ -1,2 +1,2 @@
-export { type ISharedService, SharedService } from './SharedService';
-export { type IStandardService, StandardService } from './StandardService';
+export { type ISharedService, SharedService } from './SharedService.ts';
+export { type IStandardService, StandardService } from './StandardService.ts';

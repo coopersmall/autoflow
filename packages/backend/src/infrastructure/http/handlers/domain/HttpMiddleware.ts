@@ -19,7 +19,7 @@
  */
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import type { Result } from 'neverthrow';
-import type { Request } from './Request';
+import type { Request } from './Request.ts';
 
 /**
  * HTTP middleware interface for request processing.

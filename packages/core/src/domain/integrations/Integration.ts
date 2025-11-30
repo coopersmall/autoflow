@@ -1,9 +1,9 @@
 import zod from 'zod';
-import { aiProviderIntegrationSchema } from './ai/providers/AiProviderIntegration';
-import { httpIntegrationSchema } from './http/HttpIntegration';
-import { polygonIntegrationSchema } from './polygon/PolygonIntegration';
+import { aiProviderIntegrationSchema } from './ai/providers/AiProviderIntegration.ts';
+import { httpIntegrationSchema } from './http/HttpIntegration.ts';
+import { polygonIntegrationSchema } from './polygon/PolygonIntegration.ts';
 
-export * from './BaseIntegration';
+export * from './BaseIntegration.ts';
 export type Integration = Readonly<zod.infer<typeof integrationSchema>>;
 
 export const integrationSchema = zod.discriminatedUnion('type', [

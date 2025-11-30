@@ -11,25 +11,22 @@
  * - Provides graceful error handling and logging
  */
 import type { IHttpHandler } from '@backend/infrastructure/http/domain/HttpHandler';
-import type { IHttpRoute } from '@backend/infrastructure/http/domain/HttpRoute';
 import type {
   IHttpServer,
   StopFunction,
 } from '@backend/infrastructure/http/domain/HttpServer';
+import {
+  buildRouteHandlers,
+  startServer,
+} from '@backend/infrastructure/http/server/actions';
 import { createHttpServerClientFactory } from '@backend/infrastructure/http/server/clients/HttpServerClientFactory';
 import type { RouteHandlers } from '@backend/infrastructure/http/server/domain/HttpRouteHandlers';
 import type {
   HttpServerClientType,
   IHttpServerClientFactory,
 } from '@backend/infrastructure/http/server/domain/HttpServerClient';
-import {
-  defaultWebSocketHandlers,
-  type WebSocketHandlers,
-} from '@backend/infrastructure/http/server/domain/HttpWebSocketHandlers';
-import { createHttpServerStartError } from '@backend/infrastructure/http/server/errors/HttpServerError';
+import type { WebSocketHandlers } from '@backend/infrastructure/http/server/domain/HttpWebSocketHandlers';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
-import { produce } from 'immer';
-import { isEmpty } from 'lodash';
 
 /**
  * Factory function for creating HTTP server instances.
@@ -85,10 +82,10 @@ class Server implements IHttpServer {
     this.serverType = dependencies?.serverType ?? 'bun';
 
     if (ctx.routeHandlers) {
-      this.addHandlers(ctx.routeHandlers);
+      this.httpRoutes = buildRouteHandlers({}, { handlers: ctx.routeHandlers });
     }
     if (ctx.webSocketHandlers) {
-      this.addWebSocketHandlers(ctx.webSocketHandlers);
+      this.webSocketConfig = ctx.webSocketHandlers;
     }
   }
 
@@ -101,88 +98,17 @@ class Server implements IHttpServer {
   start({ port }: { port: number }): {
     stop?: StopFunction;
   } {
-    const routes = this.httpRoutes;
-    const websocket = this.webSocketConfig;
-
-    const clientResult = this.factory.getServerClient(this.serverType);
-
-    if (clientResult.isErr()) {
-      this.ctx.logger.error(
-        'Failed to create server client',
-        clientResult.error,
-        {
-          port,
-          serverType: this.serverType,
-        },
-      );
-      return {};
-    }
-
-    const client = clientResult.value;
-
-    try {
-      this.ctx.logger.info('Starting HTTP server', { port });
-
-      const config = {
+    return startServer(
+      {
+        logger: this.ctx.logger,
+        factory: this.factory,
+        serverType: this.serverType,
+      },
+      {
         port,
-        routes: routes && !isEmpty(routes) ? routes : {},
-        websocket:
-          websocket && !isEmpty(websocket)
-            ? websocket
-            : defaultWebSocketHandlers,
-      };
-
-      const stop = client.start(config);
-
-      this.ctx.logger.info('HTTP server started', { port });
-      return { stop };
-    } catch (error) {
-      this.ctx.logger.error(
-        'Failed to start HTTP server',
-        createHttpServerStartError(error, {
-          port,
-          serverType: this.serverType,
-        }),
-        {
-          port,
-          serverType: this.serverType,
-          cause: error,
-        },
-      );
-      return {};
-    }
-  }
-
-  /**
-   * Registers HTTP handlers and adds their routes to the server.
-   * @param handler - Array of HTTP handlers to register
-   */
-  private addHandlers(handler: IHttpHandler[]) {
-    handler
-      .flatMap((h) => h.routes())
-      .forEach((route) => {
-        this.addRoute(route);
-      });
-  }
-
-  /**
-   * Adds a single route to the server's route registry.
-   * @param route - Route to register (path, method, handler)
-   */
-  private addRoute(route: IHttpRoute) {
-    this.httpRoutes = produce(this.httpRoutes, (draft) => {
-      if (!draft[route.path]) {
-        draft[route.path] = {};
-      }
-      draft[route.path][route.method] = route.handler;
-    });
-  }
-
-  /**
-   * Configures WebSocket handlers for the server.
-   * @param handlers - WebSocket event handlers (open, message, close)
-   */
-  private addWebSocketHandlers(handlers: WebSocketHandlers) {
-    this.webSocketConfig = handlers;
+        routes: this.httpRoutes,
+        websocket: this.webSocketConfig,
+      },
+    );
   }
 }

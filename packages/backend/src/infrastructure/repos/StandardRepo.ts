@@ -21,13 +21,16 @@
  */
 
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
-import { convertQueryResultsToData } from '@backend/infrastructure/repos/actions/convertQueryResultsToData';
+import {
+  createRecord,
+  deleteRecord,
+  getAllRecords,
+  getRecord,
+  updateRecord,
+} from '@backend/infrastructure/repos/actions/standard';
 import type { IRelationalDatabaseAdapter } from '@backend/infrastructure/repos/domain/DatabaseAdapter';
 import type { IDatabaseClient } from '@backend/infrastructure/repos/domain/DatabaseClient';
-import {
-  createNotFoundError,
-  type DBError,
-} from '@backend/infrastructure/repos/errors/DBError';
+import type { DBError } from '@backend/infrastructure/repos/errors/DBError';
 import { createCachedGetter } from '@backend/infrastructure/utils/createCachedGetter';
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
@@ -35,9 +38,8 @@ import type { UserId } from '@core/domain/user/user';
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import type { ValidationError } from '@core/errors/ValidationError';
 import type { ExtractMethods } from '@core/types';
-import type { Result } from 'neverthrow';
-import { err, ok } from 'neverthrow';
-import { createRelationalDatabaseAdapter } from './adapters/RelationalDatabaseAdapter';
+import { err, ok, type Result } from 'neverthrow';
+import { createRelationalDatabaseAdapter } from './adapters/RelationalDatabaseAdapter.ts';
 
 /**
  * Extracted public methods of StandardRepo for dependency injection and testing.
@@ -47,6 +49,18 @@ export type IStandardRepo<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > = ExtractMethods<StandardRepo<ID, T>>;
+
+interface StandardRepoDependencies {
+  createRelationalDatabaseAdapter: typeof createRelationalDatabaseAdapter;
+}
+
+interface StandardRepoActions {
+  getRecord: typeof getRecord;
+  getAllRecords: typeof getAllRecords;
+  createRecord: typeof createRecord;
+  updateRecord: typeof updateRecord;
+  deleteRecord: typeof deleteRecord;
+}
 
 /**
  * Repository for user-scoped data with automatic user isolation.
@@ -64,20 +78,27 @@ export class StandardRepo<
    * @param tableName - Database table name for this repository
    * @param appConfig - Application configuration service
    * @param validator - Zod validator function for domain entity validation
+   * @param standardRepoActions - Injectable actions for testing
    * @param dependencies - Injectable dependencies for testing
    */
   constructor(
     private readonly tableName: string,
     private readonly appConfig: IAppConfigurationService,
     private readonly validator: (data: unknown) => Result<T, ValidationError>,
-    private readonly dependencies = {
+    dependencies: StandardRepoDependencies = {
       createRelationalDatabaseAdapter,
-      convertQueryResultsToData,
+    },
+    private readonly standardRepoActions: StandardRepoActions = {
+      getRecord,
+      getAllRecords,
+      createRecord,
+      updateRecord,
+      deleteRecord,
     },
   ) {
     this.getAdapter = createCachedGetter(() =>
       ok(
-        this.dependencies.createRelationalDatabaseAdapter({
+        dependencies.createRelationalDatabaseAdapter({
           appConfig: this.appConfig,
           tableName: this.tableName,
         }),
@@ -97,23 +118,14 @@ export class StandardRepo<
     if (adapterResult.isErr()) {
       return err(adapterResult.error);
     }
-    const result = await adapterResult.value.findUnique({
-      where: { id, userId },
-    });
-    if (result.isErr()) {
-      return err(result.error);
-    }
-    const dataResult = this.dependencies.convertQueryResultsToData(
-      result.value,
-      this.validator,
+
+    return this.standardRepoActions.getRecord(
+      {
+        adapter: adapterResult.value,
+        validator: this.validator,
+      },
+      { id, userId },
     );
-    if (dataResult.isErr()) {
-      return err(dataResult.error);
-    }
-    if (dataResult.value.length === 0) {
-      return err(createNotFoundError());
-    }
-    return ok(dataResult.value[0]);
   }
 
   /**
@@ -132,16 +144,13 @@ export class StandardRepo<
     if (adapterResult.isErr()) {
       return err(adapterResult.error);
     }
-    const result = await adapterResult.value.findMany({
-      where: { userId },
-      limit: opts?.limit,
-    });
-    if (result.isErr()) {
-      return err(result.error);
-    }
-    return this.dependencies.convertQueryResultsToData(
-      result.value,
-      this.validator,
+
+    return this.standardRepoActions.getAllRecords(
+      {
+        adapter: adapterResult.value,
+        validator: this.validator,
+      },
+      { userId, limit: opts?.limit },
     );
   }
 
@@ -162,23 +171,14 @@ export class StandardRepo<
     if (adapterResult.isErr()) {
       return err(adapterResult.error);
     }
-    const result = await adapterResult.value.create({
-      id,
-      userId,
-      createdAt: new Date(),
-      data,
-    });
-    if (result.isErr()) {
-      return err(result.error);
-    }
-    const dataResult = this.dependencies.convertQueryResultsToData(
-      result.value,
-      this.validator,
+
+    return this.standardRepoActions.createRecord(
+      {
+        adapter: adapterResult.value,
+        validator: this.validator,
+      },
+      { id, userId, data },
     );
-    if (dataResult.isErr()) {
-      return err(dataResult.error);
-    }
-    return ok(dataResult.value[0]);
   }
 
   /**
@@ -199,34 +199,14 @@ export class StandardRepo<
     if (adapterResult.isErr()) {
       return err(adapterResult.error);
     }
-    const {
-      id: _id,
-      createdAt: _createdAt,
-      updatedAt: _updatedAt,
-      ...dataOnly
-    } = data;
-    const result = await adapterResult.value.update({
-      where: {
-        id,
-        updatedAt: new Date(),
-        userId,
+
+    return this.standardRepoActions.updateRecord(
+      {
+        adapter: adapterResult.value,
+        validator: this.validator,
       },
-      data: dataOnly,
-    });
-    if (result.isErr()) {
-      return err(result.error);
-    }
-    const dataResult = this.dependencies.convertQueryResultsToData(
-      result.value,
-      this.validator,
+      { id, userId, data },
     );
-    if (dataResult.isErr()) {
-      return err(dataResult.error);
-    }
-    if (dataResult.value.length === 0) {
-      return err(createNotFoundError());
-    }
-    return ok(dataResult.value[0]);
   }
 
   /**
@@ -236,26 +216,19 @@ export class StandardRepo<
    * @param userId - ID of the user who owns the record
    * @returns Deleted record or database/validation error if not found or access denied
    */
-  async delete(id: ID, userId: string): Promise<Result<T, DBError>> {
+  async delete(id: ID, userId: UserId): Promise<Result<T, DBError>> {
     const adapterResult = this.getAdapter();
     if (adapterResult.isErr()) {
       return err(adapterResult.error);
     }
-    const result = await adapterResult.value.delete({ where: { id, userId } });
-    if (result.isErr()) {
-      return err(result.error);
-    }
-    const dataResult = this.dependencies.convertQueryResultsToData(
-      result.value,
-      this.validator,
+
+    return this.standardRepoActions.deleteRecord(
+      {
+        adapter: adapterResult.value,
+        validator: this.validator,
+      },
+      { id, userId },
     );
-    if (dataResult.isErr()) {
-      return err(dataResult.error);
-    }
-    if (dataResult.value.length === 0) {
-      return err(createNotFoundError());
-    }
-    return ok(dataResult.value[0]);
   }
 
   /**

@@ -7,9 +7,9 @@ import type {
   IQueueClient,
   QueueJob,
   QueueJobInput,
-} from '../../domain/QueueClient';
-import type { QueueConfig } from '../../domain/QueueConfig';
-import type { QueueStats } from '../../domain/QueueStats';
+} from '../../domain/QueueClient.ts';
+import type { QueueConfig } from '../../domain/QueueConfig.ts';
+import type { QueueStats } from '../../domain/QueueStats.ts';
 
 /**
  * Factory type for creating BullMQ Queue instances.
@@ -26,7 +26,7 @@ const defaultQueueFactory: QueueFactory = (name, options) =>
 /**
  * Dependencies that can be injected for testing
  */
-export interface BullMQQueueClientDeps {
+interface BullMQQueueClientDeps {
   createQueue?: QueueFactory;
 }
 
@@ -45,7 +45,9 @@ export function createBullMQQueueClient(
   },
   deps: BullMQQueueClientDeps = {},
 ): IQueueClient {
-  return new BullMQQueueClient(queueName, redisUrl, config, deps);
+  return Object.freeze(
+    new BullMQQueueClient(queueName, redisUrl, config, deps),
+  );
 }
 
 /**

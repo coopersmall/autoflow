@@ -4,7 +4,7 @@ import type {
   IWorkerClient,
   QueueProvider,
   WorkerJobHandler,
-} from './WorkerClient';
+} from './WorkerClient.ts';
 
 /**
  * Type of worker client implementation

@@ -3,7 +3,7 @@ import type { AiProviderIntegration } from '@core/domain/integrations/ai/provide
 import type { ExtractMethods } from '@core/types';
 import { type ModelMessage, type StreamObjectResult, streamObject } from 'ai';
 import type { Schema } from 'zod';
-import { getModel } from './getModel';
+import { getModel } from './getModel.ts';
 
 export interface StreamCompletionObjectRequest<SCHEMA extends Schema> {
   provider: AiProviderIntegration;

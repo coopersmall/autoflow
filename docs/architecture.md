@@ -137,37 +137,42 @@ const service = createUsersService({
 ### Example
 
 ```typescript
-// packages/backend/src/services/users/UsersService.ts
+// packages/backend/src/users/UsersService.ts
 
 export function createUsersService(
   ctx: UsersServiceContext
 ): IUsersService {
-  return new UsersService(ctx);
+  return Object.freeze(new UsersService(ctx));
 }
 
 interface UsersServiceContext {
-  appConfig: () => IAppConfigurationService;
-  logger: ILogger;
+  readonly appConfig: IAppConfigurationService;
+  readonly logger: ILogger;
+}
+
+interface UsersServiceDependencies {
+  readonly createUsersRepo: typeof createUsersRepo;
+  readonly createUsersCache: typeof createUsersCache;
 }
 
 class UsersService extends SharedService<UserId, User>
   implements IUsersService {
   
   constructor(
-    readonly context: UsersServiceContext,
-    private readonly dependencies = {
+    private readonly context: UsersServiceContext,
+    private readonly dependencies: UsersServiceDependencies = {
       createUsersRepo,
       createUsersCache,
     },
   ) {
-    const appConfig = context.appConfig();
-    
     super('users', {
       ...context,
-      repo: () => this.dependencies.createUsersRepo({ appConfig }),
+      repo: () => this.dependencies.createUsersRepo({ 
+        appConfig: context.appConfig 
+      }),
       cache: () => this.dependencies.createUsersCache({
         logger: context.logger,
-        appConfig,
+        appConfig: context.appConfig,
       }),
       newId: UserId,
     });
@@ -183,8 +188,8 @@ Services and functions receive dependencies via context objects:
 
 ```typescript
 interface CreateClaimContext {
-  logger: ILogger;
-  appConfig: () => IAppConfigurationService;
+  readonly logger: ILogger;
+  readonly appConfig: IAppConfigurationService;
 }
 
 function createClaim(
@@ -192,7 +197,6 @@ function createClaim(
   request: CreateClaimRequest,
 ): Result<JWTClaim, ErrorWithMetadata> {
   ctx.logger.debug('Creating JWT claim', { userId: request.userId });
-  const appConfig = ctx.appConfig();
   // ...
 }
 ```
@@ -207,26 +211,25 @@ function createClaim(
 ### Example from codebase
 
 ```typescript
-// packages/backend/src/services/jwt/actions/createClaim.ts
+// packages/backend/src/auth/actions/claims/createClaim.ts
 
 export interface CreateClaimContext {
-  logger: ILogger;
-  appConfig: () => IAppConfigurationService;
+  readonly logger: ILogger;
+  readonly appConfig: IAppConfigurationService;
 }
 
 export interface CreateClaimRequest {
-  correlationId?: CorrelationId;
-  userId: UserId;
-  permissions: Permission[];
-  expirationTime?: number;
+  readonly correlationId?: CorrelationId;
+  readonly userId: UserId;
+  readonly permissions: Permission[];
+  readonly expirationTime?: number;
 }
 
 export function createClaim(
   ctx: CreateClaimContext,
   request: CreateClaimRequest,
 ): Result<JWTClaim, ErrorWithMetadata> {
-  const appConfig = ctx.appConfig();
-  const local = appConfig.isLocal();
+  const local = ctx.appConfig.isLocal();
   
   ctx.logger.debug('Created JWT claim', {
     correlationId: request.correlationId,
@@ -235,7 +238,7 @@ export function createClaim(
   
   return ok({
     sub: request.userId,
-    iss: appConfig.site,
+    iss: ctx.appConfig.site,
     // ...
   });
 }
@@ -257,14 +260,14 @@ Business logic should be:
 
 // 1. Define context interface
 export interface CreateClaimContext {
-  logger: ILogger;
-  appConfig: () => IAppConfigurationService;
+  readonly logger: ILogger;
+  readonly appConfig: IAppConfigurationService;
 }
 
 // 2. Define request interface
 export interface CreateClaimRequest {
-  userId: UserId;
-  permissions: Permission[];
+  readonly userId: UserId;
+  readonly permissions: Permission[];
 }
 
 // 3. Implement pure function
@@ -378,10 +381,13 @@ Services are created directly using factory functions where needed:
 import { createUsersService } from '@backend/users';
 
 class UsersHttpHandler {
-  constructor(ctx: { logger: ILogger; appConfig: IAppConfigurationService }) {
+  constructor(private readonly ctx: { 
+    readonly logger: ILogger; 
+    readonly appConfig: IAppConfigurationService;
+  }) {
     const usersService = createUsersService({
       logger: ctx.logger,
-      appConfig: () => ctx.appConfig,
+      appConfig: ctx.appConfig,
     });
     
     // Use service...
@@ -396,30 +402,37 @@ When one service depends on another, create them in the constructor:
 ```typescript
 // Service that depends on other services
 export function createSecretsService(ctx: SecretsServiceContext) {
-  return new SecretsService(ctx);
+  return Object.freeze(new SecretsService(ctx));
 }
 
 interface SecretsServiceContext {
-  logger: ILogger;
-  appConfig: () => IAppConfigurationService;
-  encryptionService: () => IEncryptionService;
+  readonly logger: ILogger;
+  readonly appConfig: IAppConfigurationService;
+  readonly encryptionService: IEncryptionService;
+}
+
+interface SecretsServiceDependencies {
+  readonly createSecretsRepo: typeof createSecretsRepo;
+  readonly createSecretsCache: typeof createSecretsCache;
 }
 
 class SecretsService {
   constructor(
-    readonly ctx: SecretsServiceContext,
-    dependencies = {
+    private readonly ctx: SecretsServiceContext,
+    private readonly dependencies: SecretsServiceDependencies = {
       createSecretsRepo,
       createSecretsCache,
     }
   ) {
-    // Services created on-demand
-    const appConfig = ctx.appConfig();
-    
     super('secrets', {
       ...ctx,
-      repo: () => dependencies.createSecretsRepo({ appConfig }),
-      cache: () => dependencies.createSecretsCache({ logger: ctx.logger, appConfig }),
+      repo: () => this.dependencies.createSecretsRepo({ 
+        appConfig: ctx.appConfig 
+      }),
+      cache: () => this.dependencies.createSecretsCache({ 
+        logger: ctx.logger, 
+        appConfig: ctx.appConfig 
+      }),
       newId: SecretId,
     });
   }
@@ -429,8 +442,8 @@ class SecretsService {
 const encryptionService = createRSAEncryptionService({ logger });
 const secretsService = createSecretsService({
   logger,
-  appConfig: () => config,
-  encryptionService: () => encryptionService,
+  appConfig: config,
+  encryptionService,
 });
 ```
 
@@ -454,17 +467,17 @@ export function createHandlers(deps: {
 
 // packages/backend/src/users/handlers/http/UsersHttpHandler.ts
 export function createAPIUserHandlers(ctx: {
-  logger: ILogger;
-  appConfig: IAppConfigurationService;
-  routeFactory: IHttpRouteFactory;
+  readonly logger: ILogger;
+  readonly appConfig: IAppConfigurationService;
+  readonly routeFactory: IHttpRouteFactory;
 }): IHttpHandler {
   // Service created inside handler
   const usersService = createUsersService({
     logger: ctx.logger,
-    appConfig: () => ctx.appConfig,
+    appConfig: ctx.appConfig,
   });
   
-  return new UsersHttpHandler({ ...ctx, service: usersService });
+  return Object.freeze(new UsersHttpHandler({ ...ctx, service: usersService }));
 }
 ```
 
@@ -609,7 +622,7 @@ export const userSchema = zod.discriminatedUnion('schemaVersion', [
 // Create service
 const usersService = createUsersService({
   logger,
-  appConfig: () => createAppConfigurationService(),
+  appConfig: createAppConfigurationService(),
 });
 
 // Use service
@@ -633,8 +646,8 @@ logger.info('User created', { userId: user.id });
 ```typescript
 // Define action
 function processPayment(
-  ctx: { logger: ILogger },
-  request: { amount: number; userId: UserId },
+  ctx: { readonly logger: ILogger },
+  request: { readonly amount: number; readonly userId: UserId },
 ): Result<PaymentResult, ErrorWithMetadata> {
   if (request.amount <= 0) {
     return err(new ErrorWithMetadata('Invalid amount', 'BadRequest'));

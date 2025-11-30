@@ -2,7 +2,7 @@ import type { CorrelationId } from '@core/domain/CorrelationId';
 import type { JWTClaim } from '@core/domain/jwt/JWTClaim';
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import type { Result } from 'neverthrow';
-import type { RSAKeyPair } from '../actions/rsa/generateKeyPair';
+import type { RSAKeyPair } from '../actions/rsa/generateKeyPair.ts';
 
 export type IEncryptionService = Readonly<EncryptionService>;
 

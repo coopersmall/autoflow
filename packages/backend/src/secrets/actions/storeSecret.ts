@@ -5,7 +5,7 @@ import type { StoreSecretRequest } from '@backend/secrets/domain/StoreSecretRequ
 import type { Secret } from '@core/domain/secrets/Secret';
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import { err, type Result } from 'neverthrow';
-import { encryptSecret } from './encryptSecret';
+import { encryptSecret } from './encryptSecret.ts';
 
 export interface StoreSecretContext {
   appConfig: IAppConfigurationService;

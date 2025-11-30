@@ -26,7 +26,7 @@ export function createSecretsService(
 
 interface SecretsServiceContext {
   logger: ILogger;
-  appConfig: () => IAppConfigurationService;
+  appConfig: IAppConfigurationService;
 }
 
 interface SecretsServiceActions {
@@ -63,7 +63,7 @@ class SecretsService
       createSecretsCache,
     },
   ) {
-    const appConfig = context.appConfig();
+    const appConfig = context.appConfig;
 
     super('secrets', {
       ...context,
@@ -95,7 +95,7 @@ class SecretsService
   ): Promise<Result<Secret, ErrorWithMetadata>> {
     return this.actions.storeSecret(
       {
-        appConfig: this.context.appConfig(),
+        appConfig: this.context.appConfig,
         encryption: this.encryption,
         secrets: this,
       },
@@ -116,7 +116,7 @@ class SecretsService
   ): Promise<Result<SecretWithValue, ErrorWithMetadata>> {
     return this.actions.revealSecret(
       {
-        appConfig: this.context.appConfig(),
+        appConfig: this.context.appConfig,
         encryption: this.encryption,
         secrets: this,
       },

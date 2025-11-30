@@ -1,4 +1,4 @@
-import { ErrorWithMetadata } from './ErrorWithMetadata';
+import { ErrorWithMetadata } from './ErrorWithMetadata.ts';
 
 export class UnauthorizedError extends ErrorWithMetadata {
   constructor(metadata?: Record<string, unknown>) {

@@ -1,5 +1,5 @@
 import type { ZodError } from 'zod';
-import { type ErrorMetadata, ErrorWithMetadata } from './ErrorWithMetadata';
+import { type ErrorMetadata, ErrorWithMetadata } from './ErrorWithMetadata.ts';
 
 export class ValidationError extends ErrorWithMetadata {
   constructor(error: ZodError, metadata: ErrorMetadata = {}) {

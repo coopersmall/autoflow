@@ -15,7 +15,7 @@ import {
 export function createAPIUserHandlers(
   context: UsersHttpHandlersContext,
 ): IHttpHandler {
-  return new UsersHttpHandlers(context);
+  return Object.freeze(new UsersHttpHandlers(context));
 }
 
 interface UsersHttpHandlersContext {
@@ -33,14 +33,14 @@ class UsersHttpHandlers
   implements IHttpHandler
 {
   constructor(
-    readonly ctx: UsersHttpHandlersContext,
-    dependencies: UsersHttpHandlersDependencies = {
+    private readonly ctx: UsersHttpHandlersContext,
+    private readonly dependencies: UsersHttpHandlersDependencies = {
       createUsersService,
     },
   ) {
     const usersService: IUsersService = dependencies.createUsersService({
       logger: ctx.logger,
-      appConfig: () => ctx.appConfig,
+      appConfig: ctx.appConfig,
     });
 
     super({

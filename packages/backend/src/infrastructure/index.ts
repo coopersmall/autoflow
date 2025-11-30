@@ -1,21 +1,21 @@
 // Cache
-export * from './cache';
+export * from './cache/index.ts';
 // Configuration
-export * from './configuration/AppConfigurationService';
+export * from './configuration/AppConfigurationService.ts';
 // Encryption
-export * from './encryption';
-export * from './http/domain/HttpHandler';
-export * from './http/domain/HttpRoute';
-export * from './http/handlers/domain/HttpRouteFactory';
-export * from './http/handlers/factory/HttpHandlerFactory';
-export * from './http/handlers/middleware/domain/MiddlewareConfig';
+export * from './encryption/index.ts';
+export * from './http/domain/HttpHandler.ts';
+export * from './http/domain/HttpRoute.ts';
+export * from './http/handlers/domain/HttpRouteFactory.ts';
+export * from './http/handlers/factory/HttpHandlerFactory.ts';
+export * from './http/handlers/middleware/domain/MiddlewareConfig.ts';
 // HTTP
-export * from './http/server/HttpServer';
+export * from './http/server/HttpServer.ts';
 // Logger
-export * from './logger/Logger';
+export * from './logger/Logger.ts';
 // Queue
-export * from './queue';
+export * from './queue/index.ts';
 // Repos
-export * from './repos';
+export * from './repos/index.ts';
 // Services
-export * from './services';
+export * from './services/index.ts';

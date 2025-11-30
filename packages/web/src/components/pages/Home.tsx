@@ -1,14 +1,14 @@
 'use client';
 
 import { Flex } from '@radix-ui/themes';
-import { DefaultLayout } from '@web/components/layout/DefaultLayout';
-import { APITester } from '@web/components/ui/APITester';
-import { LeftButtons } from '@web/components/ui/left-menu/buttons/LeftMenuButtons';
-import { LeftMenu } from '@web/components/ui/left-menu/LeftMenu';
-import { TopMenu } from '@web/components/ui/top-menu/TopMenu';
-import { TopLeftMenu } from '@web/components/ui/top-menu/top-left-menu/TopLeftMenu';
-import { ChatButton } from '@web/components/ui/top-menu/top-right-menu/buttons/ChatMenuButton';
-import { TopRightMenu } from '@web/components/ui/top-menu/top-right-menu/TopRightMenu';
+import { DefaultLayout } from '@web/components/layout/DefaultLayout.tsx';
+import { APITester } from '@web/components/ui/APITester.tsx';
+import { LeftButtons } from '@web/components/ui/left-menu/buttons/LeftMenuButtons.tsx';
+import { LeftMenu } from '@web/components/ui/left-menu/LeftMenu.tsx';
+import { TopMenu } from '@web/components/ui/top-menu/TopMenu.tsx';
+import { TopLeftMenu } from '@web/components/ui/top-menu/top-left-menu/TopLeftMenu.tsx';
+import { ChatButton } from '@web/components/ui/top-menu/top-right-menu/buttons/ChatMenuButton.tsx';
+import { TopRightMenu } from '@web/components/ui/top-menu/top-right-menu/TopRightMenu.tsx';
 import styled from 'styled-components';
 
 export default function Home() {

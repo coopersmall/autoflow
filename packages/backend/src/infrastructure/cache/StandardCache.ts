@@ -38,6 +38,11 @@
  * ```
  */
 import { generateCacheKey } from '@backend/infrastructure/cache/actions/generateCacheKey';
+import {
+  deleteCached,
+  getCached,
+  setCached,
+} from '@backend/infrastructure/cache/actions/standard';
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import { createCachedGetter } from '@backend/infrastructure/utils/createCachedGetter';
@@ -48,9 +53,9 @@ import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import type { ExtractMethods } from '@core/types';
 import type { Validator } from '@core/validation/validate';
 import { err, ok, type Result } from 'neverthrow';
-import { createCacheAdapter } from './adapters/CacheAdapter';
-import { createCacheClientFactory } from './clients/CacheClientFactory';
-import type { ICacheAdapter } from './domain/CacheAdapter';
+import { createCacheAdapter } from './adapters/CacheAdapter.ts';
+import { createCacheClientFactory } from './clients/CacheClientFactory.ts';
+import type { ICacheAdapter } from './domain/CacheAdapter.ts';
 
 export type IStandardCache<
   ID extends Id<string> = Id<string>,
@@ -64,6 +69,18 @@ export interface StandardCacheContext<T> {
   logger: ILogger;
   appConfig: IAppConfigurationService;
   validator: Validator<T>;
+}
+
+interface StandardCacheDependencies {
+  createCacheClientFactory: typeof createCacheClientFactory;
+  createCacheAdapter: typeof createCacheAdapter;
+  generateCacheKey: typeof generateCacheKey;
+}
+
+interface StandardCacheActions {
+  getCached: typeof getCached;
+  setCached: typeof setCached;
+  deleteCached: typeof deleteCached;
 }
 
 /**
@@ -81,14 +98,20 @@ export class StandardCache<
    * @param namespace - Cache namespace (e.g., 'integrations', 'secrets')
    * @param ctx - Cache context with logger, adapter, and validator
    * @param dependencies - Optional dependencies for testing
+   * @param standardCacheActions - Injectable actions for testing
    */
   constructor(
     private readonly namespace: string,
     private readonly ctx: StandardCacheContext<T>,
-    private readonly dependencies = {
+    private readonly dependencies: StandardCacheDependencies = {
       createCacheClientFactory,
       createCacheAdapter,
       generateCacheKey,
+    },
+    private readonly standardCacheActions: StandardCacheActions = {
+      getCached,
+      setCached,
+      deleteCached,
     },
   ) {
     const factory = this.dependencies.createCacheClientFactory(
@@ -123,34 +146,25 @@ export class StandardCache<
     userId: UserId,
     onMiss?: (id: ID, userId: UserId) => Promise<Result<T, ErrorWithMetadata>>,
   ): Promise<Result<T, ErrorWithMetadata>> {
-    const key = this.generateKey(id, userId);
-
     const adapter = this.getAdapter();
     if (adapter.isErr()) {
       return err(adapter.error);
     }
 
-    const result = await adapter.value.get<T>(key, this.ctx.validator);
-
-    if (result.isErr() && onMiss) {
-      const missResult = await onMiss(id, userId);
-      if (missResult.isErr()) {
-        return err(missResult.error);
-      }
-
-      const setResult = await this.set(missResult.value, userId);
-      if (setResult.isErr()) {
-        this.ctx.logger.error(
-          'Cache set failed on cache miss',
-          setResult.error,
-          { id, userId, key },
-        );
-      }
-
-      return ok(missResult.value);
-    }
-
-    return result;
+    return this.standardCacheActions.getCached(
+      {
+        adapter: adapter.value,
+        logger: this.ctx.logger,
+        validator: this.ctx.validator,
+        generateKey: this.generateKey.bind(this),
+      },
+      {
+        id,
+        userId,
+        onMiss,
+        setCached: this.set.bind(this),
+      },
+    );
   }
 
   /**
@@ -169,8 +183,14 @@ export class StandardCache<
     if (adapter.isErr()) {
       return err(adapter.error);
     }
-    const key = this.generateKey(item.id, userId);
-    return adapter.value.set(key, item, { ttl });
+
+    return this.standardCacheActions.setCached(
+      {
+        adapter: adapter.value,
+        generateKey: this.generateKey.bind(this),
+      },
+      { item, userId, ttl },
+    );
   }
 
   /**
@@ -184,8 +204,14 @@ export class StandardCache<
     if (adapter.isErr()) {
       return err(adapter.error);
     }
-    const key = this.generateKey(id, userId);
-    return adapter.value.del(key);
+
+    return this.standardCacheActions.deleteCached(
+      {
+        adapter: adapter.value,
+        generateKey: this.generateKey.bind(this),
+      },
+      { id, userId },
+    );
   }
 
   /**

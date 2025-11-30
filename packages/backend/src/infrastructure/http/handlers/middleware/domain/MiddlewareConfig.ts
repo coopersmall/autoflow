@@ -15,7 +15,7 @@
  */
 
 import type { Permission } from '@core/domain/permissions/permissions';
-import type { IHttpMiddleware } from '../../domain/HttpMiddleware';
+import type { IHttpMiddleware } from '../../domain/HttpMiddleware.ts';
 
 /**
  * Configuration passed to middleware factories.

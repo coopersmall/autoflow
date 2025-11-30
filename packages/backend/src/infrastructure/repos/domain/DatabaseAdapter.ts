@@ -11,8 +11,8 @@
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import type { ValidationError } from '@core/errors/ValidationError';
 import type { Result } from 'neverthrow';
-import type { IDatabaseClient } from './DatabaseClient';
-import type { RawDatabaseQuery } from './RawDatabaseQuery';
+import type { IDatabaseClient } from './DatabaseClient.ts';
+import type { RawDatabaseQuery } from './RawDatabaseQuery.ts';
 
 /**
  * Database adapter interface for CRUD operations on relational databases.
