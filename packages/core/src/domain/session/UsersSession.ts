@@ -18,7 +18,7 @@ const usersSessionIdSchema = zod
   .brand<'UsersSession'>()
   .describe('the unique identifier for a user session');
 
-export type UsersSession = zod.infer<typeof usersSessionSchema>;
+export type UsersSession = Readonly<zod.infer<typeof usersSessionSchema>>;
 
 const userSessionV1PartialSchema = zod.strictObject({
   userId: userIdSchema,

@@ -194,6 +194,7 @@ export function createBearerTokenAuthenticationMiddleware(
         userId: authResult.value.userId,
       });
 
+      // biome-ignore lint: Direct context assignment is intentional here to preserve request immutability
       request.context = {
         ...request.context,
         correlationId,

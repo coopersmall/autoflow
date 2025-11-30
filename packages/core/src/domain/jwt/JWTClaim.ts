@@ -4,13 +4,15 @@ import { UserId, userIdSchema } from '@core/domain/user/user';
 import type { JWTPayload } from 'jose';
 import zod from 'zod';
 
-export type JWTClaim = JWTPayload & {
-  sub: string;
-  aud: string[];
-  iss: string;
-  iat: number;
-  exp?: number;
-};
+export type JWTClaim = Readonly<
+  JWTPayload & {
+    sub: string;
+    aud: string[];
+    iss: string;
+    iat: number;
+    exp?: number;
+  }
+>;
 
 export const DEFAULT_EXPIRATION_TIME = 60 * 60 * 24;
 export const SIGNATURE_ALGORITHM = 'RS256';

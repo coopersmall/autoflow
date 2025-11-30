@@ -6,4 +6,4 @@ export const taskResultSchema = zod.strictObject({
   duration: zod.number().describe('Processing time in milliseconds'),
 });
 
-export type TaskResult = zod.infer<typeof taskResultSchema>;
+export type TaskResult = Readonly<zod.infer<typeof taskResultSchema>>;

@@ -5,6 +5,7 @@ import type {
   IWorkerClient,
   WorkerJob,
 } from '@backend/infrastructure/queue/domain/WorkerClient';
+import { createCachedGetter } from '@backend/infrastructure/utils/createCachedGetter';
 import type { TaskContext } from '@backend/tasks/domain/TaskContext';
 import type { TaskDefinition } from '@backend/tasks/domain/TaskDefinition';
 import { TaskId } from '@backend/tasks/domain/TaskId';
@@ -13,6 +14,7 @@ import type { ITasksRepo } from '@backend/tasks/domain/TasksRepo';
 import { createTasksRepo } from '@backend/tasks/repos/TasksRepo';
 import { CorrelationId } from '@core/domain/CorrelationId';
 import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { produce } from 'immer';
 import { err, ok, type Result } from 'neverthrow';
 
 export { createTaskWorker };
@@ -87,7 +89,10 @@ class TaskWorker<TPayload> {
   private readonly appConfig: IAppConfigurationService;
   private readonly task: TaskDefinition<TPayload>;
   private readonly repo: ITasksRepo;
-  private client?: IWorkerClient;
+  private readonly getWorkerClient: () => Result<
+    IWorkerClient,
+    ErrorWithMetadata
+  >;
   private updateQueue: PendingTaskUpdate[] = [];
   private isProcessingUpdates = false;
   private readonly maxUpdateBatchSize = 100;
@@ -104,6 +109,39 @@ class TaskWorker<TPayload> {
     this.task = config.task;
     this.dependencies = dependencies;
     this.repo = dependencies.createTasksRepo({ appConfig: config.appConfig });
+
+    this.getWorkerClient = createCachedGetter(() => {
+      const clientResult = this.dependencies
+        .createWorkerClientFactory({
+          appConfig: this.appConfig,
+        })
+        .getWorkerClient(
+          this.task.queueName,
+          async (job: WorkerJob) => {
+            return await this.processJobForBullMQ(job);
+          },
+          'bullmq',
+        );
+
+      if (clientResult.isErr()) {
+        return clientResult;
+      }
+
+      const client = clientResult.value;
+
+      // Register event handlers for lifecycle events
+      client.on({
+        onCompleted: (jobId, result) => this.onCompleted(jobId, result),
+        onFailed: (jobId, error) => this.onFailed(jobId, error),
+        onError: (error) => {
+          this.logger.error('Worker error', error, {
+            queueName: this.task.queueName,
+          });
+        },
+      });
+
+      return ok(client);
+    });
   }
 
   /**
@@ -237,8 +275,13 @@ class TaskWorker<TPayload> {
       // BullMQ expects throws for failures to trigger retries.
       // This is the ONLY place in the codebase where we throw - it's the
       // boundary between our Result-based code and BullMQ's throw-based API.
-      const error = new Error(result.error.message);
-      error.cause = result.error;
+      const error = new ErrorWithMetadata(
+        result.error.message,
+        'InternalServer',
+        {
+          cause: result.error,
+        },
+      );
       // biome-ignore lint: BullMQ requires throwing to trigger retries - this is the API boundary
       throw error;
     }
@@ -299,7 +342,9 @@ class TaskWorker<TPayload> {
    * Enqueue a database update to be processed in bulk.
    */
   private enqueueUpdate(update: PendingTaskUpdate): void {
-    this.updateQueue.push(update);
+    this.updateQueue = produce(this.updateQueue, (draft) => {
+      draft.push(update);
+    });
     this.processUpdateQueue().catch((error) => {
       this.logger.error('Error processing update queue', error, {
         queueName: this.task.queueName,
@@ -318,7 +363,8 @@ class TaskWorker<TPayload> {
     this.isProcessingUpdates = true;
 
     while (this.updateQueue.length > 0) {
-      const batch = this.updateQueue.splice(0, this.maxUpdateBatchSize);
+      const batch = this.updateQueue.slice(0, this.maxUpdateBatchSize);
+      this.updateQueue = this.updateQueue.slice(this.maxUpdateBatchSize);
 
       const updates = batch.map((update) => ({
         id: update.taskId,
@@ -333,52 +379,12 @@ class TaskWorker<TPayload> {
           batchSize: batch.length,
         });
       } else {
-        for (const update of batch) {
+        batch.forEach((update) => {
           update.onSuccess?.();
-        }
+        });
       }
     }
 
     this.isProcessingUpdates = false;
-  }
-
-  /**
-   * Lazy-load worker client.
-   */
-  private getWorkerClient(): Result<IWorkerClient, ErrorWithMetadata> {
-    if (this.client) {
-      return ok(this.client);
-    }
-
-    const clientResult = this.dependencies
-      .createWorkerClientFactory({
-        appConfig: this.appConfig,
-      })
-      .getWorkerClient(
-        this.task.queueName,
-        async (job: WorkerJob) => {
-          return await this.processJobForBullMQ(job);
-        },
-        'bullmq',
-      );
-
-    if (clientResult.isErr()) {
-      return clientResult;
-    }
-
-    this.client = clientResult.value;
-
-    // Register event handlers for lifecycle events
-    this.client.on({
-      onCompleted: (jobId, result) => this.onCompleted(jobId, result),
-      onFailed: (jobId, error) => this.onFailed(jobId, error),
-      onError: (error) => {
-        this.logger.error('Worker error', error, {
-          queueName: this.task.queueName,
-        });
-      },
-    });
-
-    return ok(this.client);
   }
 }

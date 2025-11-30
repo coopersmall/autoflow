@@ -2,7 +2,9 @@ import { baseIntegrationSchema } from '@core/domain/integrations/BaseIntegration
 import { secretIdSchema } from '@core/domain/secrets/Secret';
 import zod from 'zod';
 
-export type PolygonIntegration = zod.infer<typeof polygonIntegrationSchema>;
+export type PolygonIntegration = Readonly<
+  zod.infer<typeof polygonIntegrationSchema>
+>;
 
 const polygonIntegrationV1Schema = baseIntegrationSchema.extend({
   schemaVersion: zod.literal(1),

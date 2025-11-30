@@ -10,11 +10,13 @@ export function createSecretsCache(options: {
   appConfig: IAppConfigurationService;
   ttlSeconds?: number;
 }): ISecretsCache {
-  return new SecretsCache('secrets', {
-    logger: options.logger,
-    appConfig: options.appConfig,
-    ttlSeconds: options.ttlSeconds,
-  });
+  return Object.freeze(
+    new SecretsCache('secrets', {
+      logger: options.logger,
+      appConfig: options.appConfig,
+      ttlSeconds: options.ttlSeconds,
+    }),
+  );
 }
 
 class SecretsCache

@@ -2,15 +2,21 @@ import { baseIntegrationSchema } from '@core/domain/integrations/BaseIntegration
 import { secretIdSchema } from '@core/domain/secrets/Secret';
 import zod from 'zod';
 
-export type AiProviderIntegration = zod.infer<
-  typeof aiProviderIntegrationSchema
+export type AiProviderIntegration = Readonly<
+  zod.infer<typeof aiProviderIntegrationSchema>
 >;
-export type OpenAIProviderConfig = zod.infer<typeof openAiProviderSchema>;
-export type AnthropicProviderConfig = zod.infer<typeof anthropicProviderSchema>;
-export type GoogleProviderConfig = zod.infer<typeof googleProviderSchema>;
-export type GroqProviderConfig = zod.infer<typeof groqProviderSchema>;
-export type OpenRouterProviderConfig = zod.infer<
-  typeof openRouterProviderSchema
+export type OpenAIProviderConfig = Readonly<
+  zod.infer<typeof openAiProviderSchema>
+>;
+export type AnthropicProviderConfig = Readonly<
+  zod.infer<typeof anthropicProviderSchema>
+>;
+export type GoogleProviderConfig = Readonly<
+  zod.infer<typeof googleProviderSchema>
+>;
+export type GroqProviderConfig = Readonly<zod.infer<typeof groqProviderSchema>>;
+export type OpenRouterProviderConfig = Readonly<
+  zod.infer<typeof openRouterProviderSchema>
 >;
 
 const openAiProviderV1Schema = zod.strictObject({

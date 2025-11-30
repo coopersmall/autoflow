@@ -16,10 +16,10 @@ interface SharedServiceContext<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > {
-  logger: ILogger;
-  newId: () => ID;
-  repo: () => ISharedRepo<ID, T>;
-  cache?: () => ISharedCache<ID, T>;
+  readonly logger: ILogger;
+  readonly newId: () => ID;
+  readonly repo: () => ISharedRepo<ID, T>;
+  readonly cache?: () => ISharedCache<ID, T>;
 }
 
 export class SharedService<

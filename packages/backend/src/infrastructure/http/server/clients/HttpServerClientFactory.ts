@@ -25,7 +25,7 @@ import { err, ok, type Result } from 'neverthrow';
  * @returns Configured HTTP server client factory
  */
 export function createHttpServerClientFactory(): IHttpServerClientFactory {
-  return new HttpServerClientFactory();
+  return Object.freeze(new HttpServerClientFactory());
 }
 
 /**

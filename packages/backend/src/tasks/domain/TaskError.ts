@@ -7,4 +7,4 @@ export const taskErrorSchema = zod.strictObject({
   lastAttemptAt: zod.coerce.date(),
 });
 
-export type TaskError = zod.infer<typeof taskErrorSchema>;
+export type TaskError = Readonly<zod.infer<typeof taskErrorSchema>>;

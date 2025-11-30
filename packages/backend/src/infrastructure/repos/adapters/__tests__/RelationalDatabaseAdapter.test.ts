@@ -64,10 +64,14 @@ describe('RelationalDatabaseAdapter', () => {
     const factory = getMockedDatabaseClientFactory();
     const client = createClientMock(sqlMock);
     factory.getDatabase.mockReturnValue(ok(client));
+    const mockAppConfig = {} as any; // Not used with dependencies override
     return createRelationalDatabaseAdapter({
-      clientFactory: factory,
+      appConfig: mockAppConfig,
       tableName: table,
       clientType: 'bun-sql',
+      dependencies: {
+        createDatabaseClientFactory: () => factory,
+      },
     });
   };
 
@@ -92,10 +96,14 @@ describe('RelationalDatabaseAdapter', () => {
     mockClientFactory = getMockedDatabaseClientFactory();
     mockClientFactory.getDatabase.mockReturnValue(ok(client));
 
+    const mockAppConfig = {} as any; // Not used with dependencies override
     adapter = createRelationalDatabaseAdapter({
-      clientFactory: mockClientFactory,
+      appConfig: mockAppConfig,
       tableName,
       clientType: 'bun-sql',
+      dependencies: {
+        createDatabaseClientFactory: () => mockClientFactory,
+      },
     });
   });
 
@@ -695,10 +703,14 @@ describe('RelationalDatabaseAdapter', () => {
         err(new ErrorWithMetadata('DB init failed', 'InternalServer', {})),
       );
 
+      const mockAppConfig = {} as any; // Not used with dependencies override
       const adapter = createRelationalDatabaseAdapter({
-        clientFactory: failingFactory,
+        appConfig: mockAppConfig,
         tableName: 'test_table',
         clientType: 'bun-sql',
+        dependencies: {
+          createDatabaseClientFactory: () => failingFactory,
+        },
       });
 
       // Error happens on first getClient() call (lazy initialization)

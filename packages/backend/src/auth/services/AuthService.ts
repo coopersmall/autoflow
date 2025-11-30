@@ -25,7 +25,7 @@ import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import type { Result } from 'neverthrow';
 
 export function createAuthService(ctx: AuthServiceContext): IAuthService {
-  return new AuthService(ctx);
+  return Object.freeze(new AuthService(ctx));
 }
 
 interface AuthServiceContext {

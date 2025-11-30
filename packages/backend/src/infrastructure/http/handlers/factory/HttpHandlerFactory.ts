@@ -14,7 +14,7 @@ export type IHttpHandlerFactoryService = ExtractMethods<HttpRouteFactory>;
 export function createHttpRouteFactory(
   ctx: HttpRouteFactoryContext,
 ): IHttpHandlerFactoryService {
-  return new HttpRouteFactory(ctx);
+  return Object.freeze(new HttpRouteFactory(ctx));
 }
 
 interface HttpRouteFactoryContext {

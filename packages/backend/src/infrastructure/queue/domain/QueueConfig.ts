@@ -58,7 +58,7 @@ export const DEFAULT_QUEUE_CONFIG: QueueConfig = {
     strategy: 'exponential',
     initialDelay: 5000,
   },
-};
+} as const;
 
 /**
  * Fast retry configuration for integration tests.
@@ -71,4 +71,4 @@ export const FAST_RETRY_CONFIG: QueueConfig = {
     strategy: 'exponential',
     initialDelay: 100,
   },
-};
+} as const;

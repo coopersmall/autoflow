@@ -79,23 +79,12 @@ export class AppConfigurationService {
   get environment(): Environment | undefined {
     const configEnv = this.getConfig('environment');
     if (configEnv) {
-      for (const environment of environments) {
-        if (configEnv === environment) {
-          return environment;
-        }
-      }
-      return undefined;
+      return environments.find((environment) => configEnv === environment);
     }
 
     const env = this.nodeEnv;
     if (!env) return undefined;
-    for (const environment of environments) {
-      if (env === environment) {
-        return environment;
-      }
-    }
-
-    return undefined;
+    return environments.find((environment) => env === environment);
   }
 
   get site(): string {

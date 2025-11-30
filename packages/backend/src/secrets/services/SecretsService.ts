@@ -21,7 +21,7 @@ import type { Result } from 'neverthrow';
 export function createSecretsService(
   ctx: SecretsServiceContext,
 ): ISecretsService {
-  return new SecretsService(ctx);
+  return Object.freeze(new SecretsService(ctx));
 }
 
 interface SecretsServiceContext {

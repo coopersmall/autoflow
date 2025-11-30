@@ -17,10 +17,10 @@ interface StandardServiceContext<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > {
-  logger: ILogger;
-  newId: () => ID;
-  cache?: () => IStandardCache<ID, T>;
-  repo: () => IStandardRepo<ID, T>;
+  readonly logger: ILogger;
+  readonly newId: () => ID;
+  readonly cache?: () => IStandardCache<ID, T>;
+  readonly repo: () => IStandardRepo<ID, T>;
 }
 
 export class StandardService<

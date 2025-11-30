@@ -65,10 +65,7 @@ export type ISharedHTTPHandler<
  * Context required to create a SharedHTTPHandler.
  * Provides validators, logger, configuration, and service access.
  */
-export interface ISharedHTTPHandlerContext<
-  ID extends Id<string>,
-  T extends Item<ID>,
-> {
+interface ISharedHTTPHandlerContext<ID extends Id<string>, T extends Item<ID>> {
   /**
    * Validators for type-safe data validation.
    * - id: Validates ID strings/numbers

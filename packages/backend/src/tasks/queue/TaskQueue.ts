@@ -8,6 +8,7 @@ import type {
 } from '@backend/infrastructure/queue/domain/QueueClient';
 import type { QueueConfig } from '@backend/infrastructure/queue/domain/QueueConfig';
 import type { QueueStats } from '@backend/infrastructure/queue/domain/QueueStats';
+import { createCachedGetter } from '@backend/infrastructure/utils/createCachedGetter';
 import type { TaskId } from '@backend/tasks/domain/TaskId';
 import type { ITaskQueue } from '@backend/tasks/domain/TaskQueue';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
@@ -102,7 +103,10 @@ function createTaskQueue(
  */
 class TaskQueue implements ITaskQueue {
   private readonly tasksRepo: ITasksRepo;
-  private client?: IQueueClient;
+  private readonly getQueueClient: () => Result<
+    IQueueClient,
+    ErrorWithMetadata
+  >;
 
   constructor(
     private readonly logger: ILogger,
@@ -116,6 +120,17 @@ class TaskQueue implements ITaskQueue {
   ) {
     // Create tasks repository for database operations
     this.tasksRepo = dependencies.createTasksRepo({ appConfig });
+
+    this.getQueueClient = createCachedGetter(() => {
+      const clientResult = this.dependencies
+        .createQueueClientFactory({
+          appConfig: this.appConfig,
+          queueConfig: this.queueConfig,
+        })
+        .getQueueClient(this.queueName);
+
+      return clientResult;
+    });
   }
 
   /**
@@ -311,27 +326,5 @@ class TaskQueue implements ITaskQueue {
     const client = clientResult.value;
     await client.close();
     this.logger.info('TaskQueue closed', { queueName: this.queueName });
-  }
-
-  /**
-   * Get or create the queue client instance
-   */
-  private getQueueClient(): Result<IQueueClient, ErrorWithMetadata> {
-    if (this.client) {
-      return ok(this.client);
-    }
-    const clientResult = this.dependencies
-      .createQueueClientFactory({
-        appConfig: this.appConfig,
-        queueConfig: this.queueConfig,
-      })
-      .getQueueClient(this.queueName);
-
-    if (clientResult.isErr()) {
-      return clientResult;
-    }
-
-    this.client = clientResult.value;
-    return ok(this.client);
   }
 }

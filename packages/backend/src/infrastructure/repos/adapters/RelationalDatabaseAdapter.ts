@@ -17,21 +17,24 @@
  * - Validates all results with RawDatabaseQuery schema
  * - Returns raw results for repository layer validation
  */
+
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
 import type { IRelationalDatabaseAdapter } from '@backend/infrastructure/repos/domain/DatabaseAdapter';
 import type {
   DatabaseClientType,
   IDatabaseClient,
-  IDatabaseClientFactory,
 } from '@backend/infrastructure/repos/domain/DatabaseClient';
 import {
   type RawDatabaseQuery,
   validateRawDatabaseQuery,
 } from '@backend/infrastructure/repos/domain/RawDatabaseQuery';
 import { createDatabaseError } from '@backend/infrastructure/repos/errors/DBError';
+import { createCachedGetter } from '@backend/infrastructure/utils/createCachedGetter';
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import type { ValidationError } from '@core/errors/ValidationError';
 import type { Result } from 'neverthrow';
-import { err, ok } from 'neverthrow';
+import { err } from 'neverthrow';
+import { createDatabaseClientFactory } from '../clients/DatabaseClientFactory';
 
 /**
  * Factory function for creating RelationalDatabaseAdapter instances.
@@ -41,15 +44,27 @@ import { err, ok } from 'neverthrow';
  * @returns Configured database adapter instance
  */
 export function createRelationalDatabaseAdapter({
-  clientFactory,
+  appConfig,
   tableName,
   clientType = 'bun-sql',
+  dependencies = {
+    createDatabaseClientFactory,
+  },
 }: {
-  clientFactory: IDatabaseClientFactory;
+  appConfig: IAppConfigurationService;
   tableName: string;
   clientType?: DatabaseClientType;
+  dependencies?: {
+    createDatabaseClientFactory: typeof createDatabaseClientFactory;
+  };
 }): IRelationalDatabaseAdapter {
-  return new RelationalDatabaseAdapter(tableName, clientFactory, clientType);
+  const factory = dependencies.createDatabaseClientFactory(appConfig);
+
+  const getClient = createCachedGetter(() =>
+    factory.getDatabase(clientType, tableName),
+  );
+
+  return Object.freeze(new RelationalDatabaseAdapter(tableName, getClient));
 }
 
 /**
@@ -58,17 +73,14 @@ export function createRelationalDatabaseAdapter({
  * Supports multiple database types via client factory.
  */
 class RelationalDatabaseAdapter implements IRelationalDatabaseAdapter {
-  private db?: IDatabaseClient;
   /**
    * Creates a new database adapter instance.
    * @param tableName - Database table name for all operations
-   * @param clientFactory - Database client factory
-   * @param clientType - Database client type
+   * @param getClient - Cached getter function for database client
    */
   constructor(
     private readonly tableName: string,
-    private readonly clientFactory: IDatabaseClientFactory,
-    private readonly clientType: DatabaseClientType,
+    readonly getClient: () => Result<IDatabaseClient, ErrorWithMetadata>,
   ) {}
 
   /**
@@ -270,26 +282,5 @@ class RelationalDatabaseAdapter implements IRelationalDatabaseAdapter {
     } catch (error) {
       return err(createDatabaseError(error));
     }
-  }
-
-  /**
-   * Retrieves database client instance.
-   * @returns Database client or configuration error
-   */
-  getClient(): Result<IDatabaseClient, ErrorWithMetadata> {
-    if (this.db) {
-      return ok(this.db);
-    }
-
-    const clientResult = this.clientFactory.getDatabase(
-      this.clientType,
-      this.tableName,
-    );
-    if (clientResult.isErr()) {
-      return err(clientResult.error);
-    }
-
-    this.db = clientResult.value;
-    return ok(this.db);
   }
 }

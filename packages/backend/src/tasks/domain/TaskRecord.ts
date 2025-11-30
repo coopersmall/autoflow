@@ -90,7 +90,7 @@ export const taskRecordSchema = zod.discriminatedUnion('schemaVersion', [
   taskRecordV1Schema,
 ]);
 
-export type TaskRecord = zod.infer<typeof taskRecordSchema>;
+export type TaskRecord = Readonly<zod.infer<typeof taskRecordSchema>>;
 
 // Partial schema for creating tasks (omit system-managed fields)
 const partialTaskRecordV1Schema = taskRecordV1Schema.omit({
@@ -103,7 +103,9 @@ export const partialTaskRecordSchema = zod.discriminatedUnion('schemaVersion', [
   partialTaskRecordV1Schema,
 ]);
 
-export type PartialTaskRecord = zod.infer<typeof partialTaskRecordSchema>;
+export type PartialTaskRecord = Readonly<
+  zod.infer<typeof partialTaskRecordSchema>
+>;
 
 // Update schema for partial updates
 const updateTaskRecordV1Schema = taskRecordV1Schema
@@ -118,7 +120,9 @@ export const updateTaskRecordSchema = zod.discriminatedUnion('schemaVersion', [
   updateTaskRecordV1Schema,
 ]);
 
-export type UpdateTaskRecord = zod.infer<typeof updateTaskRecordSchema>;
+export type UpdateTaskRecord = Readonly<
+  zod.infer<typeof updateTaskRecordSchema>
+>;
 
 // Factory function
 export function newTaskRecord(

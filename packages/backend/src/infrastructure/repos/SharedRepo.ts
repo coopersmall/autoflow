@@ -16,13 +16,13 @@
 
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
 import { convertQueryResultsToData } from '@backend/infrastructure/repos/actions/convertQueryResultsToData';
-import { createDatabaseClientFactory } from '@backend/infrastructure/repos/clients/DatabaseClientFactory';
 import type { IRelationalDatabaseAdapter } from '@backend/infrastructure/repos/domain/DatabaseAdapter';
 import type { IDatabaseClient } from '@backend/infrastructure/repos/domain/DatabaseClient';
 import {
   createNotFoundError,
   type DBError,
 } from '@backend/infrastructure/repos/errors/DBError';
+import { createCachedGetter } from '@backend/infrastructure/utils/createCachedGetter';
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
@@ -50,25 +50,33 @@ export class SharedRepo<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > {
-  private adapter?: IRelationalDatabaseAdapter;
+  private readonly getAdapter: () => Result<IRelationalDatabaseAdapter, never>;
 
   /**
    * Creates a new shared repository instance.
-   * @param appConfig - Application configuration service
    * @param tableName - Database table name for this repository
    * @param validator - Zod validator function for domain entity validation
+   * @param getAdapter - Cached getter for database adapter
    * @param dependencies - Injectable dependencies for testing
    */
   constructor(
-    private readonly appConfig: IAppConfigurationService,
     private readonly tableName: string,
+    private readonly appConfig: IAppConfigurationService,
     private readonly validator: (data: unknown) => Result<T, ValidationError>,
     private readonly dependencies = {
-      createRelationalDatabaseAdapter,
       convertQueryResultsToData,
-      createDatabaseClientFactory,
+      createRelationalDatabaseAdapter,
     },
-  ) {}
+  ) {
+    this.getAdapter = createCachedGetter(() =>
+      ok(
+        this.dependencies.createRelationalDatabaseAdapter({
+          appConfig: this.appConfig,
+          tableName: this.tableName,
+        }),
+      ),
+    );
+  }
 
   /**
    * Retrieves a single record by ID from global data.
@@ -240,24 +248,5 @@ export class SharedRepo<
       return err(adapterResult.error);
     }
     return adapterResult.value.getClient();
-  }
-
-  /**
-   * Lazily initializes and returns the relational database adapter.
-   * Caches the adapter instance for future use.
-   * @returns Relational database adapter or configuration error
-   */
-  private getAdapter(): Result<IRelationalDatabaseAdapter, ErrorWithMetadata> {
-    if (this.adapter) {
-      return ok(this.adapter);
-    }
-    const clientFactory = this.dependencies.createDatabaseClientFactory(
-      this.appConfig,
-    );
-    this.adapter = this.dependencies.createRelationalDatabaseAdapter({
-      clientFactory,
-      tableName: this.tableName,
-    });
-    return ok(this.adapter);
   }
 }

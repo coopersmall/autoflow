@@ -160,28 +160,32 @@ export const startStepPartSchemas = [startStepPartSchema] as const;
 export const finishStepPartSchemas = [finishStepPartSchema] as const;
 export const finishMessagePartSchemas = [finishMessagePartSchema] as const;
 
-export type StreamPart = zod.infer<typeof streamPartSchema>;
-export type TextPart = zod.infer<typeof textPartSchema>;
-export type ReasoningPart = zod.infer<typeof reasoningPartSchema>;
-export type RedactedReasoningPart = zod.infer<
-  typeof redactedReasoningPartSchema
+export type StreamPart = Readonly<zod.infer<typeof streamPartSchema>>;
+export type TextPart = Readonly<zod.infer<typeof textPartSchema>>;
+export type ReasoningPart = Readonly<zod.infer<typeof reasoningPartSchema>>;
+export type RedactedReasoningPart = Readonly<
+  zod.infer<typeof redactedReasoningPartSchema>
 >;
-export type ReasoningSignaturePart = zod.infer<
-  typeof reasoningSignaturePartSchema
+export type ReasoningSignaturePart = Readonly<
+  zod.infer<typeof reasoningSignaturePartSchema>
 >;
-export type SourcePart = zod.infer<typeof sourcePartSchema>;
-export type FilePart = zod.infer<typeof filePartSchema>;
-export type DataPart = zod.infer<typeof dataPartSchema>;
-export type MessageAnnotationPart = zod.infer<
-  typeof messageAnnotationPartSchema
+export type SourcePart = Readonly<zod.infer<typeof sourcePartSchema>>;
+export type FilePart = Readonly<zod.infer<typeof filePartSchema>>;
+export type DataPart = Readonly<zod.infer<typeof dataPartSchema>>;
+export type MessageAnnotationPart = Readonly<
+  zod.infer<typeof messageAnnotationPartSchema>
 >;
-export type ErrorPart = zod.infer<typeof errorPartSchema>;
-export type ToolCallStreamingStartPart = zod.infer<
-  typeof toolCallStreamingStartPartSchema
+export type ErrorPart = Readonly<zod.infer<typeof errorPartSchema>>;
+export type ToolCallStreamingStartPart = Readonly<
+  zod.infer<typeof toolCallStreamingStartPartSchema>
 >;
-export type ToolCallDeltaPart = zod.infer<typeof toolCallDeltaPartSchema>;
-export type ToolCallPart = zod.infer<typeof toolCallPartSchema>;
-export type ToolResultPart = zod.infer<typeof toolResultPartSchema>;
-export type StartStepPart = zod.infer<typeof startStepPartSchema>;
-export type FinishStepPart = zod.infer<typeof finishStepPartSchema>;
-export type FinishMessagePart = zod.infer<typeof finishMessagePartSchema>;
+export type ToolCallDeltaPart = Readonly<
+  zod.infer<typeof toolCallDeltaPartSchema>
+>;
+export type ToolCallPart = Readonly<zod.infer<typeof toolCallPartSchema>>;
+export type ToolResultPart = Readonly<zod.infer<typeof toolResultPartSchema>>;
+export type StartStepPart = Readonly<zod.infer<typeof startStepPartSchema>>;
+export type FinishStepPart = Readonly<zod.infer<typeof finishStepPartSchema>>;
+export type FinishMessagePart = Readonly<
+  zod.infer<typeof finishMessagePartSchema>
+>;

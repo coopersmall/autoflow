@@ -9,7 +9,7 @@ export function createSecretsRepo({
 }: {
   appConfig: IAppConfigurationService;
 }): ISecretsRepo {
-  return new SecretsRepo(appConfig);
+  return Object.freeze(new SecretsRepo(appConfig));
 }
 
 class SecretsRepo
@@ -17,6 +17,6 @@ class SecretsRepo
   implements ISecretsRepo
 {
   constructor(appConfig: IAppConfigurationService) {
-    super(appConfig, 'secrets', validSecret);
+    super('secrets', appConfig, validSecret);
   }
 }

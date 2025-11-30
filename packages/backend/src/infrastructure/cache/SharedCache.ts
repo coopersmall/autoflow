@@ -36,6 +36,7 @@
 import { generateCacheKey } from '@backend/infrastructure/cache/actions/generateCacheKey';
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import { createCachedGetter } from '@backend/infrastructure/utils/createCachedGetter';
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
@@ -44,7 +45,6 @@ import type { Validator } from '@core/validation/validate';
 import { err, ok, type Result } from 'neverthrow';
 import { createCacheAdapter } from './adapters/CacheAdapter';
 import { createCacheClientFactory } from './clients/CacheClientFactory';
-import type { ICacheClientFactory } from './domain/Cache';
 import type { ICacheAdapter } from './domain/CacheAdapter';
 
 export type ISharedCache<
@@ -69,8 +69,8 @@ export class SharedCache<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > {
-  private readonly clientFactory: ICacheClientFactory;
-  private adapter?: ICacheAdapter;
+  private readonly getAdapter: () => Result<ICacheAdapter, ErrorWithMetadata>;
+
   /**
    * Creates a new SharedCache instance.
    * @param namespace - Cache namespace (e.g., 'users', 'config')
@@ -86,9 +86,22 @@ export class SharedCache<
       generateCacheKey,
     },
   ) {
-    this.clientFactory = this.dependencies.createCacheClientFactory(
+    const factory = this.dependencies.createCacheClientFactory(
       this.ctx.appConfig,
     );
+
+    this.getAdapter = createCachedGetter(() => {
+      const clientResult = factory.getCacheClient('redis');
+      if (clientResult.isErr()) {
+        return err(clientResult.error);
+      }
+
+      const adapter = this.dependencies.createCacheAdapter({
+        client: clientResult.value,
+        logger: this.ctx.logger,
+      });
+      return ok(adapter);
+    });
   }
 
   /**
@@ -164,28 +177,6 @@ export class SharedCache<
     }
     const key = this.generateKey(id);
     return adapter.value.del(key);
-  }
-
-  /**
-   * Retrieves or creates the cache adapter.
-   * @returns Cache adapter or error
-   */
-  private getAdapter(): Result<ICacheAdapter, ErrorWithMetadata> {
-    if (this.adapter) {
-      return ok(this.adapter);
-    }
-
-    const clientResult = this.clientFactory.getCacheClient('redis');
-    if (clientResult.isErr()) {
-      return err(clientResult.error);
-    }
-
-    const adapter = this.dependencies.createCacheAdapter({
-      client: clientResult.value,
-      logger: this.ctx.logger,
-    });
-    this.adapter = adapter;
-    return ok(adapter);
   }
 
   /**
