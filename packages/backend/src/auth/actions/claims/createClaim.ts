@@ -20,7 +20,7 @@ export interface CreateClaimRequest {
 
 export interface CreateClaimContext {
   logger: ILogger;
-  appConfig: () => IAppConfigurationService;
+  appConfig: IAppConfigurationService;
 }
 
 export function createClaim(
@@ -32,7 +32,7 @@ export function createClaim(
     expirationTime = DEFAULT_EXPIRATION_TIME,
   }: CreateClaimRequest,
 ): Result<JWTClaim, ErrorWithMetadata> {
-  const appConfig = ctx.appConfig();
+  const appConfig = ctx.appConfig;
   const local = appConfig.isLocal();
   const sub = userId;
   const aud = local ? [...allPermissions] : permissions;

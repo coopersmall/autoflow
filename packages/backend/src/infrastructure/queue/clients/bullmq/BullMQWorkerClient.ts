@@ -34,7 +34,7 @@ const defaultWorkerFactory: WorkerFactory = (name, processor, options) =>
 /**
  * Dependencies that can be injected for testing
  */
-export interface BullMQWorkerClientDeps {
+interface BullMQWorkerClientDeps {
   createWorker?: WorkerFactory;
 }
 

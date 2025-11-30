@@ -114,6 +114,14 @@ interface IStandardHTTPHandlerContext<
   service: () => StandardService<ID, T>;
 }
 
+interface StandardHTTPHandlerActions {
+  handleGet: typeof handleGet;
+  handleAll: typeof handleAll;
+  handleCreate: typeof handleCreate;
+  handleUpdate: typeof handleUpdate;
+  handleDelete: typeof handleDelete;
+}
+
 /**
  * Base class for user-scoped resource HTTP handlers.
  *
@@ -129,7 +137,7 @@ export class StandardHTTPHandler<ID extends Id<string>, T extends Item<ID>> {
    */
   constructor(
     private readonly ctx: IStandardHTTPHandlerContext<ID, T>,
-    private readonly actions = {
+    private readonly actions: StandardHTTPHandlerActions = {
       handleGet,
       handleAll,
       handleCreate,

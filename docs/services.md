@@ -196,9 +196,9 @@ function createWidgetsCache(config: {
 ```typescript
 // packages/backend/src/widgets/WidgetsService.ts
 
-import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
 import { SharedService } from '@backend/infrastructure/services/SharedService';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import { type Widget, WidgetId } from '@core/domain/widget/widget';
 import { createWidgetsCache } from './cache/WidgetsCache';
 import type { IWidgetsService } from './domain/WidgetsService';
@@ -208,12 +208,17 @@ export { createWidgetsService };
 export type { IWidgetsService };
 
 function createWidgetsService(ctx: WidgetsServiceContext): IWidgetsService {
-  return new WidgetsService(ctx);
+  return Object.freeze(new WidgetsService(ctx));
 }
 
 interface WidgetsServiceContext {
-  appConfig: () => IAppConfigurationService;
-  logger: ILogger;
+  readonly appConfig: IAppConfigurationService;
+  readonly logger: ILogger;
+}
+
+interface WidgetsServiceDependencies {
+  readonly createWidgetsRepo: typeof createWidgetsRepo;
+  readonly createWidgetsCache: typeof createWidgetsCache;
 }
 
 class WidgetsService
@@ -221,22 +226,21 @@ class WidgetsService
   implements IWidgetsService
 {
   constructor(
-    readonly context: WidgetsServiceContext,
-    private readonly dependencies = {
+    private readonly context: WidgetsServiceContext,
+    private readonly dependencies: WidgetsServiceDependencies = {
       createWidgetsRepo,
       createWidgetsCache,
     },
   ) {
-    const appConfig = context.appConfig();
-
     super('widgets', {
       ...context,
-      repo: () => this.dependencies.createWidgetsRepo({ appConfig }),
-      cache: () =>
-        this.dependencies.createWidgetsCache({
-          logger: context.logger,
-          appConfig,
-        }),
+      repo: () => this.dependencies.createWidgetsRepo({ 
+        appConfig: context.appConfig 
+      }),
+      cache: () => this.dependencies.createWidgetsCache({
+        logger: context.logger,
+        appConfig: context.appConfig,
+      }),
       newId: WidgetId,
     });
   }
@@ -318,12 +322,12 @@ import type { Widget } from '@core/domain/widget/widget';
 import { ok, type Result } from 'neverthrow';
 
 export interface ProcessWidgetContext {
-  logger: ILogger;
+  readonly logger: ILogger;
 }
 
 export interface ProcessWidgetRequest {
-  widget: Widget;
-  multiplier: number;
+  readonly widget: Widget;
+  readonly multiplier: number;
 }
 
 export function processWidget(
@@ -427,24 +431,24 @@ import {
 export function createWidgetsHttpHandler(
   context: WidgetsHttpHandlerContext,
 ): IHttpHandler {
-  return new WidgetsHttpHandler(context);
+  return Object.freeze(new WidgetsHttpHandler(context));
 }
 
 interface WidgetsHttpHandlerContext {
-  logger: ILogger;
-  appConfig: IAppConfigurationService;
-  routeFactory: IHttpRouteFactory;
+  readonly logger: ILogger;
+  readonly appConfig: IAppConfigurationService;
+  readonly routeFactory: IHttpRouteFactory;
 }
 
 class WidgetsHttpHandler
   extends SharedHTTPHandler<WidgetId, Widget>
   implements IHttpHandler
 {
-  constructor(readonly ctx: WidgetsHttpHandlerContext) {
+  constructor(private readonly ctx: WidgetsHttpHandlerContext) {
     // Create service directly in constructor
     const widgetsService: IWidgetsService = createWidgetsService({
       logger: ctx.logger,
-      appConfig: () => ctx.appConfig,
+      appConfig: ctx.appConfig,
     });
 
     super({

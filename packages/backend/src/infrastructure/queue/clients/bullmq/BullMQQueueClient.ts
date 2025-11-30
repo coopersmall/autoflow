@@ -26,7 +26,7 @@ const defaultQueueFactory: QueueFactory = (name, options) =>
 /**
  * Dependencies that can be injected for testing
  */
-export interface BullMQQueueClientDeps {
+interface BullMQQueueClientDeps {
   createQueue?: QueueFactory;
 }
 

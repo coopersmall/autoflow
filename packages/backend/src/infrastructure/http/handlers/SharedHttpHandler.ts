@@ -105,6 +105,14 @@ interface ISharedHTTPHandlerContext<ID extends Id<string>, T extends Item<ID>> {
   service: () => ISharedService<ID, T>;
 }
 
+interface SharedHTTPHandlerActions {
+  handleGet: typeof handleGet;
+  handleAll: typeof handleAll;
+  handleCreate: typeof handleCreate;
+  handleUpdate: typeof handleUpdate;
+  handleDelete: typeof handleDelete;
+}
+
 /**
  * Base class for shared resource HTTP handlers.
  *
@@ -120,7 +128,7 @@ export class SharedHTTPHandler<ID extends Id<string>, T extends Item<ID>> {
    */
   constructor(
     private readonly sharedHttpHandlerCtx: ISharedHTTPHandlerContext<ID, T>,
-    private readonly actions = {
+    private readonly actions: SharedHTTPHandlerActions = {
       handleGet,
       handleAll,
       handleCreate,

@@ -18,6 +18,13 @@ export type { IOptionsGateway };
 
 type IOptionsGateway = ExtractMethods<OptionsGateway>;
 
+interface OptionsGatewayActions {
+  listOptionsContracts: typeof listOptionsContracts;
+  getOptionsContract: typeof getOptionsContract;
+  getOptionsAggregates: typeof getOptionsAggregates;
+  getOptionsChain: typeof getOptionsChain;
+}
+
 function createOptionsGateway(client: DefaultApi): IOptionsGateway {
   return Object.freeze(new OptionsGateway(client));
 }
@@ -25,7 +32,7 @@ function createOptionsGateway(client: DefaultApi): IOptionsGateway {
 class OptionsGateway {
   constructor(
     private readonly client: DefaultApi,
-    private readonly actions = {
+    private readonly actions: OptionsGatewayActions = {
       listOptionsContracts,
       getOptionsContract,
       getOptionsAggregates,

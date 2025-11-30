@@ -18,6 +18,13 @@ export type { IStocksGateway };
 
 type IStocksGateway = ExtractMethods<StocksGateway>;
 
+interface StocksGatewayActions {
+  getStockQuotes: typeof getStockQuotes;
+  getLastStocksQuote: typeof getLastStocksQuote;
+  getStockDetails: typeof getStockDetails;
+  getLastStocksTrade: typeof getLastStocksTrade;
+}
+
 function createStocksGateway(client: DefaultApi): IStocksGateway {
   return Object.freeze(new StocksGateway(client));
 }
@@ -25,7 +32,7 @@ function createStocksGateway(client: DefaultApi): IStocksGateway {
 class StocksGateway {
   constructor(
     private readonly client: DefaultApi,
-    private readonly actions = {
+    private readonly actions: StocksGatewayActions = {
       getStockQuotes,
       getLastStocksQuote,
       getStockDetails,

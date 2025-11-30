@@ -96,7 +96,7 @@ class AuthService implements IAuthService {
     return this.actions.createClaim(
       {
         logger: this.context.logger,
-        appConfig: () => this.context.appConfig,
+        appConfig: this.context.appConfig,
       },
       request,
     );
