@@ -6,9 +6,9 @@ import zod from 'zod';
 export type SecretId = zod.infer<typeof secretIdSchema>;
 export const SecretId = newId<SecretId>;
 export type SecretType = (typeof secretTypes)[number];
-export type StoredSecret = zod.infer<typeof storedSecretSchema>;
-export type Secret = zod.infer<typeof secretSchema>;
-export type SecretWithValue = Secret & { value: string };
+export type StoredSecret = Readonly<zod.infer<typeof storedSecretSchema>>;
+export type Secret = Readonly<zod.infer<typeof secretSchema>>;
+export type SecretWithValue = Readonly<Secret & { value: string }>;
 
 export const secretIdSchema = zod
   .string()

@@ -2,7 +2,7 @@ import { baseIntegrationSchema } from '@core/domain/integrations/BaseIntegration
 import { secretIdSchema } from '@core/domain/secrets/Secret';
 import zod from 'zod';
 
-export type HttpIntegration = zod.infer<typeof httpIntegrationSchema>;
+export type HttpIntegration = Readonly<zod.infer<typeof httpIntegrationSchema>>;
 
 const httpMethods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'] as const;
 

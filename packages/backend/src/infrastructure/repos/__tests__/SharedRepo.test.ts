@@ -44,8 +44,8 @@ describe('SharedRepo', () => {
 
   const createTestRepo = () => {
     return new SharedRepo<TestSharedItemId, TestSharedItem>(
-      getMockedAppConfigurationService(),
       'shared_items',
+      getMockedAppConfigurationService(),
       validator,
       dependencies,
     );
@@ -111,8 +111,8 @@ describe('SharedRepo', () => {
       mockSharedAdapter.findUnique.mockResolvedValue(ok([]));
 
       const repo = new SharedRepo<TestSharedItemId, TestSharedItem>(
-        getMockedAppConfigurationService(),
         'shared_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -144,8 +144,8 @@ describe('SharedRepo', () => {
       );
 
       const repo = new SharedRepo<TestSharedItemId, TestSharedItem>(
-        getMockedAppConfigurationService(),
         'shared_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -167,8 +167,8 @@ describe('SharedRepo', () => {
       );
 
       const repo = new SharedRepo<TestSharedItemId, TestSharedItem>(
-        getMockedAppConfigurationService(),
         'shared_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -223,8 +223,8 @@ describe('SharedRepo', () => {
       );
 
       const repo = new SharedRepo<TestSharedItemId, TestSharedItem>(
-        getMockedAppConfigurationService(),
         'shared_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -285,8 +285,8 @@ describe('SharedRepo', () => {
       );
 
       const repo = new SharedRepo<TestSharedItemId, TestSharedItem>(
-        getMockedAppConfigurationService(),
         'shared_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -312,8 +312,8 @@ describe('SharedRepo', () => {
       mockSharedAdapter.findMany.mockResolvedValue(ok([]));
 
       const repo = new SharedRepo<TestSharedItemId, TestSharedItem>(
-        getMockedAppConfigurationService(),
         'shared_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -350,8 +350,8 @@ describe('SharedRepo', () => {
       );
 
       const repo = new SharedRepo<TestSharedItemId, TestSharedItem>(
-        getMockedAppConfigurationService(),
         'shared_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -397,8 +397,8 @@ describe('SharedRepo', () => {
       });
 
       const repo = new SharedRepo<TestSharedItemId, TestSharedItem>(
-        getMockedAppConfigurationService(),
         'shared_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -449,8 +449,8 @@ describe('SharedRepo', () => {
       );
 
       const repo = new SharedRepo<TestSharedItemId, TestSharedItem>(
-        getMockedAppConfigurationService(),
         'shared_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -494,8 +494,8 @@ describe('SharedRepo', () => {
       });
 
       const repo = new SharedRepo<TestSharedItemId, TestSharedItem>(
-        getMockedAppConfigurationService(),
         'shared_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -552,8 +552,8 @@ describe('SharedRepo', () => {
       });
 
       const repo = new SharedRepo<TestSharedItemId, TestSharedItem>(
-        getMockedAppConfigurationService(),
         'shared_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -609,8 +609,8 @@ describe('SharedRepo', () => {
       );
 
       const repo = new SharedRepo<TestSharedItemId, TestSharedItem>(
-        getMockedAppConfigurationService(),
         'shared_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -668,8 +668,8 @@ describe('SharedRepo', () => {
       );
 
       const repo = new SharedRepo<TestSharedItemId, TestSharedItem>(
-        getMockedAppConfigurationService(),
         'shared_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -697,8 +697,8 @@ describe('SharedRepo', () => {
       mockSharedAdapter.findMany.mockResolvedValue(ok([]));
 
       const repo = new SharedRepo<TestSharedItemId, TestSharedItem>(
-        getMockedAppConfigurationService(),
         'shared_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -720,8 +720,8 @@ describe('SharedRepo', () => {
   describe('getClient()', () => {
     it('should return database connection', () => {
       const repo = new SharedRepo<TestSharedItemId, TestSharedItem>(
-        getMockedAppConfigurationService(),
         'shared_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );

@@ -31,7 +31,7 @@ import { err, ok, type Result } from 'neverthrow';
 export function createDatabaseClientFactory(
   appConfig: IAppConfigurationService,
 ): IDatabaseClientFactory {
-  return new DatabaseClientFactory(appConfig);
+  return Object.freeze(new DatabaseClientFactory(appConfig));
 }
 
 /**

@@ -29,7 +29,7 @@ import { err, ok, type Result } from 'neverthrow';
 export function createCacheClientFactory(
   appConfig: IAppConfigurationService,
 ): ICacheClientFactory {
-  return new CacheClientFactory(appConfig);
+  return Object.freeze(new CacheClientFactory(appConfig));
 }
 
 /**

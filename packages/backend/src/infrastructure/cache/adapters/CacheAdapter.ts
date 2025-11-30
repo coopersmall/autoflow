@@ -51,7 +51,7 @@ export function createCacheAdapter({
   client: ICacheClient;
   logger: ILogger;
 }): ICacheAdapter {
-  return new CacheAdapter(client, logger);
+  return Object.freeze(new CacheAdapter(client, logger));
 }
 
 /**

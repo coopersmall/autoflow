@@ -33,11 +33,17 @@ export const streamChunkSchema = zod.discriminatedUnion('type', [
   ...streamChunkCompleteSchemas,
 ]);
 
-export type StreamChunk = zod.infer<typeof streamChunkSchema>;
-export type StreamChunkChunk = zod.infer<typeof streamChunkChunkSchema>;
-export type StreamChunkError = zod.infer<typeof streamChunkErrorSchema>;
-export type StreamChunkComplete = zod.infer<typeof streamChunkCompleteSchema>;
-export type StreamChunkMetadata = zod.infer<typeof metadataSchema>;
+export type StreamChunk = Readonly<zod.infer<typeof streamChunkSchema>>;
+export type StreamChunkChunk = Readonly<
+  zod.infer<typeof streamChunkChunkSchema>
+>;
+export type StreamChunkError = Readonly<
+  zod.infer<typeof streamChunkErrorSchema>
+>;
+export type StreamChunkComplete = Readonly<
+  zod.infer<typeof streamChunkCompleteSchema>
+>;
+export type StreamChunkMetadata = Readonly<zod.infer<typeof metadataSchema>>;
 
 export const streamChunkTypes = ['chunk', 'error', 'complete'] as const;
 export type StreamChunkType = (typeof streamChunkTypes)[number];

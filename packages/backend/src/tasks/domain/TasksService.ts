@@ -9,27 +9,31 @@ import type { TaskRecord } from './TaskRecord';
 import type { TaskStatus } from './TaskStatus';
 import type { ListTasksFilters } from './TasksRepo';
 
-export interface ITasksService extends ISharedService<TaskId, TaskRecord> {
-  getByStatus(
-    status: TaskStatus,
-  ): Promise<Result<TaskRecord[], ErrorWithMetadata>>;
-  getByTaskName(
-    taskName: string,
-  ): Promise<Result<TaskRecord[], ErrorWithMetadata>>;
-  getByUserId(userId: UserId): Promise<Result<TaskRecord[], ErrorWithMetadata>>;
-  listTasks(
-    filters?: ListTasksFilters,
-  ): Promise<Result<TaskRecord[], ErrorWithMetadata>>;
-  getQueueStats(
-    correlationId: CorrelationId,
-    queueName: string,
-  ): Promise<Result<QueueStats, ErrorWithMetadata>>;
-  cancelTask(
-    correlationId: CorrelationId,
-    taskId: TaskId,
-  ): Promise<Result<TaskRecord, ErrorWithMetadata>>;
-  retryTask(
-    correlationId: CorrelationId,
-    taskId: TaskId,
-  ): Promise<Result<TaskRecord, ErrorWithMetadata>>;
-}
+export type ITasksService = Readonly<
+  ISharedService<TaskId, TaskRecord> & {
+    getByStatus(
+      status: TaskStatus,
+    ): Promise<Result<TaskRecord[], ErrorWithMetadata>>;
+    getByTaskName(
+      taskName: string,
+    ): Promise<Result<TaskRecord[], ErrorWithMetadata>>;
+    getByUserId(
+      userId: UserId,
+    ): Promise<Result<TaskRecord[], ErrorWithMetadata>>;
+    listTasks(
+      filters?: ListTasksFilters,
+    ): Promise<Result<TaskRecord[], ErrorWithMetadata>>;
+    getQueueStats(
+      correlationId: CorrelationId,
+      queueName: string,
+    ): Promise<Result<QueueStats, ErrorWithMetadata>>;
+    cancelTask(
+      correlationId: CorrelationId,
+      taskId: TaskId,
+    ): Promise<Result<TaskRecord, ErrorWithMetadata>>;
+    retryTask(
+      correlationId: CorrelationId,
+      taskId: TaskId,
+    ): Promise<Result<TaskRecord, ErrorWithMetadata>>;
+  }
+>;

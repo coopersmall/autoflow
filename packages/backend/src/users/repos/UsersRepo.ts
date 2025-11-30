@@ -9,11 +9,11 @@ export function createUsersRepo({
 }: {
   appConfig: IAppConfigurationService;
 }): IUsersRepo {
-  return new UsersRepo(appConfig);
+  return Object.freeze(new UsersRepo(appConfig));
 }
 
 class UsersRepo extends SharedRepo<UserId, User> implements IUsersRepo {
   constructor(appConfig: IAppConfigurationService) {
-    super(appConfig, 'users', validUser);
+    super('users', appConfig, validUser);
   }
 }

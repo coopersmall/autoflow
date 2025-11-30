@@ -4,7 +4,7 @@ import zod from 'zod';
 
 export type UserId = zod.infer<typeof userIdSchema>;
 export const UserId = newId<UserId>;
-export type User = zod.infer<typeof userSchema>;
+export type User = Readonly<zod.infer<typeof userSchema>>;
 
 export const userIdSchema = zod
   .string()

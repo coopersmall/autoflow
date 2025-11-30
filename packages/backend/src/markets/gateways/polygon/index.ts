@@ -20,9 +20,9 @@ export function createPolygonGateway(
 ): PolygonGateway {
   const client = getPolygonClient(appConfig);
 
-  return {
+  return Object.freeze({
     stocks: new StocksGateway(client),
     markets: new MarketGateway(client),
     options: new OptionsGateway(client),
-  };
+  });
 }

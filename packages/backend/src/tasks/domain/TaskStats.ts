@@ -10,7 +10,7 @@ export const taskStatsSchema = zod.strictObject({
   total: zod.number().int().min(0).describe('Total number of tasks'),
 });
 
-export type TaskStats = zod.infer<typeof taskStatsSchema>;
+export type TaskStats = Readonly<zod.infer<typeof taskStatsSchema>>;
 
 export function newTaskStats(): TaskStats {
   return {

@@ -30,7 +30,7 @@ export function createWorkerClientFactory(
   },
   dependencies?: WorkerClientFactoryDependencies,
 ): IWorkerClientFactory {
-  return new WorkerClientFactory(appConfig, dependencies);
+  return Object.freeze(new WorkerClientFactory(appConfig, dependencies));
 }
 
 /**

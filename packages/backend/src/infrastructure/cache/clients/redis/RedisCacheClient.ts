@@ -4,7 +4,7 @@ import { RedisClient as BunRedisClient } from 'bun';
 
 export function createRedisClient(appConfig: IAppConfigurationService) {
   const redis = new BunRedisClient(appConfig.redisUrl, {});
-  return new RedisClient(redis);
+  return Object.freeze(new RedisClient(redis));
 }
 
 class RedisClient implements ICacheClient {

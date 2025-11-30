@@ -8,7 +8,7 @@ import { validIntegration } from '@core/domain/integrations/validation/validInte
 export function createIntegrationsRepo(
   appConfig: IAppConfigurationService,
 ): IIntegrationsRepo {
-  return new IntegrationsRepo(appConfig);
+  return Object.freeze(new IntegrationsRepo(appConfig));
 }
 
 class IntegrationsRepo
@@ -16,6 +16,6 @@ class IntegrationsRepo
   implements IIntegrationsRepo
 {
   constructor(appConfig: IAppConfigurationService) {
-    super(appConfig, 'integrations', validIntegration);
+    super('integrations', appConfig, validIntegration);
   }
 }

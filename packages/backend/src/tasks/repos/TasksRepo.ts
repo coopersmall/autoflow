@@ -22,12 +22,12 @@ export function createTasksRepo({
 }: {
   appConfig: IAppConfigurationService;
 }): ITasksRepo {
-  return new TasksRepo(appConfig);
+  return Object.freeze(new TasksRepo(appConfig));
 }
 
 class TasksRepo extends SharedRepo<TaskId, TaskRecord> implements ITasksRepo {
   constructor(appConfig: IAppConfigurationService) {
-    super(appConfig, 'tasks', validTaskRecord);
+    super('tasks', appConfig, validTaskRecord);
   }
 
   async getByStatus(

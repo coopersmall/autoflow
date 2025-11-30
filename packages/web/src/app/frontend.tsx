@@ -29,6 +29,7 @@ if (import.meta.hot) {
   // With hot module reloading, `import.meta.hot.data` is persisted.
   const elem = getRootElement();
   if (!import.meta.hot.data.root) {
+    // biome-ignore lint: Object assignment is intentional here
     import.meta.hot.data.root = createRoot(elem);
   }
   // biome-ignore lint: The hot module reloading API is typed as `any`

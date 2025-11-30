@@ -35,7 +35,9 @@ export function createQueueClientFactory(
   },
   dependencies?: QueueClientFactoryDependencies,
 ): IQueueClientFactory {
-  return new QueueClientFactory(appConfig, queueConfig, dependencies);
+  return Object.freeze(
+    new QueueClientFactory(appConfig, queueConfig, dependencies),
+  );
 }
 
 /**

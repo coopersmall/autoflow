@@ -3,7 +3,8 @@
   "plugins": [
     "./scripts/biome/no-throw.grit",
     "./scripts/biome/no-process-env.grit",
-    "./scripts/biome/no-type-assertion.grit"
+    "./scripts/biome/no-type-assertion.grit",
+    "./scripts/biome/no-direct-mutation.grit"
   ],
   "vcs": {
     "enabled": true,
@@ -81,6 +82,7 @@
         "noNamespace": "error",
         "useArrayLiterals": "error",
         "useAsConstAssertion": "error",
+        "noParameterAssign": "error",
         "noRestrictedImports": {
           "level": "error",
           "options": {

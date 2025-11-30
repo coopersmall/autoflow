@@ -24,4 +24,4 @@ export const apiTokenSchema = zod.discriminatedUnion('schemaVersion', [
 ]);
 
 export type APITokenId = zod.infer<typeof apiTokenIdSchema>;
-export type APIToken = zod.infer<typeof apiTokenSchema>;
+export type APIToken = Readonly<zod.infer<typeof apiTokenSchema>>;

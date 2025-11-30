@@ -12,7 +12,7 @@ export function createUsersCache({
   logger: ILogger;
   appConfig: IAppConfigurationService;
 }): IUsersCache {
-  return new UsersCache(logger, appConfig);
+  return Object.freeze(new UsersCache(logger, appConfig));
 }
 
 class UsersCache extends SharedCache<UserId, User> implements IUsersCache {

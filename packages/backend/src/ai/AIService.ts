@@ -19,7 +19,7 @@ import {
 export type IAIService = ExtractMethods<AIService>;
 
 export function createAIService(context: AIServiceContext): IAIService {
-  return new AIService(context);
+  return Object.freeze(new AIService(context));
 }
 
 export interface AIServiceContext {

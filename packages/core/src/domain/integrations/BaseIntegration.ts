@@ -7,7 +7,9 @@ export type IntegrationId = zod.infer<typeof integrationIdSchema>;
 export const IntegrationId = newId<IntegrationId>;
 export type IntegrationType = zod.infer<typeof integartionTypeSchema>;
 export type IntegrationStatus = zod.infer<typeof integrationStatuses>;
-export type IntegrationMetadata = zod.infer<typeof integrationMetadataSchema>;
+export type IntegrationMetadata = Readonly<
+  zod.infer<typeof integrationMetadataSchema>
+>;
 
 export const integrationIdSchema = zod
   .string()

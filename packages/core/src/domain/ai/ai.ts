@@ -53,13 +53,19 @@ export const modelRequestSchema = zod.discriminatedUnion('provider', [
   ...groqModelRequestSchemas,
 ]);
 
-export type ModelRequest = zod.infer<typeof modelRequestSchema>;
-export type OpenAIModelRequest = zod.infer<typeof openAIModelRequestSchema>;
-export type AnthropicModelRequest = zod.infer<
-  typeof anthropicModelRequestSchema
+export type ModelRequest = Readonly<zod.infer<typeof modelRequestSchema>>;
+export type OpenAIModelRequest = Readonly<
+  zod.infer<typeof openAIModelRequestSchema>
 >;
-export type GoogleModelRequest = zod.infer<typeof googleModelRequestSchema>;
-export type OpenRouterModelRequest = zod.infer<
-  typeof openRouterModelRequestSchema
+export type AnthropicModelRequest = Readonly<
+  zod.infer<typeof anthropicModelRequestSchema>
 >;
-export type GroqModelRequest = zod.infer<typeof groqModelRequestSchema>;
+export type GoogleModelRequest = Readonly<
+  zod.infer<typeof googleModelRequestSchema>
+>;
+export type OpenRouterModelRequest = Readonly<
+  zod.infer<typeof openRouterModelRequestSchema>
+>;
+export type GroqModelRequest = Readonly<
+  zod.infer<typeof groqModelRequestSchema>
+>;

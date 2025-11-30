@@ -174,6 +174,96 @@ import { createUsersService } from '@backend/services/users/UsersService';
 
 **Enforcement**: Biome rule `noRestrictedImports`
 
+### 7. Prefer Functional Array Methods
+
+**Why**: Functional methods like `map`, `filter`, `find`, `forEach`, and `flatMap` are more declarative and easier to read than imperative for loops.
+
+```typescript
+// ❌ BAD - imperative for loop for simple iteration
+for (const item of items) {
+  process(item);
+}
+
+// ✅ GOOD - forEach for side effects
+items.forEach(item => process(item));
+
+// ❌ BAD - for loop to find an element
+for (const env of environments) {
+  if (env === target) {
+    return env;
+  }
+}
+
+// ✅ GOOD - find for searching
+return environments.find(env => env === target);
+
+// ❌ BAD - nested for loops
+for (const handler of handlers) {
+  for (const route of handler.routes()) {
+    addRoute(route);
+  }
+}
+
+// ✅ GOOD - flatMap + forEach
+handlers.flatMap(h => h.routes()).forEach(route => addRoute(route));
+```
+
+**When to keep for loops**: Use imperative for loops when you need:
+- Early return on error (fail-fast validation patterns)
+- Index manipulation (`i++` to skip elements)
+- Generator yields (`yield` inside the loop)
+- Complex control flow (retry logic, break/continue)
+
+**Enforcement**: Not enforced by Biome, but encouraged in code reviews.
+
+### 8. Use Readonly Types and Object.freeze
+
+**Why**: Immutability prevents accidental mutations, makes code more predictable, and aligns with functional programming principles.
+
+#### Readonly Types for Domain Models
+
+Use `Readonly<T>` wrapper for all domain types derived from Zod schemas:
+
+```typescript
+// ❌ BAD - mutable type
+export type User = zod.infer<typeof userSchema>;
+
+// ✅ GOOD - immutable type
+export type User = Readonly<zod.infer<typeof userSchema>>;
+```
+
+#### Readonly Types for Service Interfaces
+
+Use `Readonly<T>` for service interface types:
+
+```typescript
+// ✅ GOOD - prevents accidental method replacement
+export type IUsersService = Readonly<UsersService>;
+export type IAppConfigurationService = Readonly<ExtractMethods<AppConfigurationService>>;
+```
+
+#### Object.freeze for Factory Functions
+
+Use `Object.freeze()` when returning service instances from factory functions:
+
+```typescript
+// ❌ BAD - mutable instance
+export function createUsersService(ctx: UsersServiceContext): IUsersService {
+  return new UsersService(ctx);
+}
+
+// ✅ GOOD - frozen instance
+export function createUsersService(ctx: UsersServiceContext): IUsersService {
+  return Object.freeze(new UsersService(ctx));
+}
+```
+
+**When to use**:
+- `Readonly<T>`: All domain types, service interfaces, and data transfer objects
+- `Object.freeze()`: All factory functions returning service instances
+
+**Enforcement**: Not enforced by Biome, but encouraged in code reviews.
+
 ## Path Aliases
 
 Use these path aliases for imports:
@@ -425,5 +515,7 @@ Key rules:
 4. ✅ Use `logger`, ❌ no `console.log`
 5. ✅ Use `AppConfigurationService`, ❌ no `process.env`
 6. ✅ Use path aliases, ❌ no relative imports up
+7. ✅ Use functional array methods (map, filter, find, forEach), ❌ avoid for loops when not needed
+8. ✅ Use `Readonly<T>` and `Object.freeze()` for immutability
 
 Run `make lint` and `make format` before every commit!

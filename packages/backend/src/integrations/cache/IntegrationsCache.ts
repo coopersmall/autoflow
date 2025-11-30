@@ -11,11 +11,13 @@ export function createIntegrationsCache(options: {
   appConfig: IAppConfigurationService;
   ttlSeconds?: number;
 }): IIntegrationsCache {
-  return new IntegrationsCache('integrations', {
-    logger: options.logger,
-    appConfig: options.appConfig,
-    ttlSeconds: options.ttlSeconds,
-  });
+  return Object.freeze(
+    new IntegrationsCache('integrations', {
+      logger: options.logger,
+      appConfig: options.appConfig,
+      ttlSeconds: options.ttlSeconds,
+    }),
+  );
 }
 
 class IntegrationsCache

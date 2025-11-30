@@ -44,8 +44,8 @@ describe('StandardRepo', () => {
 
   const createTestRepo = () => {
     return new StandardRepo<TestItemId, TestItem>(
-      getMockedAppConfigurationService(),
       'test_items',
+      getMockedAppConfigurationService(),
       validator,
       dependencies,
     );
@@ -102,8 +102,8 @@ describe('StandardRepo', () => {
       mockStandardAdapter.findUnique.mockResolvedValue(ok([]));
 
       const repo = new StandardRepo<TestItemId, TestItem>(
-        getMockedAppConfigurationService(),
         'test_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -136,8 +136,8 @@ describe('StandardRepo', () => {
       );
 
       const repo = new StandardRepo<TestItemId, TestItem>(
-        getMockedAppConfigurationService(),
         'test_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -159,8 +159,8 @@ describe('StandardRepo', () => {
       );
 
       const repo = new StandardRepo<TestItemId, TestItem>(
-        getMockedAppConfigurationService(),
         'test_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -194,8 +194,8 @@ describe('StandardRepo', () => {
       );
 
       const repo = new StandardRepo<TestItemId, TestItem>(
-        getMockedAppConfigurationService(),
         'test_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -229,8 +229,8 @@ describe('StandardRepo', () => {
       );
 
       const repo = new StandardRepo<TestItemId, TestItem>(
-        getMockedAppConfigurationService(),
         'test_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -279,8 +279,8 @@ describe('StandardRepo', () => {
       );
 
       const repo = new StandardRepo<TestItemId, TestItem>(
-        getMockedAppConfigurationService(),
         'test_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -315,8 +315,8 @@ describe('StandardRepo', () => {
       mockStandardAdapter.findMany.mockResolvedValue(ok([]));
 
       const repo = new StandardRepo<TestItemId, TestItem>(
-        getMockedAppConfigurationService(),
         'test_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -355,8 +355,8 @@ describe('StandardRepo', () => {
       );
 
       const repo = new StandardRepo<TestItemId, TestItem>(
-        getMockedAppConfigurationService(),
         'test_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -403,8 +403,8 @@ describe('StandardRepo', () => {
       });
 
       const repo = new StandardRepo<TestItemId, TestItem>(
-        getMockedAppConfigurationService(),
         'test_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -463,8 +463,8 @@ describe('StandardRepo', () => {
       });
 
       const repo = new StandardRepo<TestItemId, TestItem>(
-        getMockedAppConfigurationService(),
         'test_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -517,8 +517,8 @@ describe('StandardRepo', () => {
       });
 
       const repo = new StandardRepo<TestItemId, TestItem>(
-        getMockedAppConfigurationService(),
         'test_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -570,8 +570,8 @@ describe('StandardRepo', () => {
       );
 
       const repo = new StandardRepo<TestItemId, TestItem>(
-        getMockedAppConfigurationService(),
         'test_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );
@@ -626,8 +626,8 @@ describe('StandardRepo', () => {
       );
 
       const repo = new StandardRepo<TestItemId, TestItem>(
-        getMockedAppConfigurationService(),
         'test_items',
+        getMockedAppConfigurationService(),
         validator,
         dependencies,
       );

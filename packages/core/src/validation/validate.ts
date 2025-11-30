@@ -92,14 +92,23 @@ export function record<V>(
       return err(recordResult.error);
     }
 
-    const resultRecord: Record<string, V> = {};
-    for (const [key, value] of Object.entries(recordResult.value)) {
-      const valueResult = valueValidator(value);
-      if (valueResult.isErr()) {
-        return err(valueResult.error);
-      }
-      resultRecord[key] = valueResult.value;
-    }
+    let resultRecord: Record<string, V> = {};
+    const errors: ValidationError[] = [];
+
+    resultRecord = Object.entries(recordResult.value).reduce(
+      (acc, [key, value]) => {
+        const valueResult = valueValidator(value);
+
+        if (valueResult.isErr()) {
+          errors.push(valueResult.error);
+          return acc;
+        }
+        // biome-ignore lint: Assignment to acc is intentional here
+        acc[key] = valueResult.value;
+        return acc;
+      },
+      resultRecord,
+    );
 
     return ok(resultRecord);
   };

@@ -25,7 +25,7 @@ import { type Server, serve } from 'bun';
 export function createBunHttpServerClient(
   dependencies = { serve },
 ): IHttpServerClient {
-  return new BunHttpServerClient(dependencies);
+  return Object.freeze(new BunHttpServerClient(dependencies));
 }
 
 type ServeFn = typeof serve;

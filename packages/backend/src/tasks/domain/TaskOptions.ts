@@ -19,4 +19,4 @@ export const DEFAULT_TASK_OPTIONS: Required<TaskOptions> = {
   maxAttempts: 3,
   backoffMs: 1000,
   timeoutMs: 30000,
-};
+} as const;

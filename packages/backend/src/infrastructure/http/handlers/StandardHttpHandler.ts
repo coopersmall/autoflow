@@ -72,7 +72,7 @@ export type IStandardHTTPHandler<
  * Context required to create a StandardHTTPHandler.
  * Provides validators, logger, configuration, and service access.
  */
-export interface IStandardHTTPHandlerContext<
+interface IStandardHTTPHandlerContext<
   ID extends Id<string>,
   T extends Item<ID>,
 > {

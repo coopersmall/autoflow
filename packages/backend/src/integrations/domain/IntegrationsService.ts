@@ -2,4 +2,6 @@ import type { IStandardService } from '@backend/infrastructure/services/Standard
 import type { IntegrationId } from '@core/domain/integrations/BaseIntegration';
 import type { Integration } from '@core/domain/integrations/Integration';
 
-export type IIntegrationsService = IStandardService<IntegrationId, Integration>;
+export type IIntegrationsService = Readonly<
+  IStandardService<IntegrationId, Integration>
+>;

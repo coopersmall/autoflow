@@ -28,6 +28,7 @@ import {
 } from '@backend/infrastructure/http/server/domain/HttpWebSocketHandlers';
 import { createHttpServerStartError } from '@backend/infrastructure/http/server/errors/HttpServerError';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import { produce } from 'immer';
 import { isEmpty } from 'lodash';
 
 /**
@@ -40,7 +41,7 @@ export function createServer(
   ctx: ServerContext,
   dependencies?: ServerDependencies,
 ): IHttpServer {
-  return new Server(ctx, dependencies);
+  return Object.freeze(new Server(ctx, dependencies));
 }
 
 /**
@@ -157,12 +158,11 @@ class Server implements IHttpServer {
    * @param handler - Array of HTTP handlers to register
    */
   private addHandlers(handler: IHttpHandler[]) {
-    for (const h of handler) {
-      const routes = h.routes();
-      for (const route of routes) {
+    handler
+      .flatMap((h) => h.routes())
+      .forEach((route) => {
         this.addRoute(route);
-      }
-    }
+      });
   }
 
   /**
@@ -170,10 +170,12 @@ class Server implements IHttpServer {
    * @param route - Route to register (path, method, handler)
    */
   private addRoute(route: IHttpRoute) {
-    if (!this.httpRoutes[route.path]) {
-      this.httpRoutes[route.path] = {};
-    }
-    this.httpRoutes[route.path][route.method] = route.handler;
+    this.httpRoutes = produce(this.httpRoutes, (draft) => {
+      if (!draft[route.path]) {
+        draft[route.path] = {};
+      }
+      draft[route.path][route.method] = route.handler;
+    });
   }
 
   /**
