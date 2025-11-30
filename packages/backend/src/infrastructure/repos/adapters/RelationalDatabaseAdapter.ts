@@ -34,7 +34,7 @@ import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import type { ValidationError } from '@core/errors/ValidationError';
 import type { Result } from 'neverthrow';
 import { err } from 'neverthrow';
-import { createDatabaseClientFactory } from '../clients/DatabaseClientFactory';
+import { createDatabaseClientFactory } from '../clients/DatabaseClientFactory.ts';
 
 /**
  * Factory function for creating RelationalDatabaseAdapter instances.

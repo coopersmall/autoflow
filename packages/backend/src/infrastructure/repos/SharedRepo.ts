@@ -15,22 +15,24 @@
  */
 
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
-import { convertQueryResultsToData } from '@backend/infrastructure/repos/actions/convertQueryResultsToData';
+import {
+  createRecord,
+  deleteRecord,
+  getAllRecords,
+  getRecord,
+  updateRecord,
+} from '@backend/infrastructure/repos/actions/shared';
 import type { IRelationalDatabaseAdapter } from '@backend/infrastructure/repos/domain/DatabaseAdapter';
 import type { IDatabaseClient } from '@backend/infrastructure/repos/domain/DatabaseClient';
-import {
-  createNotFoundError,
-  type DBError,
-} from '@backend/infrastructure/repos/errors/DBError';
+import type { DBError } from '@backend/infrastructure/repos/errors/DBError';
 import { createCachedGetter } from '@backend/infrastructure/utils/createCachedGetter';
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import type { ValidationError } from '@core/errors/ValidationError';
 import type { ExtractMethods } from '@core/types';
-import type { Result } from 'neverthrow';
-import { err, ok } from 'neverthrow';
-import { createRelationalDatabaseAdapter } from './adapters/RelationalDatabaseAdapter';
+import { err, ok, type Result } from 'neverthrow';
+import { createRelationalDatabaseAdapter } from './adapters/RelationalDatabaseAdapter.ts';
 
 /**
  * Extracted public methods of SharedRepo for dependency injection and testing.
@@ -41,6 +43,18 @@ export type ISharedRepo<
   T extends Item<ID> = Item<ID>,
 > = ExtractMethods<SharedRepo<ID, T>>;
 
+interface SharedRepoDependencies {
+  createRelationalDatabaseAdapter: typeof createRelationalDatabaseAdapter;
+}
+
+interface SharedRepoActions {
+  getRecord: typeof getRecord;
+  getAllRecords: typeof getAllRecords;
+  createRecord: typeof createRecord;
+  updateRecord: typeof updateRecord;
+  deleteRecord: typeof deleteRecord;
+}
+
 /**
  * Repository for globally accessible data without user scoping.
  * Provides CRUD operations with automatic validation and error handling.
@@ -49,28 +63,36 @@ export type ISharedRepo<
 export class SharedRepo<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
-> {
+> implements ISharedRepo<ID, T>
+{
   private readonly getAdapter: () => Result<IRelationalDatabaseAdapter, never>;
 
   /**
    * Creates a new shared repository instance.
    * @param tableName - Database table name for this repository
+   * @param appConfig - Application configuration service
    * @param validator - Zod validator function for domain entity validation
-   * @param getAdapter - Cached getter for database adapter
+   * @param sharedRepoActions - Injectable actions for testing
    * @param dependencies - Injectable dependencies for testing
    */
   constructor(
     private readonly tableName: string,
     private readonly appConfig: IAppConfigurationService,
     private readonly validator: (data: unknown) => Result<T, ValidationError>,
-    private readonly dependencies = {
-      convertQueryResultsToData,
+    dependencies: SharedRepoDependencies = {
       createRelationalDatabaseAdapter,
+    },
+    private readonly sharedRepoActions: SharedRepoActions = {
+      getRecord,
+      getAllRecords,
+      createRecord,
+      updateRecord,
+      deleteRecord,
     },
   ) {
     this.getAdapter = createCachedGetter(() =>
       ok(
-        this.dependencies.createRelationalDatabaseAdapter({
+        dependencies.createRelationalDatabaseAdapter({
           appConfig: this.appConfig,
           tableName: this.tableName,
         }),
@@ -88,21 +110,14 @@ export class SharedRepo<
     if (adapterResult.isErr()) {
       return err(adapterResult.error);
     }
-    const result = await adapterResult.value.findUnique({ where: { id } });
-    if (result.isErr()) {
-      return err(result.error);
-    }
-    const dataResult = this.dependencies.convertQueryResultsToData(
-      result.value,
-      this.validator,
+
+    return this.sharedRepoActions.getRecord(
+      {
+        adapter: adapterResult.value,
+        validator: this.validator,
+      },
+      { id },
     );
-    if (dataResult.isErr()) {
-      return err(dataResult.error);
-    }
-    if (dataResult.value.length === 0) {
-      return err(createNotFoundError());
-    }
-    return ok(dataResult.value[0]);
   }
 
   /**
@@ -118,22 +133,14 @@ export class SharedRepo<
     if (adapterResult.isErr()) {
       return err(adapterResult.error);
     }
-    const result = await adapterResult.value.findMany({
-      where: {},
-      limit: opts?.limit,
-    });
-    if (result.isErr()) {
-      return err(result.error);
-    }
-    const dataResult = this.dependencies.convertQueryResultsToData(
-      result.value,
-      this.validator,
-    );
-    if (dataResult.isErr()) {
-      return err(dataResult.error);
-    }
 
-    return ok(dataResult.value);
+    return this.sharedRepoActions.getAllRecords(
+      {
+        adapter: adapterResult.value,
+        validator: this.validator,
+      },
+      { limit: opts?.limit },
+    );
   }
 
   /**
@@ -151,22 +158,14 @@ export class SharedRepo<
     if (adapterResult.isErr()) {
       return err(adapterResult.error);
     }
-    const result = await adapterResult.value.create({
-      id,
-      createdAt: new Date(),
-      data,
-    });
-    if (result.isErr()) {
-      return err(result.error);
-    }
-    const dataResult = this.dependencies.convertQueryResultsToData(
-      result.value,
-      this.validator,
+
+    return this.sharedRepoActions.createRecord(
+      {
+        adapter: adapterResult.value,
+        validator: this.validator,
+      },
+      { id, data },
     );
-    if (dataResult.isErr()) {
-      return err(dataResult.error);
-    }
-    return ok(dataResult.value[0]);
   }
 
   /**
@@ -181,33 +180,14 @@ export class SharedRepo<
     if (adapterResult.isErr()) {
       return err(adapterResult.error);
     }
-    const {
-      id: _id,
-      createdAt: _createdAt,
-      updatedAt: _updatedAt,
-      ...partialData
-    } = data;
-    const result = await adapterResult.value.update({
-      where: {
-        id,
-        updatedAt: new Date(),
+
+    return this.sharedRepoActions.updateRecord(
+      {
+        adapter: adapterResult.value,
+        validator: this.validator,
       },
-      data: partialData,
-    });
-    if (result.isErr()) {
-      return err(result.error);
-    }
-    const dataResult = this.dependencies.convertQueryResultsToData(
-      result.value,
-      this.validator,
+      { id, data },
     );
-    if (dataResult.isErr()) {
-      return err(dataResult.error);
-    }
-    if (dataResult.value.length === 0) {
-      return err(createNotFoundError());
-    }
-    return ok(dataResult.value[0]);
   }
 
   /**
@@ -220,21 +200,14 @@ export class SharedRepo<
     if (adapterResult.isErr()) {
       return err(adapterResult.error);
     }
-    const result = await adapterResult.value.delete({ where: { id } });
-    if (result.isErr()) {
-      return err(result.error);
-    }
-    const dataResult = this.dependencies.convertQueryResultsToData(
-      result.value,
-      this.validator,
+
+    return this.sharedRepoActions.deleteRecord(
+      {
+        adapter: adapterResult.value,
+        validator: this.validator,
+      },
+      { id },
     );
-    if (dataResult.isErr()) {
-      return err(dataResult.error);
-    }
-    if (dataResult.value.length === 0) {
-      return err(createNotFoundError());
-    }
-    return ok(dataResult.value[0]);
   }
 
   /**

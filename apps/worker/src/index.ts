@@ -3,7 +3,7 @@ import {
   createTaskWorker,
   getLogger,
 } from '@autoflow/backend';
-import { tasks } from './tasks.manifest';
+import { tasks } from './tasks.manifest.ts';
 
 /**
  * Worker application entry point.

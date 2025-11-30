@@ -1,5 +1,5 @@
-import { newId } from '@core/domain/Id';
-import { createItemSchema } from '@core/domain/Item';
+import { newId } from '@core/domain/Id.ts';
+import { createItemSchema } from '@core/domain/Item.ts';
 import zod from 'zod';
 
 export type UserId = zod.infer<typeof userIdSchema>;

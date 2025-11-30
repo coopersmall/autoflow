@@ -3,7 +3,7 @@ import type { IEncryptionService } from '@backend/infrastructure/encryption/doma
 import type { CorrelationId } from '@core/domain/CorrelationId';
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import { err, ok, type Result } from 'neverthrow';
-import { getKeys } from './getKeys';
+import { getKeys } from './getKeys.ts';
 
 export interface DecryptSecretRequest {
   correlationId: CorrelationId;

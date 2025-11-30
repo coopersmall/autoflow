@@ -8,9 +8,9 @@ import {
 } from '@core/domain/session/UsersSession';
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import { err, ok, type Result } from 'neverthrow';
-import { extractPermissions } from './claims/extractPermissions';
-import { extractUserId } from './claims/extractUserId';
-import { validateClaim } from './claims/validateClaim';
+import { extractPermissions } from './claims/extractPermissions.ts';
+import { extractUserId } from './claims/extractUserId.ts';
+import { validateClaim } from './claims/validateClaim.ts';
 
 export interface AuthenticateFromJWTRequest {
   correlationId?: CorrelationId;

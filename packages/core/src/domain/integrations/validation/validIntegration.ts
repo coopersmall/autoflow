@@ -2,10 +2,10 @@ import {
   type Integration,
   type IntegrationId,
   integrationSchema,
-} from '@core/domain/integrations/Integration';
-import { validId } from '@core/domain/validation/validId';
-import type { ValidationError } from '@core/errors/ValidationError';
-import { validate } from '@core/validation/validate';
+} from '@core/domain/integrations/Integration.ts';
+import { validId } from '@core/domain/validation/validId.ts';
+import type { ValidationError } from '@core/errors/ValidationError.ts';
+import { validate } from '@core/validation/validate.ts';
 import type { Result } from 'neverthrow';
 
 export function validIntegration(

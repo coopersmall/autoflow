@@ -27,9 +27,9 @@ import {
   toolCallPartSchemas,
   toolCallStreamingStartPartSchemas,
   toolResultPartSchemas,
-} from '@core/domain/ai/streamingPart';
-import type { ValidationError } from '@core/errors/ValidationError';
-import { validate } from '@core/validation/validate';
+} from '@core/domain/ai/streamingPart.ts';
+import type { ValidationError } from '@core/errors/ValidationError.ts';
+import { validate } from '@core/validation/validate.ts';
 import type { Result } from 'neverthrow';
 import zod from 'zod';
 

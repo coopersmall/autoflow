@@ -4,7 +4,7 @@ import { err, ok, type Result } from 'neverthrow';
 import {
   type ParseStreamChunksOptions,
   parseStreamChunks,
-} from './parseStreamChunks';
+} from './parseStreamChunks.ts';
 
 export interface StreamingOptions extends ParseStreamChunksOptions {
   retryAttempts?: number;

@@ -1,4 +1,4 @@
-import type { Id } from './Id';
+import type { Id } from './Id.ts';
 
 export type OrganizationId = Id<'OrganizationId'>;
 

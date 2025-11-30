@@ -1,6 +1,6 @@
-import type { Permission } from '@core/domain/permissions/permissions';
-import { permissionSchema } from '@core/domain/permissions/permissions';
-import { UserId, userIdSchema } from '@core/domain/user/user';
+import type { Permission } from '@core/domain/permissions/permissions.ts';
+import { permissionSchema } from '@core/domain/permissions/permissions.ts';
+import { UserId, userIdSchema } from '@core/domain/user/user.ts';
 import type { JWTPayload } from 'jose';
 import zod from 'zod';
 

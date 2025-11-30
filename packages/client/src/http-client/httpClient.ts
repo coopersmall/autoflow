@@ -4,8 +4,8 @@ import {
   TimeoutError,
 } from '@autoflow/core';
 import { err, ok, type Result } from 'neverthrow';
-import { sendRequest } from './sendRequest';
-import { sendStreamRequest } from './sendStreamRequest';
+import { sendRequest } from './sendRequest.ts';
+import { sendStreamRequest } from './sendStreamRequest.ts';
 
 interface RequestOpts {
   credentials?: RequestCredentials;

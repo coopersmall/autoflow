@@ -8,7 +8,7 @@ import {
   type ToolChoice,
   type ToolSet,
 } from 'ai';
-import { getModel } from './getModel';
+import { getModel } from './getModel.ts';
 
 export interface CompletionRequest<TOOLS extends ToolSet> {
   provider: AiProviderIntegration;

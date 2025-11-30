@@ -17,8 +17,8 @@ export function createUsersCache({
 
 class UsersCache extends SharedCache<UserId, User> implements IUsersCache {
   constructor(
-    readonly logger: ILogger,
-    readonly appConfig: IAppConfigurationService,
+    private readonly logger: ILogger,
+    private readonly appConfig: IAppConfigurationService,
   ) {
     super('users', {
       appConfig,

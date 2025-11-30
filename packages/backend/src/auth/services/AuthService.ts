@@ -30,7 +30,7 @@ export function createAuthService(ctx: AuthServiceContext): IAuthService {
 
 interface AuthServiceContext {
   logger: ILogger;
-  appConfig: () => IAppConfigurationService;
+  appConfig: IAppConfigurationService;
 }
 
 interface AuthServiceActions {
@@ -96,7 +96,7 @@ class AuthService implements IAuthService {
     return this.actions.createClaim(
       {
         logger: this.context.logger,
-        appConfig: this.context.appConfig,
+        appConfig: () => this.context.appConfig,
       },
       request,
     );

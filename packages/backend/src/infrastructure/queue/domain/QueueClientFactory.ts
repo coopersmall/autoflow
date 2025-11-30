@@ -1,7 +1,7 @@
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import type { Result } from 'neverthrow';
-import type { IQueueClient } from './QueueClient';
-import type { QueueProvider } from './WorkerClient';
+import type { IQueueClient } from './QueueClient.ts';
+import type { QueueProvider } from './WorkerClient.ts';
 
 /**
  * Supported queue client types.

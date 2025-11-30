@@ -1,4 +1,4 @@
-import { LayoutContext } from '@web/components/context/LayoutContext';
+import { LayoutContext } from '@web/components/context/LayoutContext.tsx';
 import type React from 'react';
 import { forwardRef, useCallback, useContext } from 'react';
 import {

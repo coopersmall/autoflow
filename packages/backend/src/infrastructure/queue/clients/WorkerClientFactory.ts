@@ -2,12 +2,15 @@ import type { IAppConfigurationService } from '@backend/infrastructure/configura
 import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import { unreachable } from '@core/unreachable';
 import { err, ok, type Result } from 'neverthrow';
-import type { IWorkerClient, WorkerJobHandler } from '../domain/WorkerClient';
+import type {
+  IWorkerClient,
+  WorkerJobHandler,
+} from '../domain/WorkerClient.ts';
 import type {
   IWorkerClientFactory,
   WorkerClientType,
-} from '../domain/WorkerClientFactory';
-import { createBullMQWorkerClient } from './bullmq/BullMQWorkerClient';
+} from '../domain/WorkerClientFactory.ts';
+import { createBullMQWorkerClient } from './bullmq/BullMQWorkerClient.ts';
 
 /**
  * Dependencies for WorkerClientFactory (for testing)

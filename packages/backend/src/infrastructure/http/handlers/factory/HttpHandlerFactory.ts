@@ -7,7 +7,7 @@ import type {
 import type { RouteMiddlewareConfig } from '@backend/infrastructure/http/handlers/middleware/domain/MiddlewareConfig';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { ExtractMethods } from '@core/types';
-import { createRoute } from './actions/createRoute';
+import { createRoute } from './actions/createRoute.ts';
 
 export type IHttpHandlerFactoryService = ExtractMethods<HttpRouteFactory>;
 
@@ -21,6 +21,10 @@ interface HttpRouteFactoryContext {
   appConfig: IAppConfigurationService;
   logger: ILogger;
   middlewareConfig: RouteMiddlewareConfig;
+}
+
+interface HttpRouteFactoryActions {
+  createRoute: typeof createRoute;
 }
 
 /**
@@ -54,10 +58,10 @@ interface HttpRouteFactoryContext {
  * - Handler errors → mapped based on error code (BadRequest→400, NotFound→404, etc.)
  * - Unknown errors → 500 (InternalServer)
  */
-export class HttpRouteFactory implements IHttpRouteFactory {
+class HttpRouteFactory implements IHttpRouteFactory {
   constructor(
     private readonly context: HttpRouteFactoryContext,
-    private readonly actions = {
+    private readonly actions: HttpRouteFactoryActions = {
       createRoute,
     },
   ) {}

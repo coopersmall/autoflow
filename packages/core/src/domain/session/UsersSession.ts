@@ -1,10 +1,10 @@
-import { newId } from '@core/domain/Id';
-import { createItemSchema } from '@core/domain/Item';
+import { newId } from '@core/domain/Id.ts';
+import { createItemSchema } from '@core/domain/Item.ts';
 import {
   type Permission,
   permissionSchema,
-} from '@core/domain/permissions/permissions';
-import { type UserId, userIdSchema } from '@core/domain/user/user';
+} from '@core/domain/permissions/permissions.ts';
+import { type UserId, userIdSchema } from '@core/domain/user/user.ts';
 import zod from 'zod';
 
 /**

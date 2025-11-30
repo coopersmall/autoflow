@@ -18,10 +18,18 @@ export function createAppConfigurationService(opts?: {
 type AppConfigKey = keyof AppConfigurationService;
 type AppOverrides = Partial<Record<AppConfigKey, string>>;
 
-export class AppConfigurationService {
+interface AppConfigurationServiceActions {
+  getEnv: typeof getEnv;
+  getArg: typeof getArg;
+}
+
+class AppConfigurationService {
   constructor(
     private readonly overrides: AppOverrides = {},
-    private readonly actions = { getEnv, getArg },
+    private readonly actions: AppConfigurationServiceActions = {
+      getEnv,
+      getArg,
+    },
   ) {}
 
   get polygonKey(): string | undefined {

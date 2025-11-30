@@ -1,5 +1,5 @@
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
-import { createRedisClient } from './redis/RedisCacheClient';
+import { createRedisClient } from './redis/RedisCacheClient.ts';
 
 export interface ICacheClient {
   get(key: string): Promise<string | null>;

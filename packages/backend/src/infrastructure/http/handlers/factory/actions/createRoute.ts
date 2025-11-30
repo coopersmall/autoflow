@@ -27,8 +27,8 @@ import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import { isErrorWithMetadataData } from '@core/errors/Error';
 import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import type { BunRequest } from 'bun';
-import { createResponseFromError } from './createResponseFromError';
-import { runMiddleware } from './runMiddleware';
+import { createResponseFromError } from './createResponseFromError.ts';
+import { runMiddleware } from './runMiddleware.ts';
 
 interface CreateRouteContext {
   logger: ILogger;

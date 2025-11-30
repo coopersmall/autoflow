@@ -13,8 +13,13 @@ function createUsersService(ctx: UsersServiceContext): IUsersService {
 }
 
 interface UsersServiceContext {
-  appConfig: () => IAppConfigurationService;
+  appConfig: IAppConfigurationService;
   logger: ILogger;
+}
+
+interface UsersServiceDependencies {
+  createUsersRepo: typeof createUsersRepo;
+  createUsersCache: typeof createUsersCache;
 }
 
 class UsersService
@@ -22,13 +27,13 @@ class UsersService
   implements IUsersService
 {
   constructor(
-    readonly context: UsersServiceContext,
-    private readonly dependencies = {
+    private readonly context: UsersServiceContext,
+    private readonly dependencies: UsersServiceDependencies = {
       createUsersRepo,
       createUsersCache,
     },
   ) {
-    const appConfig = context.appConfig();
+    const appConfig = context.appConfig;
 
     super('users', {
       ...context,

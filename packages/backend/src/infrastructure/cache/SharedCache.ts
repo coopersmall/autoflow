@@ -34,6 +34,11 @@
  * ```
  */
 import { generateCacheKey } from '@backend/infrastructure/cache/actions/generateCacheKey';
+import {
+  deleteCached,
+  getCached,
+  setCached,
+} from '@backend/infrastructure/cache/actions/shared';
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import { createCachedGetter } from '@backend/infrastructure/utils/createCachedGetter';
@@ -43,9 +48,9 @@ import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import type { ExtractMethods } from '@core/types';
 import type { Validator } from '@core/validation/validate';
 import { err, ok, type Result } from 'neverthrow';
-import { createCacheAdapter } from './adapters/CacheAdapter';
-import { createCacheClientFactory } from './clients/CacheClientFactory';
-import type { ICacheAdapter } from './domain/CacheAdapter';
+import { createCacheAdapter } from './adapters/CacheAdapter.ts';
+import { createCacheClientFactory } from './clients/CacheClientFactory.ts';
+import type { ICacheAdapter } from './domain/CacheAdapter.ts';
 
 export type ISharedCache<
   ID extends Id<string> = Id<string>,
@@ -59,6 +64,18 @@ export interface SharedCacheContext<T> {
   logger: ILogger;
   appConfig: IAppConfigurationService;
   validator: Validator<T>;
+}
+
+interface SharedCacheDependencies {
+  createCacheClientFactory: typeof createCacheClientFactory;
+  createCacheAdapter: typeof createCacheAdapter;
+  generateCacheKey: typeof generateCacheKey;
+}
+
+interface SharedCacheActions {
+  getCached: typeof getCached;
+  setCached: typeof setCached;
+  deleteCached: typeof deleteCached;
 }
 
 /**
@@ -76,14 +93,20 @@ export class SharedCache<
    * @param namespace - Cache namespace (e.g., 'users', 'config')
    * @param ctx - Cache context with logger, adapter, and validator
    * @param dependencies - Optional dependencies for testing
+   * @param sharedCacheActions - Injectable actions for testing
    */
   constructor(
     private readonly namespace: string,
     private readonly ctx: SharedCacheContext<T>,
-    private readonly dependencies = {
+    private readonly dependencies: SharedCacheDependencies = {
       createCacheClientFactory,
       createCacheAdapter,
       generateCacheKey,
+    },
+    private readonly sharedCacheActions: SharedCacheActions = {
+      getCached,
+      setCached,
+      deleteCached,
     },
   ) {
     const factory = this.dependencies.createCacheClientFactory(
@@ -115,34 +138,24 @@ export class SharedCache<
     id: ID,
     onMiss?: (id: ID) => Promise<Result<T, ErrorWithMetadata>>,
   ): Promise<Result<T, ErrorWithMetadata>> {
-    const key = this.generateKey(id);
-
     const adapterResult = this.getAdapter();
     if (adapterResult.isErr()) {
       return err(adapterResult.error);
     }
 
-    const result = await adapterResult.value.get<T>(key, this.ctx.validator);
-
-    if (result.isErr() && onMiss) {
-      const missResult = await onMiss(id);
-      if (missResult.isErr()) {
-        return err(missResult.error);
-      }
-
-      const setResult = await this.set(id, missResult.value);
-      if (setResult.isErr()) {
-        this.ctx.logger.error(
-          'Cache set failed on cache miss',
-          setResult.error,
-          { id, key },
-        );
-      }
-
-      return ok(missResult.value);
-    }
-
-    return result;
+    return this.sharedCacheActions.getCached(
+      {
+        adapter: adapterResult.value,
+        logger: this.ctx.logger,
+        validator: this.ctx.validator,
+        generateKey: this.generateKey.bind(this),
+      },
+      {
+        id,
+        onMiss,
+        setCached: this.set.bind(this),
+      },
+    );
   }
 
   /**
@@ -161,8 +174,14 @@ export class SharedCache<
     if (adapter.isErr()) {
       return err(adapter.error);
     }
-    const key = this.generateKey(id);
-    return adapter.value.set(key, item, { ttl });
+
+    return this.sharedCacheActions.setCached(
+      {
+        adapter: adapter.value,
+        generateKey: this.generateKey.bind(this),
+      },
+      { id, item, ttl },
+    );
   }
 
   /**
@@ -175,8 +194,14 @@ export class SharedCache<
     if (adapter.isErr()) {
       return err(adapter.error);
     }
-    const key = this.generateKey(id);
-    return adapter.value.del(key);
+
+    return this.sharedCacheActions.deleteCached(
+      {
+        adapter: adapter.value,
+        generateKey: this.generateKey.bind(this),
+      },
+      { id },
+    );
   }
 
   /**

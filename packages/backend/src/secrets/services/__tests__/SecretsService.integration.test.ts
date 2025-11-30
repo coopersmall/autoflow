@@ -15,14 +15,14 @@ describe('SecretsService Integration Tests', () => {
     const logger = getLogger();
 
     const usersService = createUsersService({
-      appConfig: () => config,
+      appConfig: config,
       logger,
     });
     const userResult = await usersService.create({ schemaVersion: 1 });
     const user = userResult._unsafeUnwrap();
 
     const secretsService = createSecretsService({
-      appConfig: () => config,
+      appConfig: config,
       logger,
     });
 
@@ -408,7 +408,7 @@ describe('SecretsService Integration Tests', () => {
       const logger = getLogger();
 
       const usersService = createUsersService({
-        appConfig: () => config,
+        appConfig: config,
         logger,
       });
 
@@ -419,7 +419,7 @@ describe('SecretsService Integration Tests', () => {
       const user2 = user2Result._unsafeUnwrap();
 
       const secretsService = createSecretsService({
-        appConfig: () => config,
+        appConfig: config,
         logger,
       });
 

@@ -29,12 +29,27 @@ import type { Result } from 'neverthrow';
 export { createTasksService };
 
 function createTasksService(ctx: TasksServiceContext): ITasksService {
-  return new TasksService(ctx);
+  return Object.freeze(new TasksService(ctx));
 }
 
 interface TasksServiceContext {
   logger: ILogger;
   appConfig: IAppConfigurationService;
+}
+
+interface TasksServiceActions {
+  getTasksByStatus: typeof getTasksByStatus;
+  getTasksByTaskName: typeof getTasksByTaskName;
+  getTasksByUserId: typeof getTasksByUserId;
+  listTasks: typeof listTasks;
+  getQueueStats: typeof getQueueStats;
+  cancelTask: typeof cancelTask;
+  retryTask: typeof retryTask;
+}
+
+interface TasksServiceDependencies {
+  createTasksRepo: typeof createTasksRepo;
+  createTaskQueue: typeof createTaskQueue;
 }
 
 class TasksService
@@ -45,7 +60,7 @@ class TasksService
 
   constructor(
     private readonly context: TasksServiceContext,
-    private readonly actions = {
+    private readonly actions: TasksServiceActions = {
       getTasksByStatus,
       getTasksByTaskName,
       getTasksByUserId,
@@ -54,7 +69,7 @@ class TasksService
       cancelTask,
       retryTask,
     },
-    private readonly dependencies = {
+    private readonly dependencies: TasksServiceDependencies = {
       createTasksRepo,
       createTaskQueue,
     },

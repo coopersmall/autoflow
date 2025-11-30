@@ -4,14 +4,14 @@ import type { QueueConfig } from '@backend/infrastructure/queue/domain/QueueConf
 import type { TaskDefinition } from '@backend/tasks/domain/TaskDefinition';
 import type { ITaskQueue } from '@backend/tasks/domain/TaskQueue';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
-import { newTaskRecord } from '@backend/tasks/domain/TaskRecord';
 import type { ITasksRepo } from '@backend/tasks/domain/TasksRepo';
 import { createTaskQueue } from '@backend/tasks/queue/TaskQueue';
 import { createTasksRepo } from '@backend/tasks/repos/TasksRepo';
+import { scheduleTask } from '@backend/tasks/scheduler/actions';
 import type { CorrelationId } from '@core/domain/CorrelationId';
 import type { UserId } from '@core/domain/user/user';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
-import { err, ok, type Result } from 'neverthrow';
+import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { Result } from 'neverthrow';
 
 export { createTaskScheduler };
 export type { ITaskScheduler, ScheduleOptions };
@@ -120,6 +120,9 @@ class TaskScheduler implements ITaskScheduler {
       createTasksRepo,
       createTaskQueue,
     },
+    private readonly taskSchedulerActions = {
+      scheduleTask,
+    },
   ) {
     this.logger = config.logger;
     this.appConfig = config.appConfig;
@@ -144,75 +147,19 @@ class TaskScheduler implements ITaskScheduler {
     payload: TPayload,
     options?: ScheduleOptions,
   ): Promise<Result<TaskRecord, ErrorWithMetadata>> {
-    // Validate payload using task's validator
-    const validationResult = task.validator(payload);
-    if (validationResult.isErr()) {
-      const error = new ErrorWithMetadata(
-        'Task payload validation failed',
-        'BadRequest',
-        {
-          correlationId,
-          queueName: task.queueName,
-          validationError: validationResult.error.message,
-        },
-      );
-      this.logger.error('Task payload validation failed', error, {
+    return this.taskSchedulerActions.scheduleTask(
+      {
+        tasksRepo: this.tasksRepo,
+        logger: this.logger,
+        getQueue: this.getQueue.bind(this),
+      },
+      {
         correlationId,
-        queueName: task.queueName,
-      });
-      return err(error);
-    }
-
-    // Determine if delayed
-    const delayMs = options?.delayMs ?? 0;
-    const isDelayed = delayMs > 0;
-
-    // Create task record
-    const taskRecord = newTaskRecord(task.queueName, task.queueName, {
-      payload: payload,
-      status: isDelayed ? 'delayed' : 'pending',
-      priority: task.options.priority,
-      attempts: 0,
-      maxAttempts: task.options.maxAttempts,
-      enqueuedAt: new Date(),
-      delayUntil: isDelayed ? new Date(Date.now() + delayMs) : undefined,
-      userId: options?.userId,
-    });
-
-    // Save to database
-    const createResult = await this.tasksRepo.create(taskRecord.id, taskRecord);
-    if (createResult.isErr()) {
-      this.logger.error('Failed to create task record', createResult.error, {
-        correlationId,
-        queueName: task.queueName,
-      });
-      return err(createResult.error);
-    }
-
-    // Enqueue to BullMQ
-    const queue = this.getQueue(task.queueName);
-    const enqueueResult = await queue.enqueue(
-      correlationId,
-      createResult.value,
+        task,
+        payload,
+        options,
+      },
     );
-    if (enqueueResult.isErr()) {
-      this.logger.error('Failed to enqueue task', enqueueResult.error, {
-        correlationId,
-        taskId: taskRecord.id,
-        queueName: task.queueName,
-      });
-      return err(enqueueResult.error);
-    }
-
-    this.logger.info('Task scheduled', {
-      correlationId,
-      taskId: taskRecord.id,
-      queueName: task.queueName,
-      priority: task.options.priority,
-      delayed: isDelayed,
-    });
-
-    return ok(createResult.value);
   }
 
   /**

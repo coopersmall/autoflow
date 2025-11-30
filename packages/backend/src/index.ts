@@ -1,14 +1,14 @@
 // AI
-export * from './ai/AIService';
+export * from './ai/AIService.ts';
 // Auth
-export * from './auth';
+export * from './auth/index.ts';
 // Infrastructure
-export * from './infrastructure';
+export * from './infrastructure/index.ts';
 // Integrations
-export * from './integrations';
+export * from './integrations/index.ts';
 // Secrets
-export * from './secrets';
+export * from './secrets/index.ts';
 // Tasks
-export * from './tasks';
+export * from './tasks/index.ts';
 // Users
-export * from './users';
+export * from './users/index.ts';

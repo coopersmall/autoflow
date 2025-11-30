@@ -49,8 +49,14 @@ import type { Item } from '@core/domain/Item';
 import type { Permission } from '@core/domain/permissions/permissions';
 import type { ExtractMethods } from '@core/types';
 import type { Validator } from '@core/validation/validate';
-import type { IHttpRouteFactory } from './domain/HttpRouteFactory';
-import { buildHttpErrorResponse } from './errors/buildHttpErrorResponse';
+import {
+  handleAll,
+  handleCreate,
+  handleDelete,
+  handleGet,
+  handleUpdate,
+} from './actions/shared/index.ts';
+import type { IHttpRouteFactory } from './domain/HttpRouteFactory.ts';
 
 /**
  * Type alias for SharedHTTPHandler interface extraction.
@@ -114,6 +120,13 @@ export class SharedHTTPHandler<ID extends Id<string>, T extends Item<ID>> {
    */
   constructor(
     private readonly sharedHttpHandlerCtx: ISharedHTTPHandlerContext<ID, T>,
+    private readonly actions = {
+      handleGet,
+      handleAll,
+      handleCreate,
+      handleUpdate,
+      handleDelete,
+    },
   ) {
     this.factory = this.sharedHttpHandlerCtx.routeFactory;
   }
@@ -188,18 +201,15 @@ export class SharedHTTPHandler<ID extends Id<string>, T extends Item<ID>> {
       method: 'GET',
       routeType: type,
       requiredPermissions: allowed,
-      handler: async ({ getParam }) => {
-        const id = getParam('id', this.sharedHttpHandlerCtx.validators.id);
-        if (id.isErr()) {
-          return buildHttpErrorResponse(id.error);
-        }
-
-        const result = await this.sharedHttpHandlerCtx.service().get(id.value);
-        if (result.isErr()) {
-          return buildHttpErrorResponse(result.error);
-        }
-
-        return Response.json(result.value, { status: 200 });
+      handler: async (requestContext) => {
+        return this.actions.handleGet(
+          {
+            service: this.sharedHttpHandlerCtx.service(),
+            validators: { id: this.sharedHttpHandlerCtx.validators.id },
+          },
+          {},
+          requestContext,
+        );
       },
     });
   }
@@ -216,13 +226,14 @@ export class SharedHTTPHandler<ID extends Id<string>, T extends Item<ID>> {
       method: 'GET',
       routeType: type,
       requiredPermissions: allowed,
-      handler: async () => {
-        const result = await this.sharedHttpHandlerCtx.service().all();
-        if (result.isErr()) {
-          return buildHttpErrorResponse(result.error);
-        }
-
-        return Response.json(result.value, { status: 200 });
+      handler: async (requestContext) => {
+        return this.actions.handleAll(
+          {
+            service: this.sharedHttpHandlerCtx.service(),
+          },
+          {},
+          requestContext,
+        );
       },
     });
   }
@@ -239,22 +250,17 @@ export class SharedHTTPHandler<ID extends Id<string>, T extends Item<ID>> {
       method: 'POST',
       routeType: type,
       requiredPermissions: allowed,
-      handler: async ({ getBody }) => {
-        const body = await getBody(
-          this.sharedHttpHandlerCtx.validators.partial,
+      handler: async (requestContext) => {
+        return this.actions.handleCreate(
+          {
+            service: this.sharedHttpHandlerCtx.service(),
+            validators: {
+              partial: this.sharedHttpHandlerCtx.validators.partial,
+            },
+          },
+          {},
+          requestContext,
         );
-        if (body.isErr()) {
-          return buildHttpErrorResponse(body.error);
-        }
-
-        const result = await this.sharedHttpHandlerCtx
-          .service()
-          .create(body.value);
-        if (result.isErr()) {
-          return buildHttpErrorResponse(result.error);
-        }
-
-        return Response.json(result.value, { status: 201 });
       },
     });
   }
@@ -271,25 +277,18 @@ export class SharedHTTPHandler<ID extends Id<string>, T extends Item<ID>> {
       method: 'PUT',
       routeType: type,
       requiredPermissions: allowed,
-      handler: async ({ getParam, getBody }) => {
-        const id = getParam('id', this.sharedHttpHandlerCtx.validators.id);
-        if (id.isErr()) {
-          return buildHttpErrorResponse(id.error);
-        }
-
-        const body = await getBody(this.sharedHttpHandlerCtx.validators.update);
-        if (body.isErr()) {
-          return buildHttpErrorResponse(body.error);
-        }
-
-        const result = await this.sharedHttpHandlerCtx
-          .service()
-          .update(id.value, body.value);
-        if (result.isErr()) {
-          return buildHttpErrorResponse(result.error);
-        }
-
-        return Response.json(result.value, { status: 200 });
+      handler: async (requestContext) => {
+        return this.actions.handleUpdate(
+          {
+            service: this.sharedHttpHandlerCtx.service(),
+            validators: {
+              id: this.sharedHttpHandlerCtx.validators.id,
+              update: this.sharedHttpHandlerCtx.validators.update,
+            },
+          },
+          {},
+          requestContext,
+        );
       },
     });
   }
@@ -306,20 +305,15 @@ export class SharedHTTPHandler<ID extends Id<string>, T extends Item<ID>> {
       method: 'DELETE',
       routeType: type,
       requiredPermissions: allowed,
-      handler: async ({ getParam }) => {
-        const id = getParam('id', this.sharedHttpHandlerCtx.validators.id);
-        if (id.isErr()) {
-          return buildHttpErrorResponse(id.error);
-        }
-
-        const result = await this.sharedHttpHandlerCtx
-          .service()
-          .delete(id.value);
-        if (result.isErr()) {
-          return buildHttpErrorResponse(result.error);
-        }
-
-        return Response.json({ success: true }, { status: 200 });
+      handler: async (requestContext) => {
+        return this.actions.handleDelete(
+          {
+            service: this.sharedHttpHandlerCtx.service(),
+            validators: { id: this.sharedHttpHandlerCtx.validators.id },
+          },
+          {},
+          requestContext,
+        );
       },
     });
   }

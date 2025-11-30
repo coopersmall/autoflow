@@ -7,7 +7,7 @@ import {
   type ModelMessage,
 } from 'ai';
 import type { Schema } from 'zod';
-import { getModel } from './getModel';
+import { getModel } from './getModel.ts';
 
 export interface CompletionObjectRequest<SCHEMA extends Schema> {
   provider: AiProviderIntegration;

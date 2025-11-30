@@ -1,5 +1,5 @@
 import zod from 'zod';
-import type { Id } from './Id';
+import type { Id } from './Id.ts';
 
 export interface Item<ID extends Id<string> = Id<string>> {
   id: ID;

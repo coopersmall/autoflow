@@ -1,9 +1,9 @@
 import {
   type PolygonIntegration,
   polygonIntegrationSchema,
-} from '@core/domain/integrations/polygon/PolygonIntegration';
-import type { ValidationError } from '@core/errors/ValidationError';
-import { validate } from '@core/validation/validate';
+} from '@core/domain/integrations/polygon/PolygonIntegration.ts';
+import type { ValidationError } from '@core/errors/ValidationError.ts';
+import { validate } from '@core/validation/validate.ts';
 import type { Result } from 'neverthrow';
 
 export function validPolygonIntegration(

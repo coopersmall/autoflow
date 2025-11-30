@@ -3,7 +3,7 @@ import {
   createServer,
   getLogger,
 } from '@autoflow/backend';
-import { createHandlers } from './handlers.manifest';
+import { createHandlers } from './handlers.manifest.ts';
 
 const PORT = 3000 as const;
 

@@ -69,7 +69,7 @@
         "noUnsafeFinally": "error",
         "noUnsafeOptionalChaining": "error",
         "noUnusedLabels": "error",
-        "noUnusedPrivateClassMembers": "error",
+        "noUnusedPrivateClassMembers": "off",
         "noUnusedVariables": "warn",
         "useIsNan": "error",
         "useValidForDirection": "error",

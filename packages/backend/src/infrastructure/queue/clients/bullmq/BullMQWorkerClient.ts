@@ -6,7 +6,7 @@ import type {
   WorkerEvents,
   WorkerJob,
   WorkerJobHandler,
-} from '../../domain/WorkerClient';
+} from '../../domain/WorkerClient.ts';
 
 /**
  * Generate a simple unique ID for jobs without an ID

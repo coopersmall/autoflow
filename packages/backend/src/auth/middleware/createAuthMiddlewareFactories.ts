@@ -29,8 +29,8 @@ import { createAuthService } from '@backend/auth/services/AuthService';
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
 import type { MiddlewareFactory } from '@backend/infrastructure/http/handlers/middleware/domain/MiddlewareConfig';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
-import { createBearerTokenAuthenticationMiddleware } from './createBearerTokenAuthenticationMiddleware';
-import { createCookieAuthenticationMiddleware } from './createCookieAuthenticationMiddleware';
+import { createBearerTokenAuthenticationMiddleware } from './createBearerTokenAuthenticationMiddleware.ts';
+import { createCookieAuthenticationMiddleware } from './createCookieAuthenticationMiddleware.ts';
 
 /**
  * Context required for creating auth middleware factories.
@@ -90,7 +90,7 @@ export function createAuthMiddlewareFactories(
   deps: {
     createAuthService?: (ctx: {
       logger: ILogger;
-      appConfig: () => IAppConfigurationService;
+      appConfig: IAppConfigurationService;
     }) => IAuthService;
   } = {},
 ): AuthMiddlewareFactories {
@@ -99,7 +99,7 @@ export function createAuthMiddlewareFactories(
   // Create auth service once, reuse across all middleware
   const authService = createAuthServiceDep({
     logger: ctx.logger,
-    appConfig: () => ctx.appConfig,
+    appConfig: ctx.appConfig,
   });
 
   const middlewareContext = {

@@ -1,4 +1,4 @@
-import { ErrorWithMetadata } from './ErrorWithMetadata';
+import { ErrorWithMetadata } from './ErrorWithMetadata.ts';
 
 export class TimeoutError extends ErrorWithMetadata {
   constructor(timeout: number, metadata?: Record<string, unknown>) {

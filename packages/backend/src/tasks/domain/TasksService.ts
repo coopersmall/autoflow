@@ -4,10 +4,10 @@ import type { CorrelationId } from '@core/domain/CorrelationId';
 import type { UserId } from '@core/domain/user/user';
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import type { Result } from 'neverthrow';
-import type { TaskId } from './TaskId';
-import type { TaskRecord } from './TaskRecord';
-import type { TaskStatus } from './TaskStatus';
-import type { ListTasksFilters } from './TasksRepo';
+import type { TaskId } from './TaskId.ts';
+import type { TaskRecord } from './TaskRecord.ts';
+import type { TaskStatus } from './TaskStatus.ts';
+import type { ListTasksFilters } from './TasksRepo.ts';
 
 export type ITasksService = Readonly<
   ISharedService<TaskId, TaskRecord> & {

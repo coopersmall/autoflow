@@ -1,8 +1,8 @@
-import type { ErrorWithMetadata } from './ErrorWithMetadata';
-import type { NotFoundError } from './NotFoundError';
-import type { TimeoutError } from './TimeoutError';
-import type { UnauthorizedError } from './UnauthorizedError';
-import type { ValidationError } from './ValidationError';
+import type { ErrorWithMetadata } from './ErrorWithMetadata.ts';
+import type { NotFoundError } from './NotFoundError.ts';
+import type { TimeoutError } from './TimeoutError.ts';
+import type { UnauthorizedError } from './UnauthorizedError.ts';
+import type { ValidationError } from './ValidationError.ts';
 
 export type SystemError =
   | ErrorWithMetadata

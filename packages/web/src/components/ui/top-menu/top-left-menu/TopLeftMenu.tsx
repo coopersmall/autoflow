@@ -1,6 +1,6 @@
 import { Flex } from '@radix-ui/themes';
 import styled from 'styled-components';
-import { LogoIcon } from './LogoIcon';
+import { LogoIcon } from './LogoIcon.tsx';
 
 export function TopLeftMenu() {
   return (

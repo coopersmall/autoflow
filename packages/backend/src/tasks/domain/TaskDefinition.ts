@@ -1,10 +1,10 @@
 import type { Validator } from '@core/validation/validate';
 import type { Result } from 'neverthrow';
-import type { TaskContext } from './TaskContext';
-import type { TaskError } from './TaskError';
-import type { TaskOptions } from './TaskOptions';
-import { DEFAULT_TASK_OPTIONS } from './TaskOptions';
-import type { TaskResult } from './TaskResult';
+import type { TaskContext } from './TaskContext.ts';
+import type { TaskError } from './TaskError.ts';
+import type { TaskOptions } from './TaskOptions.ts';
+import { DEFAULT_TASK_OPTIONS } from './TaskOptions.ts';
+import type { TaskResult } from './TaskResult.ts';
 
 /**
  * Function signature for task handlers.

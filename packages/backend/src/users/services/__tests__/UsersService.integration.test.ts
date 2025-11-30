@@ -12,7 +12,7 @@ describe('UsersService Integration Tests', () => {
     const logger = getLogger();
 
     const usersService = createUsersService({
-      appConfig: () => config,
+      appConfig: config,
       logger,
     });
 

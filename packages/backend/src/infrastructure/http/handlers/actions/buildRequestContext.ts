@@ -2,10 +2,10 @@ import type { Request } from '@backend/infrastructure/http/handlers/domain/Reque
 import type { RequestContext } from '@backend/infrastructure/http/handlers/domain/RequestContext';
 import type { CorrelationId } from '@core/domain/CorrelationId';
 import type { Validator } from '@core/validation/validate';
-import { extractRequestBody } from './extractRequestBody';
-import { extractRequestHeader } from './extractRequestHeader';
-import { extractRequestParam } from './extractRequestParam';
-import { extractSearchParam } from './extractSearchParam';
+import { extractRequestBody } from './extractRequestBody.ts';
+import { extractRequestHeader } from './extractRequestHeader.ts';
+import { extractRequestParam } from './extractRequestParam.ts';
+import { extractSearchParam } from './extractSearchParam.ts';
 
 export interface BuildRequestContextRequest {
   correlationId: CorrelationId;

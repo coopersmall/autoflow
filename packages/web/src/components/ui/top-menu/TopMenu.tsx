@@ -1,5 +1,5 @@
 import { Flex } from '@radix-ui/themes';
-import { LayoutContext } from '@web/components/context/LayoutContext';
+import { LayoutContext } from '@web/components/context/LayoutContext.tsx';
 import { useContext } from 'react';
 import styled from 'styled-components';
 

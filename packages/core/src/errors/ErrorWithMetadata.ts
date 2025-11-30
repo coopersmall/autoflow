@@ -1,4 +1,4 @@
-import type { ErrorCode } from './errorCode';
+import type { ErrorCode } from './errorCode.ts';
 
 export interface ErrorMetadata {
   [key: string]: unknown;
