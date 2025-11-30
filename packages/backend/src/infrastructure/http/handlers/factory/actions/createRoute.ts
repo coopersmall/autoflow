@@ -16,19 +16,19 @@
  * 4. Error layer: Converts errors to appropriate HTTP responses
  */
 
-import type { CorrelationId } from "@autoflow/core";
-import type { IAppConfigurationService } from "@backend/infrastructure/configuration/AppConfigurationService";
-import type { IHttpRoute } from "@backend/infrastructure/http/domain/HttpRoute";
-import { buildRequestContext } from "@backend/infrastructure/http/handlers/actions/buildRequestContext";
-import { extractCorrelationId } from "@backend/infrastructure/http/handlers/actions/extractCorrelationId";
-import type { CreateRouteRequest } from "@backend/infrastructure/http/handlers/domain/HttpRouteFactory";
-import type { RouteMiddlewareConfig } from "@backend/infrastructure/http/handlers/middleware/domain/MiddlewareConfig";
-import type { ILogger } from "@backend/infrastructure/logger/Logger";
-import { isErrorWithMetadataData } from "@core/errors/Error";
-import { ErrorWithMetadata } from "@core/errors/ErrorWithMetadata";
-import type { BunRequest } from "bun";
-import { createResponseFromError } from "./createResponseFromError";
-import { runMiddleware } from "./runMiddleware";
+import type { CorrelationId } from '@autoflow/core';
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { IHttpRoute } from '@backend/infrastructure/http/domain/HttpRoute';
+import { buildRequestContext } from '@backend/infrastructure/http/handlers/actions/buildRequestContext';
+import { extractCorrelationId } from '@backend/infrastructure/http/handlers/actions/extractCorrelationId';
+import type { CreateRouteRequest } from '@backend/infrastructure/http/handlers/domain/HttpRouteFactory';
+import type { RouteMiddlewareConfig } from '@backend/infrastructure/http/handlers/middleware/domain/MiddlewareConfig';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import { isErrorWithMetadataData } from '@core/errors/Error';
+import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { BunRequest } from 'bun';
+import { createResponseFromError } from './createResponseFromError';
+import { runMiddleware } from './runMiddleware';
 
 interface CreateRouteContext {
   logger: ILogger;
@@ -69,7 +69,7 @@ export function createRoute(
       factory({ requiredPermissions }),
     );
 
-    ctx.logger.debug("Processing handler request", {
+    ctx.logger.debug('Processing handler request', {
       url: request.url,
       routeType,
       middlewareCount: middlewares.length,
@@ -81,7 +81,7 @@ export function createRoute(
     });
 
     if (middlewareResult.isErr()) {
-      ctx.logger.info("Middleware returned error", {
+      ctx.logger.info('Middleware returned error', {
         error: middlewareResult.error.message,
         code: middlewareResult.error.code,
       });
@@ -96,7 +96,7 @@ export function createRoute(
       request: enrichedRequest,
     });
 
-    ctx.logger.debug("Executing handler", {
+    ctx.logger.debug('Executing handler', {
       correlationId,
     });
 
@@ -112,7 +112,7 @@ export function createRoute(
       );
     }
 
-    ctx.logger.debug("Handler completed successfully", {
+    ctx.logger.debug('Handler completed successfully', {
       correlationId,
       status: response.status,
     });
@@ -147,12 +147,12 @@ function handleThrownError(
 ): Response {
   const err = isErrorWithMetadataData(error)
     ? error
-    : new ErrorWithMetadata("Unknown handler error", "InternalServer", {
+    : new ErrorWithMetadata('Unknown handler error', 'InternalServer', {
         correlationId,
         cause: error,
       });
 
-  logger.error("Handler error occurred", err, {
+  logger.error('Handler error occurred', err, {
     correlationId,
     code: err.code,
   });

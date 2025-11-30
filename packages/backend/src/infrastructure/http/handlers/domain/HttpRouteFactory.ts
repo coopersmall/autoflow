@@ -15,9 +15,9 @@ import type {
   HttpMethod,
   IHttpRoute,
   RouteType,
-} from "@backend/infrastructure/http/domain/HttpRoute";
-import type { RequestContext } from "@backend/infrastructure/http/handlers/domain/RequestContext";
-import type { Permission } from "@core/domain/permissions/permissions";
+} from '@backend/infrastructure/http/domain/HttpRoute';
+import type { RequestContext } from '@backend/infrastructure/http/handlers/domain/RequestContext';
+import type { Permission } from '@core/domain/permissions/permissions';
 
 /**
  * Factory interface for creating HTTP routes with automatic middleware orchestration.

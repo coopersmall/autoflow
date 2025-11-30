@@ -1,13 +1,13 @@
-import type { IAppConfigurationService } from "@backend/infrastructure/configuration/AppConfigurationService";
-import type { IHttpRoute } from "@backend/infrastructure/http/domain/HttpRoute";
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { IHttpRoute } from '@backend/infrastructure/http/domain/HttpRoute';
 import type {
   CreateRouteRequest,
   IHttpRouteFactory,
-} from "@backend/infrastructure/http/handlers/domain/HttpRouteFactory";
-import type { RouteMiddlewareConfig } from "@backend/infrastructure/http/handlers/middleware/domain/MiddlewareConfig";
-import type { ILogger } from "@backend/infrastructure/logger/Logger";
-import type { ExtractMethods } from "@core/types";
-import { createRoute } from "./actions/createRoute";
+} from '@backend/infrastructure/http/handlers/domain/HttpRouteFactory';
+import type { RouteMiddlewareConfig } from '@backend/infrastructure/http/handlers/middleware/domain/MiddlewareConfig';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import type { ExtractMethods } from '@core/types';
+import { createRoute } from './actions/createRoute';
 
 export type IHttpHandlerFactoryService = ExtractMethods<HttpRouteFactory>;
 

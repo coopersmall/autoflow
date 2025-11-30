@@ -1,17 +1,17 @@
-import type { Request } from "@backend/infrastructure/http/handlers/domain/Request";
-import zod from "zod";
+import type { Request } from '@backend/infrastructure/http/handlers/domain/Request';
+import zod from 'zod';
 
 /**
  * All valid route types as a constant array.
  * Useful for iteration and validation.
  */
-export const routeType = zod.enum(["public", "api", "app"]);
+export const routeType = zod.enum(['public', 'api', 'app']);
 
 /**
  * All valid HTTP methods as a constant array.
  * Useful for iteration and validation.
  */
-export const httpMethods = zod.enum(["GET", "POST", "PUT", "DELETE"]);
+export const httpMethods = zod.enum(['GET', 'POST', 'PUT', 'DELETE']);
 
 /**
  * HTTP route types for request authentication/authorization levels.

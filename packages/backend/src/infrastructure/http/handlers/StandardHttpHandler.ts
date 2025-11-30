@@ -58,7 +58,6 @@ import type { ExtractMethods } from '@core/types';
 import type { Validator } from '@core/validation/validate';
 import type { IHttpRouteFactory } from './domain/HttpRouteFactory';
 import { buildHttpErrorResponse } from './errors/buildHttpErrorResponse';
-import { createHttpRouteFactory } from './factory/HttpHandlerFactory';
 
 /**
  * Type alias for StandardHTTPHandler interface extraction.
