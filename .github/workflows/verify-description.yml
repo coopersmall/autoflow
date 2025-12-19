@@ -1,4 +1,4 @@
-name: Verify Description
+name: Verify PR Description
 
 on:
   workflow_call:

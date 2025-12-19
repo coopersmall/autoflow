@@ -12,7 +12,7 @@ const srcDir = path.join(packageDir, "src");
 // Print help text if requested
 if (process.argv.includes("--help") || process.argv.includes("-h")) {
   console.log(`
-🏗️  Bun Build Script
+🏗  Bun Build Script
 
 Usage: bun run build.ts [options]
 
@@ -135,7 +135,7 @@ const cliConfig = parseArgs();
 const outdir = cliConfig.outdir || path.join(packageDir, "dist");
 
 if (existsSync(outdir)) {
-  console.log(`🗑️ Cleaning previous build at ${outdir}`);
+  console.log(`🗑 Cleaning previous build at ${outdir}`);
   await rm(outdir, { recursive: true, force: true });
 }
 

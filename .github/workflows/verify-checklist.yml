@@ -1,4 +1,4 @@
-name: Verify Checklist
+name: Verify PR Checklist
 
 on:
   workflow_call:

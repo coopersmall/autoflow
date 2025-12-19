@@ -1,4 +1,4 @@
-name: Verify Labels
+name: Verify PR Labels
 
 on:
   workflow_call:
