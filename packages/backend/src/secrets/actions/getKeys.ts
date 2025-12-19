@@ -1,39 +1,39 @@
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
-import type { CorrelationId } from '@core/domain/CorrelationId';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { Context } from '@backend/infrastructure/context';
+import { type AppError, internalError } from '@core/errors';
 import { err, ok, type Result } from 'neverthrow';
-
-export interface GetKeysRequest {
-  correlationId: CorrelationId;
-}
 
 export interface GetKeysResult {
   privateKey: string;
   publicKey: string;
 }
 
-export interface GetKeysContext {
+export interface GetKeysDeps {
   appConfig: IAppConfigurationService;
 }
 
 export function getKeys(
-  ctx: GetKeysContext,
-  { correlationId }: GetKeysRequest,
-): Result<GetKeysResult, ErrorWithMetadata> {
-  const privateKey = ctx.appConfig.secretsPrivateKey;
+  ctx: Context,
+  deps: GetKeysDeps,
+): Result<GetKeysResult, AppError> {
+  const privateKey = deps.appConfig.secretsPrivateKey;
   if (!privateKey) {
     return err(
-      new ErrorWithMetadata('Missing secrets private key', 'InternalServer', {
-        correlationId,
+      internalError('Missing secrets private key', {
+        metadata: {
+          correlationId: ctx.correlationId,
+        },
       }),
     );
   }
 
-  const publicKey = ctx.appConfig.secretsPublicKey;
+  const publicKey = deps.appConfig.secretsPublicKey;
   if (!publicKey) {
     return err(
-      new ErrorWithMetadata('Missing secrets public key', 'InternalServer', {
-        correlationId,
+      internalError('Missing secrets public key', {
+        metadata: {
+          correlationId: ctx.correlationId,
+        },
       }),
     );
   }

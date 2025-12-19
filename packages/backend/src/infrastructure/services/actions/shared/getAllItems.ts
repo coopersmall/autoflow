@@ -1,10 +1,11 @@
+import type { Context } from '@backend/infrastructure/context';
 import type { ISharedRepo } from '@backend/infrastructure/repos/SharedRepo';
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 
-export interface GetAllItemsContext<
+export interface GetAllItemsDeps<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > {
@@ -18,6 +19,6 @@ export interface GetAllItemsContext<
 export async function getAllItems<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
->(ctx: GetAllItemsContext<ID, T>): Promise<Result<T[], ErrorWithMetadata>> {
-  return ctx.repo.all();
+>(ctx: Context, deps: GetAllItemsDeps<ID, T>): Promise<Result<T[], AppError>> {
+  return deps.repo.all(ctx);
 }

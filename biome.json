@@ -59,6 +59,7 @@
         "noInvalidBuiltinInstantiation": "error",
         "noInvalidConstructorSuper": "error",
         "noNonoctalDecimalEscape": "error",
+        "noUnusedFunctionParameters": "off",
         "noPrecisionLoss": "error",
         "noSelfAssign": "error",
         "noSetterReturn": "error",

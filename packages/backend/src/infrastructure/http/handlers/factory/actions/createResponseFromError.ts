@@ -1,5 +1,4 @@
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
-import type { ErrorCode } from '@core/errors/errorCode';
+import type { AppError, ErrorCode } from '@core/errors/AppError';
 
 const HTTP_STATUS_MAP: Record<ErrorCode, number> = {
   BadRequest: 400,
@@ -13,7 +12,7 @@ const HTTP_STATUS_MAP: Record<ErrorCode, number> = {
 };
 
 /**
- * Maps ErrorWithMetadata to HTTP Response with appropriate status code.
+ * Maps AppError to HTTP Response with appropriate status code.
  *
  * Status Code Mapping:
  * - BadRequest → 400
@@ -37,10 +36,10 @@ const HTTP_STATUS_MAP: Record<ErrorCode, number> = {
  * This provides centralized error-to-HTTP mapping. All errors flow through here,
  * ensuring consistent error responses across the application.
  *
- * @param error - ErrorWithMetadata containing message and code
+ * @param error - AppError containing message and code
  * @returns HTTP Response with appropriate status code and JSON body
  */
-export function createResponseFromError(error: ErrorWithMetadata): Response {
+export function createResponseFromError(error: AppError): Response {
   const status = HTTP_STATUS_MAP[error.code] ?? 500;
 
   return new Response(

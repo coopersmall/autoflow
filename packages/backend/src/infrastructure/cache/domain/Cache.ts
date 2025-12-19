@@ -5,7 +5,7 @@
  * the cache layer. These abstractions allow different cache implementations
  * (e.g., Redis, in-memory, mock) to be swapped without changing cache code.
  */
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 import zod from 'zod';
 
@@ -30,9 +30,7 @@ export interface ICacheClientFactory {
    * Creates a cache client connection.
    * @returns Cache client or configuration error
    */
-  getCacheClient(
-    type: CacheClientType,
-  ): Result<ICacheClient, ErrorWithMetadata>;
+  getCacheClient(type: CacheClientType): Result<ICacheClient, AppError>;
 }
 
 /**

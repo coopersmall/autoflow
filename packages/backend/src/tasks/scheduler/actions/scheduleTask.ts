@@ -1,15 +1,15 @@
+import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { TaskDefinition } from '@backend/tasks/domain/TaskDefinition';
 import type { ITaskQueue } from '@backend/tasks/domain/TaskQueue';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 import { newTaskRecord } from '@backend/tasks/domain/TaskRecord';
 import type { ITasksRepo } from '@backend/tasks/domain/TasksRepo';
-import type { CorrelationId } from '@core/domain/CorrelationId';
 import type { UserId } from '@core/domain/user/user';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { type AppError, badRequest } from '@core/errors';
 import { err, ok, type Result } from 'neverthrow';
 
-export interface ScheduleTaskContext {
+export interface ScheduleTaskDeps {
   readonly tasksRepo: ITasksRepo;
   readonly logger: ILogger;
   readonly getQueue: (queueName: string) => ITaskQueue;
@@ -18,7 +18,6 @@ export interface ScheduleTaskContext {
 export interface ScheduleTaskRequest<
   TPayload extends Record<string, unknown> = Record<string, unknown>,
 > {
-  readonly correlationId: CorrelationId;
   readonly task: TaskDefinition<TPayload>;
   readonly payload: TPayload;
   readonly options?: {
@@ -39,24 +38,24 @@ export interface ScheduleTaskRequest<
 export async function scheduleTask<
   TPayload extends Record<string, unknown> = Record<string, unknown>,
 >(
-  ctx: ScheduleTaskContext,
+  ctx: Context,
   request: ScheduleTaskRequest<TPayload>,
-): Promise<Result<TaskRecord, ErrorWithMetadata>> {
-  const { tasksRepo, logger, getQueue } = ctx;
-  const { correlationId, task, payload, options } = request;
+  deps: ScheduleTaskDeps,
+): Promise<Result<TaskRecord, AppError>> {
+  const { tasksRepo, logger, getQueue } = deps;
+  const { task, payload, options } = request;
+  const correlationId = ctx.correlationId;
 
   // Validate payload using task's validator
   const validationResult = task.validator(payload);
   if (validationResult.isErr()) {
-    const error = new ErrorWithMetadata(
-      'Task payload validation failed',
-      'BadRequest',
-      {
+    const error = badRequest('Task payload validation failed', {
+      metadata: {
         correlationId,
         queueName: task.queueName,
         validationError: validationResult.error.message,
       },
-    );
+    });
     logger.error('Task payload validation failed', error, {
       correlationId,
       queueName: task.queueName,
@@ -81,7 +80,7 @@ export async function scheduleTask<
   });
 
   // Save to database
-  const createResult = await tasksRepo.create(taskRecord.id, taskRecord);
+  const createResult = await tasksRepo.create(ctx, taskRecord.id, taskRecord);
   if (createResult.isErr()) {
     logger.error('Failed to create task record', createResult.error, {
       correlationId,
@@ -92,7 +91,7 @@ export async function scheduleTask<
 
   // Enqueue to queue
   const queue = getQueue(task.queueName);
-  const enqueueResult = await queue.enqueue(correlationId, createResult.value);
+  const enqueueResult = await queue.enqueue(ctx, createResult.value);
   if (enqueueResult.isErr()) {
     logger.error('Failed to enqueue task', enqueueResult.error, {
       correlationId,

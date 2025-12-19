@@ -5,7 +5,7 @@ import type { Item } from '@core/domain/Item';
 import type { Validator } from '@core/validation/validate';
 import { buildHttpErrorResponse } from '../../errors/buildHttpErrorResponse.ts';
 
-export type HandleCreateContext<ID extends Id<string>, T extends Item<ID>> = {
+export type HandleCreateDeps<ID extends Id<string>, T extends Item<ID>> = {
   readonly service: ISharedService<ID, T>;
   readonly validators: {
     readonly partial: Validator<Omit<T, 'id' | 'createdAt' | 'updatedAt'>>;
@@ -15,16 +15,18 @@ export type HandleCreateContext<ID extends Id<string>, T extends Item<ID>> = {
 export type HandleCreateRequest = Record<string, never>;
 
 export async function handleCreate<ID extends Id<string>, T extends Item<ID>>(
-  ctx: HandleCreateContext<ID, T>,
+  deps: HandleCreateDeps<ID, T>,
   _request: HandleCreateRequest,
   requestContext: RequestContext,
 ): Promise<Response> {
-  const body = await requestContext.getBody(ctx.validators.partial);
+  const { ctx } = requestContext;
+
+  const body = await requestContext.getBody(deps.validators.partial);
   if (body.isErr()) {
     return buildHttpErrorResponse(body.error);
   }
 
-  const result = await ctx.service.create(body.value);
+  const result = await deps.service.create(ctx, body.value);
   if (result.isErr()) {
     return buildHttpErrorResponse(result.error);
   }

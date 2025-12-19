@@ -28,112 +28,102 @@ import {
   toolCallStreamingStartPartSchemas,
   toolResultPartSchemas,
 } from '@core/domain/ai/streamingPart.ts';
-import type { ValidationError } from '@core/errors/ValidationError.ts';
+import type { AppError } from '@core/errors/AppError.ts';
 import { validate } from '@core/validation/validate.ts';
 import type { Result } from 'neverthrow';
 import zod from 'zod';
 
-export function validStreamPart(
-  input: unknown,
-): Result<StreamPart, ValidationError> {
+export function validStreamPart(input: unknown): Result<StreamPart, AppError> {
   return validate(streamPartSchema, input);
 }
 
 export function validRedactedReasoningPart(
   input: unknown,
-): Result<RedactedReasoningPart, ValidationError> {
+): Result<RedactedReasoningPart, AppError> {
   return validate(redactedReasoningPartSchemas[0], input);
 }
 
 export function validReasoningSignaturePart(
   input: unknown,
-): Result<ReasoningSignaturePart, ValidationError> {
+): Result<ReasoningSignaturePart, AppError> {
   return validate(reasoningSignaturePartSchemas[0], input);
 }
 
-export function validSourcePart(
-  input: unknown,
-): Result<SourcePart, ValidationError> {
+export function validSourcePart(input: unknown): Result<SourcePart, AppError> {
   return validate(sourcePartSchemas[0], input);
 }
 
-export function validFilePart(
-  input: unknown,
-): Result<FilePart, ValidationError> {
+export function validFilePart(input: unknown): Result<FilePart, AppError> {
   return validate(filePartSchemas[0], input);
 }
 
-export function validDataPart(
-  input: unknown,
-): Result<DataPart, ValidationError> {
+export function validDataPart(input: unknown): Result<DataPart, AppError> {
   return validate(dataPartSchemas[0], input);
 }
 
 export function validMessageAnnotationPart(
   input: unknown,
-): Result<MessageAnnotationPart, ValidationError> {
+): Result<MessageAnnotationPart, AppError> {
   return validate(messageAnnotationPartSchemas[0], input);
 }
 
 export function validToolCallStreamingStartPart(
   input: unknown,
-): Result<ToolCallStreamingStartPart, ValidationError> {
+): Result<ToolCallStreamingStartPart, AppError> {
   return validate(toolCallStreamingStartPartSchemas[0], input);
 }
 
 export function validToolCallDeltaPart(
   input: unknown,
-): Result<ToolCallDeltaPart, ValidationError> {
+): Result<ToolCallDeltaPart, AppError> {
   return validate(toolCallDeltaPartSchemas[0], input);
 }
 
 export function validToolCallPart(
   input: unknown,
-): Result<ToolCallPart, ValidationError> {
+): Result<ToolCallPart, AppError> {
   return validate(toolCallPartSchemas[0], input);
 }
 
 export function validToolResultPart(
   input: unknown,
-): Result<ToolResultPart, ValidationError> {
+): Result<ToolResultPart, AppError> {
   return validate(toolResultPartSchemas[0], input);
 }
 
 export function validStartStepPart(
   input: unknown,
-): Result<StartStepPart, ValidationError> {
+): Result<StartStepPart, AppError> {
   return validate(startStepPartSchemas[0], input);
 }
 
 export function validFinishStepPart(
   input: unknown,
-): Result<FinishStepPart, ValidationError> {
+): Result<FinishStepPart, AppError> {
   return validate(finishStepPartSchemas[0], input);
 }
 
 export function validFinishMessagePart(
   input: unknown,
-): Result<FinishMessagePart, ValidationError> {
+): Result<FinishMessagePart, AppError> {
   return validate(finishMessagePartSchemas[0], input);
 }
 
-export function validStringContent(
-  input: unknown,
-): Result<string, ValidationError> {
+export function validStringContent(input: unknown): Result<string, AppError> {
   const stringSchema = zod.string();
   return validate(stringSchema, input);
 }
 
 export function validDataArray(
   input: unknown,
-): Result<Array<unknown>, ValidationError> {
+): Result<Array<unknown>, AppError> {
   const arraySchema = zod.array(zod.unknown());
   return validate(arraySchema, input);
 }
 
 export function validAnnotationsArray(
   input: unknown,
-): Result<Array<unknown>, ValidationError> {
+): Result<Array<unknown>, AppError> {
   const arraySchema = zod.array(zod.unknown());
   return validate(arraySchema, input);
 }

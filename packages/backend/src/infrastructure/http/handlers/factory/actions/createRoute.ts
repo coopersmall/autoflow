@@ -24,9 +24,9 @@ import { extractCorrelationId } from '@backend/infrastructure/http/handlers/acti
 import type { CreateRouteRequest } from '@backend/infrastructure/http/handlers/domain/HttpRouteFactory';
 import type { RouteMiddlewareConfig } from '@backend/infrastructure/http/handlers/middleware/domain/MiddlewareConfig';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
-import { isErrorWithMetadataData } from '@core/errors/Error';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { internalError, isAppError } from '@core/errors';
 import type { BunRequest } from 'bun';
+import { createRequestWithContext } from '../../domain/Request.ts';
 import { createResponseFromError } from './createResponseFromError.ts';
 import { runMiddleware } from './runMiddleware.ts';
 
@@ -55,6 +55,7 @@ export function createRoute(
   ctx: CreateRouteContext,
   { path, method, routeType, requiredPermissions, handler }: CreateRouteRequest,
   actions = {
+    createRequestWithContext,
     buildRequestContext,
     createResponseFromError,
     extractCorrelationId,
@@ -63,7 +64,6 @@ export function createRoute(
   },
 ): IHttpRoute {
   const fn = async (request: BunRequest): Promise<Response> => {
-    // Get middleware factories for this route type and apply config
     const middlewareFactories = ctx.middlewareConfig[routeType];
     const middlewares = middlewareFactories.flatMap((factory) =>
       factory({ requiredPermissions }),
@@ -75,10 +75,19 @@ export function createRoute(
       middlewareCount: middlewares.length,
     });
 
-    const middlewareResult = await actions.runMiddleware(ctx, {
-      middlewares,
+    const correlationId = actions.extractCorrelationId(request);
+    const requestWithContext = actions.createRequestWithContext(
+      correlationId,
       request,
-    });
+    );
+
+    const middlewareResult = await actions.runMiddleware(
+      { logger: ctx.logger },
+      {
+        middlewares,
+        request: requestWithContext,
+      },
+    );
 
     if (middlewareResult.isErr()) {
       ctx.logger.info('Middleware returned error', {
@@ -89,10 +98,9 @@ export function createRoute(
     }
 
     const enrichedRequest = middlewareResult.value;
-    const correlationId = actions.extractCorrelationId(enrichedRequest);
 
     const requestContext = actions.buildRequestContext({
-      correlationId,
+      ctx: requestWithContext.ctx,
       request: enrichedRequest,
     });
 
@@ -129,7 +137,7 @@ export function createRoute(
 
 /**
  * Handles errors thrown by handler functions.
- * Wraps unknown errors in ErrorWithMetadata and converts to HTTP responses.
+ * Wraps unknown errors in AppError and converts to HTTP responses.
  *
  * @param logger - Logger for error reporting
  * @param correlationId - Correlation ID for tracking
@@ -145,11 +153,11 @@ function handleThrownError(
     createResponseFromError,
   },
 ): Response {
-  const err = isErrorWithMetadataData(error)
+  const err = isAppError(error)
     ? error
-    : new ErrorWithMetadata('Unknown handler error', 'InternalServer', {
-        correlationId,
+    : internalError('Unknown handler error', {
         cause: error,
+        metadata: { correlationId },
       });
 
   logger.error('Handler error occurred', err, {

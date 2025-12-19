@@ -1,7 +1,8 @@
 import {
-  ErrorWithMetadata,
+  type AppError,
   getErrorFromString,
-  type HttpRequestError,
+  internalError,
+  unauthorized,
 } from '@autoflow/core';
 import { err, ok, type Result } from 'neverthrow';
 import type { StreamResponse } from './httpClient.ts';
@@ -12,7 +13,7 @@ export async function sendStreamRequest(
   options: RequestInit = {},
   controller: AbortController,
   beforeSend?: (options: RequestInit) => Promise<RequestInit>,
-): Promise<Result<StreamResponse, HttpRequestError>> {
+): Promise<Result<StreamResponse, AppError>> {
   let response: Response;
   let opts = options;
 
@@ -26,10 +27,12 @@ export async function sendStreamRequest(
     clearTimeout(timeoutId);
     controller.abort();
     return err(
-      new ErrorWithMetadata('Network request failed', 'InternalServer', {
-        url,
-        options: opts,
-        cause: fetchError,
+      internalError('Network request failed', {
+        metadata: {
+          url,
+          options: opts,
+          cause: fetchError,
+        },
       }),
     );
   }
@@ -43,15 +46,13 @@ export async function sendStreamRequest(
       return err(getErrorFromString(errorText));
     } catch {
       return err(
-        new ErrorWithMetadata(
-          `HTTP ${response.status}: ${response.statusText}`,
-          'InternalServer',
-          {
+        internalError(`HTTP ${response.status}: ${response.statusText}`, {
+          metadata: {
             status: response.status,
             statusText: response.statusText,
             url,
           },
-        ),
+        }),
       );
     }
   }
@@ -65,9 +66,11 @@ export async function sendStreamRequest(
       return err(getErrorFromString(errorText));
     } catch {
       return err(
-        new ErrorWithMetadata('Authentication failed', 'Unauthorized', {
-          status: response.status,
-          url,
+        unauthorized('Authentication failed', {
+          metadata: {
+            status: response.status,
+            url,
+          },
         }),
       );
     }
@@ -77,9 +80,11 @@ export async function sendStreamRequest(
     clearTimeout(timeoutId);
     controller.abort();
     return err(
-      new ErrorWithMetadata('Response has no body stream', 'InternalServer', {
-        url,
-        contentType: response.headers.get('content-type'),
+      internalError('Response has no body stream', {
+        metadata: {
+          url,
+          contentType: response.headers.get('content-type'),
+        },
       }),
     );
   }

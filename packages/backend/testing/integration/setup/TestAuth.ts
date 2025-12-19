@@ -28,7 +28,9 @@
 
 import type { IAuthService } from '@backend/auth/domain/AuthService';
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import { createContext } from '@backend/infrastructure/context';
 import type { IEncryptionService } from '@backend/infrastructure/encryption';
+import { CorrelationId } from '@core/domain/CorrelationId';
 import type { Permission } from '@core/domain/permissions/permissions';
 import { UserId } from '@core/domain/user/user';
 
@@ -104,7 +106,8 @@ export class TestAuth {
       expirationTime,
     } = options;
 
-    const tokenResult = this.authService.createClaim({
+    const ctx = createContext(CorrelationId(), new AbortController());
+    const tokenResult = this.authService.createClaim(ctx, {
       userId,
       permissions,
       expirationTime,
@@ -112,7 +115,7 @@ export class TestAuth {
 
     const token = tokenResult._unsafeUnwrap();
 
-    const encodedTokenResult = await this.encryptionService.encodeJWT({
+    const encodedTokenResult = await this.encryptionService.encodeJWT(ctx, {
       claim: token,
       privateKey: this.config.jwtPrivateKey!,
     });

@@ -77,7 +77,7 @@ export type IStandardHTTPHandler<
  * Context required to create a StandardHTTPHandler.
  * Provides validators, logger, configuration, and service access.
  */
-interface IStandardHTTPHandlerContext<
+interface IStandardHTTPHandlerConfig<
   ID extends Id<string>,
   T extends Item<ID>,
 > {
@@ -136,7 +136,7 @@ export class StandardHTTPHandler<ID extends Id<string>, T extends Item<ID>> {
    * @param ctx - Context with validators, logger, config, service, routeFactory
    */
   constructor(
-    private readonly ctx: IStandardHTTPHandlerContext<ID, T>,
+    private readonly ctx: IStandardHTTPHandlerConfig<ID, T>,
     private readonly actions: StandardHTTPHandlerActions = {
       handleGet,
       handleAll,

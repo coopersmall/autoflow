@@ -1,4 +1,4 @@
-import type { HttpRequestError, StreamChunk } from '@autoflow/core';
+import type { AppError, StreamChunk } from '@autoflow/core';
 import type { HttpClient } from '@client/http-client/httpClient';
 import { err, ok, type Result } from 'neverthrow';
 import {
@@ -24,7 +24,7 @@ export async function stream<REQUEST>(
   actions: StreamingCompletionActions = {
     parseStreamChunks,
   },
-): Promise<Result<AsyncIterable<StreamChunk>, HttpRequestError>> {
+): Promise<Result<AsyncIterable<StreamChunk>, AppError>> {
   const {
     retryAttempts = 3,
     onRetry,

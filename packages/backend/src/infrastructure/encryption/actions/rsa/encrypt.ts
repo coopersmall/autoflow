@@ -1,21 +1,19 @@
 import { constants, publicEncrypt } from 'node:crypto';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
-import type { CorrelationId } from '@core/domain/CorrelationId';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { type AppError, internalError } from '@core/errors';
 import type { ExtractMethods } from '@core/types';
 import { err, ok, type Result } from 'neverthrow';
 
 export interface EncryptRSARequest {
-  correlationId: CorrelationId;
   data: Buffer;
   publicKey: Buffer;
 }
 
 export async function encryptRSA(
-  ctx: { logger: ExtractMethods<ILogger> },
-  { correlationId, data, publicKey }: EncryptRSARequest,
+  ctx: { logger: ExtractMethods<ILogger>; correlationId: string },
+  { data, publicKey }: EncryptRSARequest,
   actions = { publicEncrypt },
-): Promise<Result<Buffer, ErrorWithMetadata>> {
+): Promise<Result<Buffer, AppError>> {
   try {
     const encrypted = actions.publicEncrypt(
       {
@@ -26,11 +24,13 @@ export async function encryptRSA(
     );
     return ok(encrypted);
   } catch (error) {
-    const cause = new ErrorWithMetadata('Encryption error', 'InternalServer', {
-      correlationId,
+    const cause = internalError('Encryption error', {
       cause: error,
+      metadata: { correlationId: ctx.correlationId },
     });
-    ctx.logger.error('Failed to encrypt data', cause, { correlationId });
+    ctx.logger.error('Failed to encrypt data', cause, {
+      correlationId: ctx.correlationId,
+    });
     return err(cause);
   }
 }

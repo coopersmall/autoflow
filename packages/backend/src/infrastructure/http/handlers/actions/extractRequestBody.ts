@@ -1,4 +1,4 @@
-import type { ValidationError } from '@core/errors/ValidationError';
+import type { AppError } from '@core/errors';
 import type { Validator } from '@core/validation/validate';
 import type { Result } from 'neverthrow';
 
@@ -19,7 +19,7 @@ export interface ExtractRequestBodyRequest<T> {
 export async function extractRequestBody<T>({
   request,
   validator,
-}: ExtractRequestBodyRequest<T>): Promise<Result<T, ValidationError>> {
+}: ExtractRequestBodyRequest<T>): Promise<Result<T, AppError>> {
   const body = await request.json();
   return validator(body);
 }

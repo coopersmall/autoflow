@@ -1,4 +1,5 @@
 import type { IStandardCache } from '@backend/infrastructure/cache/StandardCache';
+import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { IStandardRepo } from '@backend/infrastructure/repos/StandardRepo';
 import {
@@ -11,7 +12,7 @@ import {
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
 import type { UserId } from '@core/domain/user/user';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { ExtractMethods } from '@core/types';
 import type { Result } from 'neverthrow';
 
@@ -20,7 +21,7 @@ export type IStandardService<
   T extends Item<ID> = Item<ID>,
 > = ExtractMethods<StandardService<ID, T>>;
 
-interface StandardServiceContext<
+interface StandardServiceConfig<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > {
@@ -44,7 +45,7 @@ export class StandardService<
 > {
   constructor(
     readonly serviceName: string,
-    private readonly standardServiceCtx: StandardServiceContext<ID, T>,
+    private readonly config: StandardServiceConfig<ID, T>,
     private readonly standardServiceActions: StandardServiceActions = {
       getItem,
       getAllItems,
@@ -54,76 +55,91 @@ export class StandardService<
     },
   ) {}
 
-  async get(id: ID, userId: UserId): Promise<Result<T, ErrorWithMetadata>> {
+  async get(
+    ctx: Context,
+    id: ID,
+    userId: UserId,
+  ): Promise<Result<T, AppError>> {
     return this.standardServiceActions.getItem(
+      ctx,
+      { id, userId },
       {
-        logger: this.standardServiceCtx.logger,
+        logger: this.config.logger,
         repo: this.repo,
         cache: this.cache,
         serviceName: this.serviceName,
       },
-      { id, userId },
     );
   }
 
-  async all(userId: UserId): Promise<Result<T[], ErrorWithMetadata>> {
+  async all(ctx: Context, userId: UserId): Promise<Result<T[], AppError>> {
     return this.standardServiceActions.getAllItems(
+      ctx,
+      { userId },
       {
         repo: this.repo,
       },
-      { userId },
     );
   }
 
   async create(
+    ctx: Context,
     userId: UserId,
     data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>,
-  ): Promise<Result<T, ErrorWithMetadata>> {
+  ): Promise<Result<T, AppError>> {
     return this.standardServiceActions.createItem(
+      ctx,
+      { userId, data },
       {
-        logger: this.standardServiceCtx.logger,
+        logger: this.config.logger,
         repo: this.repo,
         cache: this.cache,
         serviceName: this.serviceName,
-        newId: this.standardServiceCtx.newId,
+        newId: this.config.newId,
       },
-      { userId, data },
     );
   }
 
   async update(
+    ctx: Context,
     id: ID,
     userId: UserId,
     data: Partial<T>,
-  ): Promise<Result<T, ErrorWithMetadata>> {
+  ): Promise<Result<T, AppError>> {
     return this.standardServiceActions.updateItem(
+      ctx,
+      { id, userId, data },
       {
-        logger: this.standardServiceCtx.logger,
+        logger: this.config.logger,
         repo: this.repo,
         cache: this.cache,
         serviceName: this.serviceName,
       },
-      { id, userId, data },
     );
   }
 
-  async delete(id: ID, userId: UserId): Promise<Result<T, ErrorWithMetadata>> {
+  async delete(
+    ctx: Context,
+    id: ID,
+    userId: UserId,
+  ): Promise<Result<T, AppError>> {
     return this.standardServiceActions.deleteItem(
+      ctx,
+      { id, userId },
       {
-        logger: this.standardServiceCtx.logger,
+        logger: this.config.logger,
         repo: this.repo,
         cache: this.cache,
         serviceName: this.serviceName,
       },
-      { id, userId },
     );
   }
 
   protected get cache() {
-    return this.standardServiceCtx.cache?.();
+    return this.config.cache?.();
   }
 
   protected get repo() {
-    return this.standardServiceCtx.repo();
+    return this.config.repo();
   }
 }

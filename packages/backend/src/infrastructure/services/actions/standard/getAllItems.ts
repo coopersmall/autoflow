@@ -1,11 +1,12 @@
+import type { Context } from '@backend/infrastructure/context';
 import type { IStandardRepo } from '@backend/infrastructure/repos/StandardRepo';
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
 import type { UserId } from '@core/domain/user/user';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 
-export interface GetAllItemsContext<
+export interface GetAllItemsDeps<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > {
@@ -24,8 +25,9 @@ export async function getAllItems<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 >(
-  ctx: GetAllItemsContext<ID, T>,
+  ctx: Context,
   request: GetAllItemsRequest,
-): Promise<Result<T[], ErrorWithMetadata>> {
-  return ctx.repo.all(request.userId);
+  deps: GetAllItemsDeps<ID, T>,
+): Promise<Result<T[], AppError>> {
+  return deps.repo.all(ctx, request.userId);
 }

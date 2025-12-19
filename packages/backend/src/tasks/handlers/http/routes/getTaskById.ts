@@ -15,20 +15,22 @@ export interface GetTaskByIdHandlerContext {
  * Get a single task by ID
  */
 export function getTaskByIdHandler(ctx: GetTaskByIdHandlerContext) {
-  return async ({ getParam, correlationId }: RequestContext) => {
+  return async (requestContext: RequestContext) => {
+    const { ctx: context, getParam } = requestContext;
+
     const taskIdResult = getParam('id', validTaskId);
     if (taskIdResult.isErr()) {
       return buildHttpErrorResponse(taskIdResult.error);
     }
 
-    const result = await ctx.tasksService.get(taskIdResult.value);
+    const result = await ctx.tasksService.get(context, taskIdResult.value);
     if (result.isErr()) {
       return buildHttpErrorResponse(result.error);
     }
 
     return Response.json(
       {
-        correlationId,
+        correlationId: context.correlationId,
         task: result.value,
       },
       { status: 200 },

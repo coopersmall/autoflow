@@ -1,5 +1,5 @@
 export {
-  type ScheduleTaskContext,
+  type ScheduleTaskDeps,
   type ScheduleTaskRequest,
   scheduleTask,
 } from './scheduleTask.ts';

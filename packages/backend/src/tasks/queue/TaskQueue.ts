@@ -1,4 +1,5 @@
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import { createQueueClientFactory } from '@backend/infrastructure/queue/clients/QueueClientFactory';
 import type {
@@ -21,8 +22,7 @@ import {
   removeTask,
 } from '@backend/tasks/queue/actions';
 import { createTasksRepo } from '@backend/tasks/repos/TasksRepo';
-import type { CorrelationId } from '@core/domain/CorrelationId';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import { err, type Result } from 'neverthrow';
 
 export { createTaskQueue };
@@ -30,8 +30,14 @@ export { createTaskQueue };
 /**
  * Convert TaskRecord to generic QueueJobInput
  * This is the adapter layer between task domain and queue infrastructure
+ *
+ * @param task - The task record
+ * @param correlationId - Correlation ID to embed in job data for distributed tracing
  */
-function taskToQueueJobInput(task: TaskRecord): QueueJobInput {
+function taskToQueueJobInput(
+  task: TaskRecord,
+  correlationId: string,
+): QueueJobInput {
   // Calculate delay if delayUntil is set
   let delay: number | undefined;
   if (task.delayUntil) {
@@ -43,7 +49,11 @@ function taskToQueueJobInput(task: TaskRecord): QueueJobInput {
   return {
     id: task.id,
     name: task.taskName,
-    data: task.payload,
+    // Store correlationId in job data for worker to retrieve
+    data: {
+      ...task.payload,
+      correlationId,
+    },
     priority: task.priority,
     delay,
     maxAttempts: task.maxAttempts,
@@ -112,10 +122,7 @@ function createTaskQueue(
  */
 class TaskQueue implements ITaskQueue {
   private readonly tasksRepo: ITasksRepo;
-  private readonly getQueueClient: () => Result<
-    IQueueClient,
-    ErrorWithMetadata
-  >;
+  private readonly getQueueClient: () => Result<IQueueClient, AppError>;
 
   constructor(
     private readonly logger: ILogger,
@@ -158,9 +165,9 @@ class TaskQueue implements ITaskQueue {
    * 3. Log success or failure
    */
   async enqueue(
-    correlationId: CorrelationId,
+    ctx: Context,
     task: TaskRecord,
-  ): Promise<Result<QueueJob, ErrorWithMetadata>> {
+  ): Promise<Result<QueueJob, AppError>> {
     const clientResult = this.getQueueClient();
     if (clientResult.isErr()) {
       this.logger.error(
@@ -172,14 +179,16 @@ class TaskQueue implements ITaskQueue {
     }
 
     return this.taskQueueActions.enqueueTask(
+      ctx,
+      { task },
       {
         client: clientResult.value,
         tasksRepo: this.tasksRepo,
         logger: this.logger,
         queueName: this.queueName,
-        taskToQueueJobInput,
+        taskToQueueJobInput: (t) =>
+          taskToQueueJobInput(t, String(ctx.correlationId)),
       },
-      { correlationId, task },
     );
   }
 
@@ -190,10 +199,7 @@ class TaskQueue implements ITaskQueue {
    * 1. Call queue client to remove
    * 2. Log success or failure
    */
-  async remove(
-    correlationId: CorrelationId,
-    taskId: TaskId,
-  ): Promise<Result<void, ErrorWithMetadata>> {
+  async remove(ctx: Context, taskId: TaskId): Promise<Result<void, AppError>> {
     const clientResult = this.getQueueClient();
     if (clientResult.isErr()) {
       this.logger.error(
@@ -205,12 +211,13 @@ class TaskQueue implements ITaskQueue {
     }
 
     return this.taskQueueActions.removeTask(
+      ctx,
+      { taskId },
       {
         client: clientResult.value,
         logger: this.logger,
         queueName: this.queueName,
       },
-      { correlationId, taskId },
     );
   }
 
@@ -219,9 +226,9 @@ class TaskQueue implements ITaskQueue {
    * Returns generic QueueJob instead of BullMQ-specific Job
    */
   async getJob(
-    correlationId: CorrelationId,
+    ctx: Context,
     jobId: string,
-  ): Promise<Result<QueueJob | null, ErrorWithMetadata>> {
+  ): Promise<Result<QueueJob | null, AppError>> {
     const clientResult = this.getQueueClient();
     if (clientResult.isErr()) {
       this.logger.error(
@@ -233,21 +240,20 @@ class TaskQueue implements ITaskQueue {
     }
 
     return this.taskQueueActions.getJob(
+      ctx,
+      { jobId },
       {
         client: clientResult.value,
         logger: this.logger,
         queueName: this.queueName,
       },
-      { correlationId, jobId },
     );
   }
 
   /**
    * Get job counts by status
    */
-  async getJobCounts(
-    correlationId: CorrelationId,
-  ): Promise<Result<QueueStats, ErrorWithMetadata>> {
+  async getJobCounts(ctx: Context): Promise<Result<QueueStats, AppError>> {
     const clientResult = this.getQueueClient();
     if (clientResult.isErr()) {
       this.logger.error(
@@ -259,12 +265,13 @@ class TaskQueue implements ITaskQueue {
     }
 
     return this.taskQueueActions.getJobCounts(
+      ctx,
+      {},
       {
         client: clientResult.value,
         logger: this.logger,
         queueName: this.queueName,
       },
-      { correlationId },
     );
   }
 

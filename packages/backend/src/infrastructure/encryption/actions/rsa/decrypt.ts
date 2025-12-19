@@ -1,21 +1,19 @@
 import { constants, privateDecrypt } from 'node:crypto';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
-import type { CorrelationId } from '@core/domain/CorrelationId';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { type AppError, internalError } from '@core/errors';
 import type { ExtractMethods } from '@core/types';
 import { err, ok, type Result } from 'neverthrow';
 
 export interface DecryptRSARequest {
-  correlationId: CorrelationId;
   data: Buffer;
   privateKey: Buffer;
 }
 
 export async function decryptRSA(
-  ctx: { logger: ExtractMethods<ILogger> },
-  { correlationId, data, privateKey }: DecryptRSARequest,
+  ctx: { logger: ExtractMethods<ILogger>; correlationId: string },
+  { data, privateKey }: DecryptRSARequest,
   actions = { privateDecrypt },
-): Promise<Result<Buffer, ErrorWithMetadata>> {
+): Promise<Result<Buffer, AppError>> {
   try {
     const decrypted = actions.privateDecrypt(
       {
@@ -26,11 +24,13 @@ export async function decryptRSA(
     );
     return ok(decrypted);
   } catch (error) {
-    const cause = new ErrorWithMetadata('Decryption error', 'InternalServer', {
-      correlationId,
+    const cause = internalError('Decryption error', {
       cause: error,
+      metadata: { correlationId: ctx.correlationId },
     });
-    ctx.logger.error('Failed to decrypt data', cause, { correlationId });
+    ctx.logger.error('Failed to decrypt data', cause, {
+      correlationId: ctx.correlationId,
+    });
     return err(cause);
   }
 }

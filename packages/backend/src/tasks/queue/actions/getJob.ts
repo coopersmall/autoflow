@@ -1,20 +1,19 @@
+import type { Context } from '@backend/infrastructure/context/Context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type {
   IQueueClient,
   QueueJob,
 } from '@backend/infrastructure/queue/domain/QueueClient';
-import type { CorrelationId } from '@core/domain/CorrelationId';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 
-export interface GetJobContext {
+export interface GetJobDeps {
   readonly client: IQueueClient;
   readonly logger: ILogger;
   readonly queueName: string;
 }
 
 export interface GetJobRequest {
-  readonly correlationId: CorrelationId;
   readonly jobId: string;
 }
 
@@ -23,17 +22,18 @@ export interface GetJobRequest {
  * Returns generic QueueJob instead of queue-specific Job type.
  */
 export async function getJob(
-  ctx: GetJobContext,
+  ctx: Context,
   request: GetJobRequest,
-): Promise<Result<QueueJob | null, ErrorWithMetadata>> {
-  const { client, logger, queueName } = ctx;
-  const { correlationId, jobId } = request;
+  deps: GetJobDeps,
+): Promise<Result<QueueJob | null, AppError>> {
+  const { client, logger, queueName } = deps;
+  const { jobId } = request;
 
-  const result = await client.getJob(correlationId, jobId);
+  const result = await client.getJob(ctx, jobId);
 
   if (result.isErr()) {
     logger.error('Failed to get job', result.error, {
-      correlationId,
+      correlationId: ctx.correlationId,
       jobId,
       queueName,
     });

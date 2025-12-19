@@ -1,12 +1,13 @@
 import type { ISharedCache } from '@backend/infrastructure/cache/SharedCache';
+import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { ISharedRepo } from '@backend/infrastructure/repos/SharedRepo';
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
 
-export interface DeleteItemContext<
+export interface DeleteItemDeps<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > {
@@ -27,22 +28,24 @@ export async function deleteItem<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 >(
-  ctx: DeleteItemContext<ID, T>,
+  ctx: Context,
   request: DeleteItemRequest<ID>,
-): Promise<Result<T, ErrorWithMetadata>> {
-  const { repo, cache, logger, serviceName } = ctx;
+  deps: DeleteItemDeps<ID, T>,
+): Promise<Result<T, AppError>> {
+  const { repo, cache, logger, serviceName } = deps;
   const { id } = request;
 
-  const result = await repo.delete(id);
+  const result = await repo.delete(ctx, id);
 
   if (result.isErr()) {
     return err(result.error);
   }
 
   if (cache) {
-    const delResult = await cache.del(id);
+    const delResult = await cache.del(ctx, id);
     if (delResult.isErr()) {
       logger.error('Failed to delete cache after delete', delResult.error, {
+        correlationId: ctx.correlationId,
         id,
         service: serviceName,
       });

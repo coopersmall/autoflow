@@ -1,4 +1,4 @@
-import type { AIServiceContext } from '@backend/ai/AIService';
+import type { AIServiceConfig } from '@backend/ai/AIService';
 import type { AiProviderIntegration } from '@core/domain/integrations/ai/providers/AiProviderIntegration';
 import {
   type ModelMessage,
@@ -24,7 +24,7 @@ export type StreamCompletionResult<
 > = StreamTextResult<TOOLS, TOOL_RESULT>;
 
 export function streamCompletion<TOOLS extends ToolSet, TOOL_RESULT>(
-  _ctx: AIServiceContext,
+  _ctx: AIServiceConfig,
   {
     provider,
     model,

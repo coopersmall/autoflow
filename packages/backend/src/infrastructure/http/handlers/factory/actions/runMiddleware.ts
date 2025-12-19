@@ -1,11 +1,7 @@
 import type { IHttpMiddleware } from '@backend/infrastructure/http/handlers/domain/HttpMiddleware';
-import {
-  createRequestWithContext,
-  type Request,
-} from '@backend/infrastructure/http/handlers/domain/Request';
+import type { Request } from '@backend/infrastructure/http/handlers/domain/Request';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
-import type { BunRequest } from 'bun';
+import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
 
 export interface RunMiddlewareContext {
@@ -14,7 +10,7 @@ export interface RunMiddlewareContext {
 
 export interface RunMiddlewareRequest {
   middlewares: IHttpMiddleware[];
-  request: BunRequest;
+  request: Request;
 }
 
 /**
@@ -45,22 +41,20 @@ export interface RunMiddlewareRequest {
 export async function runMiddleware(
   ctx: RunMiddlewareContext,
   { middlewares, request }: RunMiddlewareRequest,
-): Promise<Result<Request, ErrorWithMetadata>> {
-  let currentRequest = createRequestWithContext(request);
-
+): Promise<Result<Request, AppError>> {
   for (const middleware of middlewares) {
-    const result = await middleware.handle(currentRequest);
+    const result = await middleware.handle(request);
 
     if (result.isErr()) {
       ctx.logger.error('Middleware error', result.error, {
         url: request.url,
-        correlationId: currentRequest.context?.correlationId,
+        correlationId: request.ctx?.correlationId,
       });
       return err(result.error);
     }
 
-    currentRequest = result.value;
+    request = result.value;
   }
 
-  return ok(currentRequest);
+  return ok(request);
 }

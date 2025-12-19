@@ -1,13 +1,14 @@
 import type { IStandardCache } from '@backend/infrastructure/cache/StandardCache';
+import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { IStandardRepo } from '@backend/infrastructure/repos/StandardRepo';
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
 import type { UserId } from '@core/domain/user/user';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
 
-export interface UpdateItemContext<
+export interface UpdateItemDeps<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > {
@@ -30,13 +31,14 @@ export async function updateItem<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 >(
-  ctx: UpdateItemContext<ID, T>,
+  ctx: Context,
   request: UpdateItemRequest<ID, T>,
-): Promise<Result<T, ErrorWithMetadata>> {
-  const { repo, cache, logger, serviceName } = ctx;
+  deps: UpdateItemDeps<ID, T>,
+): Promise<Result<T, AppError>> {
+  const { repo, cache, logger, serviceName } = deps;
   const { id, userId, data } = request;
 
-  const currentResult = await repo.get(id, userId);
+  const currentResult = await repo.get(ctx, id, userId);
   if (currentResult.isErr()) {
     return err(currentResult.error);
   }
@@ -47,15 +49,16 @@ export async function updateItem<
     ...data,
   };
 
-  const result = await repo.update(id, userId, merged);
+  const result = await repo.update(ctx, id, userId, merged);
   if (result.isErr()) {
     return err(result.error);
   }
 
   if (cache) {
-    const setResult = await cache.set(result.value, userId);
+    const setResult = await cache.set(ctx, result.value, userId);
     if (setResult.isErr()) {
       logger.error('Failed to set cache after update', setResult.error, {
+        correlationId: ctx.correlationId,
         id,
         userId,
         service: serviceName,

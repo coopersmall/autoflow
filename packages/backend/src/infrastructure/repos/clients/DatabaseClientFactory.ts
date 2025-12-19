@@ -20,7 +20,7 @@ import type {
   IDatabaseClientFactory,
 } from '@backend/infrastructure/repos/domain/DatabaseClient';
 import { createDatabaseError } from '@backend/infrastructure/repos/errors/DBError';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
 
 /**
@@ -58,7 +58,7 @@ class DatabaseClientFactory implements IDatabaseClientFactory {
   getDatabase(
     type: DatabaseClientType,
     table: string,
-  ): Result<IDatabaseClient, ErrorWithMetadata> {
+  ): Result<IDatabaseClient, AppError> {
     switch (type) {
       case 'bun-sql':
         return this.getBunSqlClient(table);
@@ -70,9 +70,7 @@ class DatabaseClientFactory implements IDatabaseClientFactory {
    * @param table - Table name for error context
    * @returns Bun SQL client or error
    */
-  private getBunSqlClient(
-    table: string,
-  ): Result<IDatabaseClient, ErrorWithMetadata> {
+  private getBunSqlClient(table: string): Result<IDatabaseClient, AppError> {
     if (!this.url) {
       return err(
         createDatabaseError(new Error('Database URL not configured'), {

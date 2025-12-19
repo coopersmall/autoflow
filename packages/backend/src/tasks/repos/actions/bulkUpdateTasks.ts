@@ -1,8 +1,8 @@
 import type { IDatabaseClient } from '@backend/infrastructure/repos/domain/DatabaseClient';
 import type { TaskId } from '@backend/tasks/domain/TaskId';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
-import type { ValidationError } from '@core/errors/ValidationError';
+import { type AppError, internalError } from '@core/errors';
+
 import { validate } from '@core/validation/validate';
 import { err, ok, type Result } from 'neverthrow';
 import zod from 'zod';
@@ -15,13 +15,11 @@ const bulkUpdateSchema = zod.array(
 
 type BulkUpdateResult = zod.infer<typeof bulkUpdateSchema>;
 
-function validBulkUpdate(
-  data: unknown,
-): Result<BulkUpdateResult, ValidationError> {
+function validBulkUpdate(data: unknown): Result<BulkUpdateResult, AppError> {
   return validate(bulkUpdateSchema, data);
 }
 
-export interface BulkUpdateTasksContext {
+export interface BulkUpdateTasksDeps {
   readonly db: IDatabaseClient;
 }
 
@@ -34,10 +32,10 @@ export interface BulkUpdateTasksRequest {
  * Uses PostgreSQL UNNEST to efficiently update multiple rows with different data.
  */
 export async function bulkUpdateTasks(
-  ctx: BulkUpdateTasksContext,
+  deps: BulkUpdateTasksDeps,
   request: BulkUpdateTasksRequest,
-): Promise<Result<number, ErrorWithMetadata>> {
-  const { db } = ctx;
+): Promise<Result<number, AppError>> {
+  const { db } = deps;
   const { updates } = request;
 
   if (updates.length === 0) {
@@ -70,9 +68,11 @@ export async function bulkUpdateTasks(
     const bulkUpdateResult = validBulkUpdate(result);
     if (bulkUpdateResult.isErr()) {
       return err(
-        new ErrorWithMetadata('Invalid bulk update result', 'InternalServer', {
-          updateCount: updates.length,
-          validationError: bulkUpdateResult.error,
+        internalError('Invalid bulk update result', {
+          metadata: {
+            updateCount: updates.length,
+            validationError: bulkUpdateResult.error,
+          },
         }),
       );
     }
@@ -82,9 +82,9 @@ export async function bulkUpdateTasks(
     return ok(count);
   } catch (error) {
     return err(
-      new ErrorWithMetadata('Failed to bulk update tasks', 'InternalServer', {
-        updateCount: updates.length,
-        error: error instanceof Error ? error.message : String(error),
+      internalError('Failed to bulk update tasks', {
+        cause: error instanceof Error ? error : undefined,
+        metadata: { updateCount: updates.length },
       }),
     );
   }

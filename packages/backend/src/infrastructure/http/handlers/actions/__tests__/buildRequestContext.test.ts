@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test';
+import { createMockContext } from '@backend/infrastructure/context/__mocks__/Context.mock';
 import { buildRequestContext } from '@backend/infrastructure/http/handlers/actions/buildRequestContext';
 import { getMockRequest } from '@backend/infrastructure/http/handlers/domain/__mocks__/Request.mock';
 import { CorrelationId } from '@core/domain/CorrelationId';
@@ -18,46 +19,69 @@ describe('buildRequestContext', () => {
   });
 
   it('should build context with correlation ID', () => {
-    const correlationId = CorrelationId('test-correlation-123');
+    const ctx = createMockContext({
+      correlationId: CorrelationId('test-correlation-123'),
+    });
     const mockRequest = getMockRequest({
       url: 'http://localhost/api/test',
     });
 
     const context = buildRequestContext({
-      correlationId,
+      ctx,
       request: mockRequest,
     });
 
-    expect(context.correlationId).toBe(correlationId);
+    expect(context.ctx.correlationId).toBe(ctx.correlationId);
   });
 
-  it('should include session when provided in request.context', () => {
-    const correlationId = CorrelationId('test-id');
-    const mockSession = createMockSession();
+  it('should include ctx property with Context', () => {
+    const ctx = createMockContext({
+      correlationId: CorrelationId('test-correlation-456'),
+    });
     const mockRequest = getMockRequest({
       url: 'http://localhost/api/test',
-      context: {
-        userSession: mockSession,
-      },
     });
 
     const context = buildRequestContext({
-      correlationId,
+      ctx,
+      request: mockRequest,
+    });
+
+    expect(context.ctx).toBeDefined();
+    expect(context.ctx.correlationId).toBe(ctx.correlationId);
+    expect(context.ctx.signal).toBeDefined();
+    expect(typeof context.ctx.cancel).toBe('function');
+  });
+
+  it('should include session when provided in request.context', () => {
+    const ctx = createMockContext({
+      correlationId: CorrelationId('test-id'),
+    });
+    const mockSession = createMockSession();
+    const mockRequest = getMockRequest({
+      url: 'http://localhost/api/test',
+      userSession: mockSession,
+    });
+
+    const context = buildRequestContext({
+      ctx,
       request: mockRequest,
     });
 
     expect(context.session).toEqual(mockSession);
   });
 
-  it('session should be undefined when not in request.context.userSession', () => {
-    const correlationId = CorrelationId('test-id');
+  it('session should be undefined when not in request.userSession', () => {
+    const ctx = createMockContext({
+      correlationId: CorrelationId('test-id'),
+    });
     const mockRequest = getMockRequest({
       url: 'http://localhost/api/test',
-      context: {},
+      ctx,
     });
 
     const context = buildRequestContext({
-      correlationId,
+      ctx,
       request: mockRequest,
     });
 
@@ -65,14 +89,17 @@ describe('buildRequestContext', () => {
   });
 
   it('should provide getParam function', () => {
-    const correlationId = CorrelationId('test-id');
+    const ctx = createMockContext({
+      correlationId: CorrelationId('test-id'),
+    });
     const mockRequest = getMockRequest({
       url: 'http://localhost/api/users/user-123',
       params: { id: 'user-123' },
+      ctx,
     });
 
     const context = buildRequestContext({
-      correlationId,
+      ctx,
       request: mockRequest,
     });
 
@@ -80,13 +107,16 @@ describe('buildRequestContext', () => {
   });
 
   it('should provide getSearchParam function', () => {
-    const correlationId = CorrelationId('test-id');
+    const ctx = createMockContext({
+      correlationId: CorrelationId('test-id'),
+    });
     const mockRequest = getMockRequest({
       url: 'http://localhost/api/test?page=2',
+      ctx,
     });
 
     const context = buildRequestContext({
-      correlationId,
+      ctx,
       request: mockRequest,
     });
 
@@ -94,13 +124,16 @@ describe('buildRequestContext', () => {
   });
 
   it('should provide getBody function', () => {
-    const correlationId = CorrelationId('test-id');
+    const ctx = createMockContext({
+      correlationId: CorrelationId('test-id'),
+    });
     const mockRequest = getMockRequest({
       url: 'http://localhost/api/test',
+      ctx,
     });
 
     const context = buildRequestContext({
-      correlationId,
+      ctx,
       request: mockRequest,
     });
 
@@ -108,7 +141,9 @@ describe('buildRequestContext', () => {
   });
 
   it('should provide getHeader function', () => {
-    const correlationId = CorrelationId('test-id');
+    const ctx = createMockContext({
+      correlationId: CorrelationId('test-id'),
+    });
     const headers = new Headers({
       'content-type': 'application/json',
       authorization: 'Bearer token123',
@@ -116,10 +151,11 @@ describe('buildRequestContext', () => {
     const mockRequest = getMockRequest({
       url: 'http://localhost/api/test',
       headers,
+      ctx,
     });
 
     const context = buildRequestContext({
-      correlationId,
+      ctx,
       request: mockRequest,
     });
 
@@ -127,17 +163,20 @@ describe('buildRequestContext', () => {
   });
 
   it('getHeader should return header value when present', () => {
-    const correlationId = CorrelationId('test-id');
+    const ctx = createMockContext({
+      correlationId: CorrelationId('test-id'),
+    });
     const headers = new Headers({
       'content-type': 'application/json',
     });
     const mockRequest = getMockRequest({
       url: 'http://localhost/api/test',
       headers,
+      ctx,
     });
 
     const context = buildRequestContext({
-      correlationId,
+      ctx,
       request: mockRequest,
     });
 
@@ -147,15 +186,18 @@ describe('buildRequestContext', () => {
   });
 
   it('getHeader should return undefined when header not present', () => {
-    const correlationId = CorrelationId('test-id');
+    const ctx = createMockContext({
+      correlationId: CorrelationId('test-id'),
+    });
     const headers = new Headers();
     const mockRequest = getMockRequest({
       url: 'http://localhost/api/test',
       headers,
+      ctx,
     });
 
     const context = buildRequestContext({
-      correlationId,
+      ctx,
       request: mockRequest,
     });
 

@@ -1,41 +1,38 @@
+import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
-import type { CorrelationId } from '@core/domain/CorrelationId';
 import type { JWTClaim } from '@core/domain/jwt/JWTClaim';
 import type { Permission } from '@core/domain/permissions/permissions';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { type AppError, forbidden, unauthorized } from '@core/errors';
 import { err, ok, type Result } from 'neverthrow';
 
 export interface ValidateClaimRequest {
-  correlationId?: CorrelationId;
   claim: JWTClaim;
   requiredPermissions?: Permission[];
 }
 
-export interface ValidateClaimContext {
+export interface ValidateClaimDeps {
   logger: ILogger;
 }
 
 export function validateClaim(
-  ctx: ValidateClaimContext,
-  { correlationId, claim, requiredPermissions }: ValidateClaimRequest,
-): Result<JWTClaim, ErrorWithMetadata> {
+  ctx: Context,
+  { claim, requiredPermissions }: ValidateClaimRequest,
+  deps: ValidateClaimDeps,
+): Result<JWTClaim, AppError> {
+  const correlationId = ctx.correlationId;
   if (!claim.sub || typeof claim.sub !== 'string') {
-    const error = new ErrorWithMetadata(
-      'JWT claim missing or invalid subject',
-      'Unauthorized',
-      { correlationId, claim },
-    );
-    ctx.logger.debug('Invalid JWT claim: missing subject', { correlationId });
+    const error = unauthorized('JWT claim missing or invalid subject', {
+      metadata: { correlationId, claim },
+    });
+    deps.logger.debug('Invalid JWT claim: missing subject', { correlationId });
     return err(error);
   }
 
   if (!claim.aud || !Array.isArray(claim.aud)) {
-    const error = new ErrorWithMetadata(
-      'JWT claim missing or invalid audience',
-      'Unauthorized',
-      { correlationId, claim },
-    );
-    ctx.logger.debug('Invalid JWT claim: missing audience', { correlationId });
+    const error = unauthorized('JWT claim missing or invalid audience', {
+      metadata: { correlationId, claim },
+    });
+    deps.logger.debug('Invalid JWT claim: missing audience', { correlationId });
     return err(error);
   }
 
@@ -46,12 +43,10 @@ export function validateClaim(
       (claim.aud ?? []).includes(permission),
     )
   ) {
-    const error = new ErrorWithMetadata(
-      'JWT claim missing required permissions',
-      'Forbidden',
-      { correlationId, claim, requiredPermissions },
-    );
-    ctx.logger.debug('Invalid JWT claim: insufficient permissions', {
+    const error = forbidden('JWT claim missing required permissions', {
+      metadata: { correlationId, claim, requiredPermissions },
+    });
+    deps.logger.debug('Invalid JWT claim: insufficient permissions', {
       correlationId,
       requiredPermissions,
       actualPermissions: claim.aud,
@@ -60,12 +55,10 @@ export function validateClaim(
   }
 
   if (claim.exp && Math.floor(Date.now() / 1000) > claim.exp) {
-    const error = new ErrorWithMetadata(
-      'JWT claim has expired',
-      'Unauthorized',
-      { correlationId, claim },
-    );
-    ctx.logger.debug('Invalid JWT claim: expired', {
+    const error = unauthorized('JWT claim has expired', {
+      metadata: { correlationId, claim },
+    });
+    deps.logger.debug('Invalid JWT claim: expired', {
       correlationId,
       exp: claim.exp,
       now: Math.floor(Date.now() / 1000),
@@ -73,6 +66,6 @@ export function validateClaim(
     return err(error);
   }
 
-  ctx.logger.debug('Validated JWT claim', { correlationId });
+  deps.logger.debug('Validated JWT claim', { correlationId });
   return ok(claim);
 }

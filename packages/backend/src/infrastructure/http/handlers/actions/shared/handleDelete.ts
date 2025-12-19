@@ -5,7 +5,7 @@ import type { Item } from '@core/domain/Item';
 import type { Validator } from '@core/validation/validate';
 import { buildHttpErrorResponse } from '../../errors/buildHttpErrorResponse.ts';
 
-export type HandleDeleteContext<ID extends Id<string>, T extends Item<ID>> = {
+export type HandleDeleteDeps<ID extends Id<string>, T extends Item<ID>> = {
   readonly service: ISharedService<ID, T>;
   readonly validators: {
     readonly id: Validator<ID>;
@@ -15,16 +15,18 @@ export type HandleDeleteContext<ID extends Id<string>, T extends Item<ID>> = {
 export type HandleDeleteRequest = Record<string, never>;
 
 export async function handleDelete<ID extends Id<string>, T extends Item<ID>>(
-  ctx: HandleDeleteContext<ID, T>,
+  deps: HandleDeleteDeps<ID, T>,
   _request: HandleDeleteRequest,
   requestContext: RequestContext,
 ): Promise<Response> {
-  const id = requestContext.getParam('id', ctx.validators.id);
+  const { ctx } = requestContext;
+
+  const id = requestContext.getParam('id', deps.validators.id);
   if (id.isErr()) {
     return buildHttpErrorResponse(id.error);
   }
 
-  const result = await ctx.service.delete(id.value);
+  const result = await deps.service.delete(ctx, id.value);
   if (result.isErr()) {
     return buildHttpErrorResponse(result.error);
   }

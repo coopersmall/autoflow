@@ -1,6 +1,6 @@
-import type { CorrelationId } from '@core/domain/CorrelationId';
+import type { Context } from '@backend/infrastructure/context';
 import type { JWTClaim } from '@core/domain/jwt/JWTClaim';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 import type { RSAKeyPair } from '../actions/rsa/generateKeyPair.ts';
 
@@ -10,20 +10,24 @@ interface EncryptionService {
   /**
    * Encrypts data using RSA public key with PKCS1 padding.
    */
-  encryptRSA(request: {
-    correlationId: CorrelationId;
-    data: Buffer;
-    publicKey: Buffer;
-  }): Promise<Result<Buffer, ErrorWithMetadata>>;
+  encryptRSA(
+    ctx: Context,
+    request: {
+      data: Buffer;
+      publicKey: Buffer;
+    },
+  ): Promise<Result<Buffer, AppError>>;
 
   /**
    * Decrypts RSA-encrypted data using private key with PKCS1 padding.
    */
-  decryptRSA(request: {
-    correlationId: CorrelationId;
-    data: Buffer;
-    privateKey: Buffer;
-  }): Promise<Result<Buffer, ErrorWithMetadata>>;
+  decryptRSA(
+    ctx: Context,
+    request: {
+      data: Buffer;
+      privateKey: Buffer;
+    },
+  ): Promise<Result<Buffer, AppError>>;
 
   /**
    * Generates cryptographically secure random salt for password hashing.
@@ -33,25 +37,27 @@ interface EncryptionService {
   /**
    * Generates a new RSA key pair for JWT signing and verification.
    */
-  generateKeyPair(request: {
-    correlationId?: CorrelationId;
-  }): Promise<Result<RSAKeyPair, ErrorWithMetadata>>;
+  generateKeyPair(ctx: Context): Promise<Result<RSAKeyPair, AppError>>;
 
   /**
    * Encodes a JWT claim into a signed token string using RSA private key.
    */
-  encodeJWT(request: {
-    correlationId?: CorrelationId;
-    claim: JWTClaim;
-    privateKey: string;
-  }): Promise<Result<string, ErrorWithMetadata>>;
+  encodeJWT(
+    ctx: Context,
+    request: {
+      claim: JWTClaim;
+      privateKey: string;
+    },
+  ): Promise<Result<string, AppError>>;
 
   /**
    * Decodes and verifies a JWT token string using RSA public key.
    */
-  decodeJWT(request: {
-    correlationId?: CorrelationId;
-    token: string;
-    publicKey: string;
-  }): Promise<Result<JWTClaim, ErrorWithMetadata>>;
+  decodeJWT(
+    ctx: Context,
+    request: {
+      token: string;
+      publicKey: string;
+    },
+  ): Promise<Result<JWTClaim, AppError>>;
 }

@@ -1,54 +1,48 @@
+import type { Context } from '@backend/infrastructure/context';
 import type { IEncryptionService } from '@backend/infrastructure/encryption/domain/EncryptionService';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
-import type { CorrelationId } from '@core/domain/CorrelationId';
 import type { Permission } from '@core/domain/permissions/permissions';
 import {
   createUserSession,
   type UsersSession,
 } from '@core/domain/session/UsersSession';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
 import { extractPermissions } from './claims/extractPermissions.ts';
 import { extractUserId } from './claims/extractUserId.ts';
 import { validateClaim } from './claims/validateClaim.ts';
 
 export interface AuthenticateFromJWTRequest {
-  correlationId?: CorrelationId;
   token: string;
   publicKey: string;
   requiredPermissions?: Permission[];
 }
 
-export interface AuthenticateFromJWTContext {
+export interface AuthenticateFromJWTDeps {
   logger: ILogger;
   encryption: () => IEncryptionService;
 }
 
 export async function authenticateFromJWT(
-  ctx: AuthenticateFromJWTContext,
-  {
-    correlationId,
-    token,
-    publicKey,
-    requiredPermissions,
-  }: AuthenticateFromJWTRequest,
-): Promise<Result<UsersSession, ErrorWithMetadata>> {
-  const encryption = ctx.encryption();
+  ctx: Context,
+  { token, publicKey, requiredPermissions }: AuthenticateFromJWTRequest,
+  deps: AuthenticateFromJWTDeps,
+): Promise<Result<UsersSession, AppError>> {
+  const encryption = deps.encryption();
 
-  ctx.logger.debug('Authenticating from JWT token', {
-    correlationId,
+  deps.logger.debug('Authenticating from JWT token', {
+    correlationId: ctx.correlationId,
     hasPermissions: !!requiredPermissions?.length,
   });
 
-  const claimResult = await encryption.decodeJWT({
-    correlationId,
+  const claimResult = await encryption.decodeJWT(ctx, {
     token,
     publicKey,
   });
 
   if (claimResult.isErr()) {
-    ctx.logger.info('Authentication failed: invalid JWT', {
-      correlationId,
+    deps.logger.info('Authentication failed: invalid JWT', {
+      correlationId: ctx.correlationId,
       error: claimResult.error,
     });
     return err(claimResult.error);
@@ -56,17 +50,17 @@ export async function authenticateFromJWT(
 
   const claim = claimResult.value;
   const validationResult = validateClaim(
-    { logger: ctx.logger },
+    ctx,
     {
-      correlationId,
       claim,
       requiredPermissions,
     },
+    { logger: deps.logger },
   );
 
   if (validationResult.isErr()) {
-    ctx.logger.info('Authentication failed: validation failed', {
-      correlationId,
+    deps.logger.info('Authentication failed: validation failed', {
+      correlationId: ctx.correlationId,
       error: validationResult.error,
     });
     return err(validationResult.error);
@@ -88,8 +82,8 @@ export async function authenticateFromJWT(
     permissions: permissionsResult.value,
   });
 
-  ctx.logger.debug('User authenticated from JWT', {
-    correlationId,
+  deps.logger.debug('User authenticated from JWT', {
+    correlationId: ctx.correlationId,
     userId: session.userId,
   });
 

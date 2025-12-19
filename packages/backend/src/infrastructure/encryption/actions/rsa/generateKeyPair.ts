@@ -1,7 +1,7 @@
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { CorrelationId } from '@core/domain/CorrelationId';
 import { SIGNATURE_ALGORITHM } from '@core/domain/jwt/JWTClaim';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { type AppError, internalError } from '@core/errors';
 import {
   exportPKCS8,
   exportSPKI,
@@ -26,7 +26,7 @@ export async function generateKeyPair(
     exportSPKI,
     exportPKCS8,
   },
-): Promise<Result<RSAKeyPair, ErrorWithMetadata>> {
+): Promise<Result<RSAKeyPair, AppError>> {
   try {
     const { privateKey, publicKey } = await actions.generateKeyPair(
       SIGNATURE_ALGORITHM,
@@ -43,11 +43,10 @@ export async function generateKeyPair(
       publicKey: publicSPKI,
     });
   } catch (cause) {
-    const error = new ErrorWithMetadata(
-      'Failed to generate RSA key pair',
-      'InternalServer',
-      { correlationId, cause },
-    );
+    const error = internalError('Failed to generate RSA key pair', {
+      cause,
+      metadata: { correlationId },
+    });
     ctx.logger.error('Failed to generate RSA key pair', error, {
       correlationId,
     });

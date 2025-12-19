@@ -15,7 +15,9 @@ export interface GetQueueStatsHandlerContext {
  * Get BullMQ queue statistics (waiting, active, completed, failed, delayed)
  */
 export function getQueueStatsHandler(ctx: GetQueueStatsHandlerContext) {
-  return async ({ correlationId, getParam }: RequestContext) => {
+  return async (requestContext: RequestContext) => {
+    const { ctx: context, getParam } = requestContext;
+
     const queueNameResult = getParam('queueName', string);
     if (queueNameResult.isErr()) {
       return buildHttpErrorResponse(queueNameResult.error);
@@ -23,10 +25,7 @@ export function getQueueStatsHandler(ctx: GetQueueStatsHandlerContext) {
     const queueName = queueNameResult.value;
 
     // Call service method to get queue statistics
-    const result = await ctx.tasksService.getQueueStats(
-      correlationId,
-      queueName,
-    );
+    const result = await ctx.tasksService.getQueueStats(context, queueName);
 
     if (result.isErr()) {
       return buildHttpErrorResponse(result.error);
@@ -34,7 +33,7 @@ export function getQueueStatsHandler(ctx: GetQueueStatsHandlerContext) {
 
     return Response.json(
       {
-        correlationId,
+        correlationId: context.correlationId,
         stats: result.value,
       },
       { status: 200 },

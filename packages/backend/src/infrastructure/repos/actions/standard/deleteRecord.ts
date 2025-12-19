@@ -1,3 +1,4 @@
+import type { Context } from '@backend/infrastructure/context';
 import { convertQueryResultsToData } from '@backend/infrastructure/repos/actions/convertQueryResultsToData';
 import type { IRelationalDatabaseAdapter } from '@backend/infrastructure/repos/domain/DatabaseAdapter';
 import {
@@ -7,15 +8,16 @@ import {
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
 import type { UserId } from '@core/domain/user/user';
-import type { ValidationError } from '@core/errors/ValidationError';
+import type { AppError } from '@core/errors';
+
 import { err, ok, type Result } from 'neverthrow';
 
-export interface DeleteRecordContext<
+export interface DeleteRecordDeps<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > {
   readonly adapter: IRelationalDatabaseAdapter;
-  readonly validator: (data: unknown) => Result<T, ValidationError>;
+  readonly validator: (data: unknown) => Result<T, AppError>;
 }
 
 export interface DeleteRecordRequest<ID extends Id<string> = Id<string>> {
@@ -30,10 +32,11 @@ export async function deleteRecord<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 >(
-  ctx: DeleteRecordContext<ID, T>,
+  ctx: Context,
   request: DeleteRecordRequest<ID>,
+  deps: DeleteRecordDeps<ID, T>,
 ): Promise<Result<T, DBError>> {
-  const { adapter, validator } = ctx;
+  const { adapter, validator } = deps;
   const { id, userId } = request;
 
   const result = await adapter.delete({ where: { id, userId } });

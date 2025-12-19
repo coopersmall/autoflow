@@ -8,7 +8,7 @@
 import type { StopFunction } from '@backend/infrastructure/http/domain/HttpServer';
 import type { RouteHandlers } from '@backend/infrastructure/http/server/domain/HttpRouteHandlers';
 import type { WebSocketHandlers } from '@backend/infrastructure/http/server/domain/HttpWebSocketHandlers';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 import zod from 'zod';
 
@@ -54,5 +54,5 @@ export interface IHttpServerClientFactory {
    */
   getServerClient(
     type: HttpServerClientType,
-  ): Result<IHttpServerClient, ErrorWithMetadata>;
+  ): Result<IHttpServerClient, AppError>;
 }

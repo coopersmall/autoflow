@@ -1,5 +1,5 @@
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { type AppError, internalError } from '@core/errors';
 import { unreachable } from '@core/unreachable';
 import { err, ok, type Result } from 'neverthrow';
 import type { IQueueClient } from '../domain/QueueClient.ts';
@@ -69,18 +69,16 @@ class QueueClientFactory implements IQueueClientFactory {
   getQueueClient(
     queueName: string,
     type: QueueClientType = 'bullmq',
-  ): Result<IQueueClient, ErrorWithMetadata> {
+  ): Result<IQueueClient, AppError> {
     switch (type) {
       case 'bullmq':
         return this.getBullMQQueueClient(queueName);
       case 'sqs':
       case 'rabbitmq':
         return err(
-          new ErrorWithMetadata(
-            `Queue provider '${type}' is not yet implemented`,
-            'InternalServer',
-            { queueName, provider: type },
-          ),
+          internalError(`Queue provider '${type}' is not yet implemented`, {
+            metadata: { queueName, provider: type },
+          }),
         );
       default:
         return unreachable(type);
@@ -92,14 +90,16 @@ class QueueClientFactory implements IQueueClientFactory {
    */
   private getBullMQQueueClient(
     queueName: string,
-  ): Result<IQueueClient, ErrorWithMetadata> {
+  ): Result<IQueueClient, AppError> {
     const redisUrl = this.appConfig.redisUrl;
 
     if (!redisUrl) {
       return err(
-        new ErrorWithMetadata('Redis URL not configured', 'InternalServer', {
-          configKey: 'redisUrl',
-          queueName,
+        internalError('Redis URL not configured', {
+          metadata: {
+            configKey: 'redisUrl',
+            queueName,
+          },
         }),
       );
     }
@@ -114,15 +114,13 @@ class QueueClientFactory implements IQueueClientFactory {
       return ok(client);
     } catch (error) {
       return err(
-        new ErrorWithMetadata(
-          'Failed to create BullMQ queue client',
-          'InternalServer',
-          {
+        internalError('Failed to create BullMQ queue client', {
+          cause: error instanceof Error ? error : undefined,
+          metadata: {
             queueName,
             redisUrl,
-            cause: error,
           },
-        ),
+        }),
       );
     }
   }

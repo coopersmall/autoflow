@@ -3,7 +3,7 @@ import type { TaskId } from '@backend/tasks/domain/TaskId';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 import type { TaskStatus } from '@backend/tasks/domain/TaskStatus';
 import type { UserId } from '@core/domain/user/user';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 
 /**
@@ -28,7 +28,7 @@ export interface ITasksRepo extends ISharedRepo<TaskId, TaskRecord> {
   getByStatus(
     status: TaskStatus,
     limit?: number,
-  ): Promise<Result<TaskRecord[], ErrorWithMetadata>>;
+  ): Promise<Result<TaskRecord[], AppError>>;
 
   /**
    * Get tasks by task name
@@ -36,7 +36,7 @@ export interface ITasksRepo extends ISharedRepo<TaskId, TaskRecord> {
   getByTaskName(
     taskName: string,
     limit?: number,
-  ): Promise<Result<TaskRecord[], ErrorWithMetadata>>;
+  ): Promise<Result<TaskRecord[], AppError>>;
 
   /**
    * Get tasks by user ID
@@ -44,14 +44,14 @@ export interface ITasksRepo extends ISharedRepo<TaskId, TaskRecord> {
   getByUserId(
     userId: string,
     limit?: number,
-  ): Promise<Result<TaskRecord[], ErrorWithMetadata>>;
+  ): Promise<Result<TaskRecord[], AppError>>;
 
   /**
    * List tasks with optional filtering and pagination
    */
   listTasks(
     filters?: ListTasksFilters,
-  ): Promise<Result<TaskRecord[], ErrorWithMetadata>>;
+  ): Promise<Result<TaskRecord[], AppError>>;
 
   /**
    * Bulk update multiple tasks in a single query.
@@ -62,5 +62,5 @@ export interface ITasksRepo extends ISharedRepo<TaskId, TaskRecord> {
    */
   bulkUpdate(
     updates: Array<{ id: TaskId; data: Partial<TaskRecord> }>,
-  ): Promise<Result<number, ErrorWithMetadata>>;
+  ): Promise<Result<number, AppError>>;
 }

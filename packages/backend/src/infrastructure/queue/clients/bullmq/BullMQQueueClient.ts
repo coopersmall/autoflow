@@ -1,5 +1,5 @@
-import type { CorrelationId } from '@core/domain/CorrelationId';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { Context } from '@backend/infrastructure/context';
+import { type AppError, internalError } from '@core/errors';
 import { type Job, Queue, type QueueOptions } from 'bullmq';
 import Redis from 'ioredis';
 import { err, ok, type Result } from 'neverthrow';
@@ -89,9 +89,9 @@ class BullMQQueueClient implements IQueueClient {
   }
 
   async enqueue(
-    correlationId: CorrelationId,
+    ctx: Context,
     job: QueueJobInput,
-  ): Promise<Result<QueueJob, ErrorWithMetadata>> {
+  ): Promise<Result<QueueJob, AppError>> {
     try {
       // Create BullMQ job
       const bullmqJob = await this.queue.add(job.name, job.data, {
@@ -110,21 +110,20 @@ class BullMQQueueClient implements IQueueClient {
       return ok(this.toQueueJob(bullmqJob));
     } catch (error) {
       return err(
-        new ErrorWithMetadata('Failed to enqueue job', 'InternalServer', {
-          correlationId,
-          jobId: job.id,
-          jobName: job.name,
-          queueName: this.queueName,
-          cause: error,
+        internalError('Failed to enqueue job', {
+          cause: error instanceof Error ? error : undefined,
+          metadata: {
+            correlationId: ctx.correlationId,
+            jobId: job.id,
+            jobName: job.name,
+            queueName: this.queueName,
+          },
         }),
       );
     }
   }
 
-  async remove(
-    correlationId: CorrelationId,
-    jobId: string,
-  ): Promise<Result<void, ErrorWithMetadata>> {
+  async remove(ctx: Context, jobId: string): Promise<Result<void, AppError>> {
     try {
       const job = await this.queue.getJob(jobId);
 
@@ -137,24 +136,22 @@ class BullMQQueueClient implements IQueueClient {
       return ok(undefined);
     } catch (error) {
       return err(
-        new ErrorWithMetadata(
-          'Failed to remove job from queue',
-          'InternalServer',
-          {
-            correlationId,
+        internalError('Failed to remove job from queue', {
+          cause: error instanceof Error ? error : undefined,
+          metadata: {
+            correlationId: ctx.correlationId,
             jobId,
             queueName: this.queueName,
-            cause: error,
           },
-        ),
+        }),
       );
     }
   }
 
   async getJob(
-    correlationId: CorrelationId,
+    ctx: Context,
     jobId: string,
-  ): Promise<Result<QueueJob | null, ErrorWithMetadata>> {
+  ): Promise<Result<QueueJob | null, AppError>> {
     try {
       const job = await this.queue.getJob(jobId);
       if (!job) {
@@ -163,19 +160,19 @@ class BullMQQueueClient implements IQueueClient {
       return ok(this.toQueueJob(job));
     } catch (error) {
       return err(
-        new ErrorWithMetadata('Failed to get job', 'InternalServer', {
-          correlationId,
-          jobId,
-          queueName: this.queueName,
-          cause: error,
+        internalError('Failed to get job', {
+          cause: error instanceof Error ? error : undefined,
+          metadata: {
+            correlationId: ctx.correlationId,
+            jobId,
+            queueName: this.queueName,
+          },
         }),
       );
     }
   }
 
-  async getStats(
-    correlationId: CorrelationId,
-  ): Promise<Result<QueueStats, ErrorWithMetadata>> {
+  async getStats(ctx: Context): Promise<Result<QueueStats, AppError>> {
     try {
       const counts = await this.queue.getJobCounts(
         'waiting',
@@ -195,10 +192,12 @@ class BullMQQueueClient implements IQueueClient {
       });
     } catch (error) {
       return err(
-        new ErrorWithMetadata('Failed to get job counts', 'InternalServer', {
-          correlationId,
-          queueName: this.queueName,
-          cause: error,
+        internalError('Failed to get job counts', {
+          cause: error instanceof Error ? error : undefined,
+          metadata: {
+            correlationId: ctx.correlationId,
+            queueName: this.queueName,
+          },
         }),
       );
     }

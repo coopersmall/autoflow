@@ -5,28 +5,10 @@
  * The request context is enriched by middleware (authentication, correlation ID)
  * before reaching the handler.
  */
+import { type Context, createContext } from '@backend/infrastructure/context';
 import type { CorrelationId } from '@core/domain/CorrelationId';
 import type { UsersSession } from '@core/domain/session/UsersSession';
 import type { BunRequest } from 'bun';
-
-/**
- * Internal request context attached to requests during middleware execution.
- * This is the raw context before being transformed into the full RequestContext
- * passed to handlers.
- */
-interface RequestContext {
-  /**
-   * Correlation ID for distributed tracing.
-   * Set by middleware or generated from request headers.
-   */
-  correlationId?: CorrelationId;
-
-  /**
-   * User session data populated by authentication middleware.
-   * Undefined for public routes or unauthenticated requests.
-   */
-  userSession?: UsersSession;
-}
 
 /**
  * HTTP request with enriched context for middleware and handler processing.
@@ -47,9 +29,20 @@ interface RequestContext {
  * };
  * ```
  */
-export interface Request extends BunRequest {
-  context?: RequestContext;
-}
+// export interface Request extends BunRequest, RequestContext {}
+export type Request = BunRequest & {
+  /**
+   * Service-layer context for passing to services, repositories, and caches.
+   * Contains correlation ID and cancellation control.
+   */
+  ctx: Context;
+
+  /**
+   * User session data populated by authentication middleware.
+   * Undefined for public routes or unauthenticated requests.
+   */
+  userSession?: UsersSession;
+};
 
 /**
  * Creates a Request object with an empty context.
@@ -59,7 +52,16 @@ export interface Request extends BunRequest {
  * @param request - BunRequest to wrap
  * @returns Request with empty context
  */
-export function createRequestWithContext(request: BunRequest): Request {
-  const requestWithContext = Object.assign(request, { context: {} });
+export function createRequestWithContext(
+  correlationId: CorrelationId,
+  request: BunRequest,
+): Request {
+  const controller = new AbortController();
+  request.signal.addEventListener('abort', () => {
+    controller.abort();
+  });
+  const requestWithContext = Object.assign(request, {
+    ctx: createContext(correlationId, controller),
+  });
   return requestWithContext;
 }

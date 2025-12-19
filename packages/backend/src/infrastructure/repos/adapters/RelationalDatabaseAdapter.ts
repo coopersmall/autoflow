@@ -30,8 +30,8 @@ import {
 } from '@backend/infrastructure/repos/domain/RawDatabaseQuery';
 import { createDatabaseError } from '@backend/infrastructure/repos/errors/DBError';
 import { createCachedGetter } from '@backend/infrastructure/utils/createCachedGetter';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
-import type { ValidationError } from '@core/errors/ValidationError';
+import type { AppError } from '@core/errors/AppError';
+
 import type { Result } from 'neverthrow';
 import { err } from 'neverthrow';
 import { createDatabaseClientFactory } from '../clients/DatabaseClientFactory.ts';
@@ -80,7 +80,7 @@ class RelationalDatabaseAdapter implements IRelationalDatabaseAdapter {
    */
   constructor(
     private readonly tableName: string,
-    readonly getClient: () => Result<IDatabaseClient, ErrorWithMetadata>,
+    readonly getClient: () => Result<IDatabaseClient, AppError>,
   ) {}
 
   /**
@@ -91,7 +91,7 @@ class RelationalDatabaseAdapter implements IRelationalDatabaseAdapter {
    */
   async findUnique(args: {
     where: { id: string; userId?: string };
-  }): Promise<Result<RawDatabaseQuery, ValidationError>> {
+  }): Promise<Result<RawDatabaseQuery, AppError>> {
     const db = this.getClient();
     if (db.isErr()) {
       return err(db.error);
@@ -130,7 +130,7 @@ class RelationalDatabaseAdapter implements IRelationalDatabaseAdapter {
   async findMany(args?: {
     where?: { userId?: string };
     limit?: number;
-  }): Promise<Result<RawDatabaseQuery, ValidationError>> {
+  }): Promise<Result<RawDatabaseQuery, AppError>> {
     const db = this.getClient();
     if (db.isErr()) {
       return err(db.error);
@@ -173,7 +173,7 @@ class RelationalDatabaseAdapter implements IRelationalDatabaseAdapter {
     createdAt: Date;
     userId?: string;
     data: unknown;
-  }): Promise<Result<RawDatabaseQuery, ValidationError>> {
+  }): Promise<Result<RawDatabaseQuery, AppError>> {
     const db = this.getClient();
     if (db.isErr()) {
       return err(db.error);
@@ -213,7 +213,7 @@ class RelationalDatabaseAdapter implements IRelationalDatabaseAdapter {
       userId?: string;
     };
     data: unknown;
-  }): Promise<Result<RawDatabaseQuery, ValidationError>> {
+  }): Promise<Result<RawDatabaseQuery, AppError>> {
     const db = this.getClient();
     if (db.isErr()) {
       return err(db.error);
@@ -254,7 +254,7 @@ class RelationalDatabaseAdapter implements IRelationalDatabaseAdapter {
    */
   async delete(args: {
     where: { id: string; userId?: string };
-  }): Promise<Result<RawDatabaseQuery, ValidationError>> {
+  }): Promise<Result<RawDatabaseQuery, AppError>> {
     const db = this.getClient();
     if (db.isErr()) {
       return err(db.error);

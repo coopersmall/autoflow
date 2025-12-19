@@ -1,5 +1,5 @@
 import {
-  type HttpRequestError,
+  type AppError,
   type StreamChunk,
   type UserId,
   validate,
@@ -42,7 +42,7 @@ export class LocalClient {
     },
   ) {}
 
-  async helloWorld(): Promise<Result<unknown, HttpRequestError>> {
+  async helloWorld(): Promise<Result<unknown, AppError>> {
     const result = await this.client.get({ uri: '/api/hello' });
     if (result.isErr()) {
       return err(result.error);
@@ -53,7 +53,7 @@ export class LocalClient {
   async streamingCompletion(
     prompt: string,
     options?: ParseStreamChunksOptions,
-  ): Promise<Result<AsyncIterable<StreamChunk>, HttpRequestError>> {
+  ): Promise<Result<AsyncIterable<StreamChunk>, AppError>> {
     return await this.actions.stream(
       this.client,
       '/api/streaming-completion',
@@ -67,7 +67,7 @@ export class LocalClient {
 
   async requestAuthCookie(
     userId: UserId,
-  ): Promise<Result<{ claim: string }, HttpRequestError>> {
+  ): Promise<Result<{ claim: string }, AppError>> {
     const result = await this.client.post({
       uri: '/api/auth/request-cookie',
       body: { userId },

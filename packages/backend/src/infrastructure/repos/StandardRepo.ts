@@ -21,6 +21,7 @@
  */
 
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { Context } from '@backend/infrastructure/context';
 import {
   createRecord,
   deleteRecord,
@@ -35,8 +36,8 @@ import { createCachedGetter } from '@backend/infrastructure/utils/createCachedGe
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
 import type { UserId } from '@core/domain/user/user';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
-import type { ValidationError } from '@core/errors/ValidationError';
+import type { AppError } from '@core/errors/AppError';
+
 import type { ExtractMethods } from '@core/types';
 import { err, ok, type Result } from 'neverthrow';
 import { createRelationalDatabaseAdapter } from './adapters/RelationalDatabaseAdapter.ts';
@@ -84,7 +85,7 @@ export class StandardRepo<
   constructor(
     private readonly tableName: string,
     private readonly appConfig: IAppConfigurationService,
-    private readonly validator: (data: unknown) => Result<T, ValidationError>,
+    private readonly validator: (data: unknown) => Result<T, AppError>,
     dependencies: StandardRepoDependencies = {
       createRelationalDatabaseAdapter,
     },
@@ -109,60 +110,67 @@ export class StandardRepo<
   /**
    * Retrieves a single record by ID for the specified user.
    * Automatically filters by userId to prevent cross-user data access.
+   * @param ctx - Request context for tracing and cancellation
    * @param id - Unique identifier of the record
    * @param userId - ID of the user who owns the record
-   * @returns Record if found and owned by user, NotFoundError if doesn't exist or access denied, or database/validation error
+   * @returns Record if found and owned by user, AppError if doesn't exist or access denied, or database/validation error
    */
-  async get(id: ID, userId: UserId): Promise<Result<T, DBError>> {
+  async get(ctx: Context, id: ID, userId: UserId): Promise<Result<T, DBError>> {
     const adapterResult = this.getAdapter();
     if (adapterResult.isErr()) {
       return err(adapterResult.error);
     }
 
     return this.standardRepoActions.getRecord(
+      ctx,
+      { id, userId },
       {
         adapter: adapterResult.value,
         validator: this.validator,
       },
-      { id, userId },
     );
   }
 
   /**
    * Retrieves all records for the specified user with optional limit.
    * Automatically filters by userId to prevent cross-user data access.
+   * @param ctx - Request context for tracing and cancellation
    * @param userId - ID of the user whose records to retrieve
    * @param opts - Query options
    * @param opts.limit - Optional maximum number of records to return
    * @returns Array of user's records (empty if none found) or database/validation error
    */
   async all(
+    ctx: Context,
     userId: UserId,
     opts?: { limit?: number },
-  ): Promise<Result<T[], ErrorWithMetadata>> {
+  ): Promise<Result<T[], AppError>> {
     const adapterResult = this.getAdapter();
     if (adapterResult.isErr()) {
       return err(adapterResult.error);
     }
 
     return this.standardRepoActions.getAllRecords(
+      ctx,
+      { userId, limit: opts?.limit },
       {
         adapter: adapterResult.value,
         validator: this.validator,
       },
-      { userId, limit: opts?.limit },
     );
   }
 
   /**
    * Creates a new record for the specified user.
    * Automatically sets createdAt timestamp and associates record with userId.
+   * @param ctx - Request context for tracing and cancellation
    * @param id - Unique identifier for the new record
    * @param userId - ID of the user who will own the record
    * @param data - Domain entity data without id, createdAt, or updatedAt
    * @returns Created record or database/validation error
    */
   async create(
+    ctx: Context,
     id: ID,
     userId: UserId,
     data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>,
@@ -173,11 +181,12 @@ export class StandardRepo<
     }
 
     return this.standardRepoActions.createRecord(
+      ctx,
+      { id, userId, data },
       {
         adapter: adapterResult.value,
         validator: this.validator,
       },
-      { id, userId, data },
     );
   }
 
@@ -185,12 +194,14 @@ export class StandardRepo<
    * Updates an existing record for the specified user.
    * Automatically updates updatedAt timestamp. Supports partial updates.
    * Only updates if record is owned by the specified user.
+   * @param ctx - Request context for tracing and cancellation
    * @param id - Unique identifier of the record to update
    * @param userId - ID of the user who owns the record
    * @param data - Partial domain entity data to update
    * @returns Updated record or database/validation error if not found or access denied
    */
   async update(
+    ctx: Context,
     id: ID,
     userId: UserId,
     data: Partial<T>,
@@ -201,33 +212,40 @@ export class StandardRepo<
     }
 
     return this.standardRepoActions.updateRecord(
+      ctx,
+      { id, userId, data },
       {
         adapter: adapterResult.value,
         validator: this.validator,
       },
-      { id, userId, data },
     );
   }
 
   /**
    * Deletes a record for the specified user and returns it.
    * Only deletes if record is owned by the specified user.
+   * @param ctx - Request context for tracing and cancellation
    * @param id - Unique identifier of the record to delete
    * @param userId - ID of the user who owns the record
    * @returns Deleted record or database/validation error if not found or access denied
    */
-  async delete(id: ID, userId: UserId): Promise<Result<T, DBError>> {
+  async delete(
+    ctx: Context,
+    id: ID,
+    userId: UserId,
+  ): Promise<Result<T, DBError>> {
     const adapterResult = this.getAdapter();
     if (adapterResult.isErr()) {
       return err(adapterResult.error);
     }
 
     return this.standardRepoActions.deleteRecord(
+      ctx,
+      { id, userId },
       {
         adapter: adapterResult.value,
         validator: this.validator,
       },
-      { id, userId },
     );
   }
 

@@ -1,4 +1,4 @@
-import type { Request } from '@backend/infrastructure/http/handlers/domain/Request';
+import type { BunRequest } from 'bun';
 import zod from 'zod';
 
 /**
@@ -67,5 +67,5 @@ export interface IHttpRoute {
    * Handler function that processes requests for this route.
    * Receives native Request and returns Response (sync or async).
    */
-  handler: (req: Request) => Response | Promise<Response>;
+  handler: (req: BunRequest) => Response | Promise<Response>;
 }

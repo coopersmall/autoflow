@@ -2,39 +2,37 @@
  * Error factory functions and types for repository layer.
  * Provides standardized error creation for database operations.
  */
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
-import { NotFoundError } from '@core/errors/NotFoundError';
-import type { ValidationError } from '@core/errors/ValidationError';
+import { type AppError, internalError, notFound } from '@core/errors';
 
 /**
  * Creates a generic database error from unknown error source.
- * Wraps errors in ErrorWithMetadata with InternalServer code.
+ * Wraps errors in AppError with InternalServer code.
  * @param error - Unknown error from database operation
  * @param metadata - Additional error context
- * @returns ErrorWithMetadata with database error context
+ * @returns AppError with database error context
  */
 export function createDatabaseError(
   error: unknown,
   metadata?: Record<string, unknown>,
-): ErrorWithMetadata {
+): AppError {
   const message = error instanceof Error ? error.message : 'Database error';
   const cause = error instanceof Error ? error : undefined;
-  return new ErrorWithMetadata(message, 'InternalServer', {
-    ...metadata,
-    ...(cause ? { cause } : {}),
+  return internalError(message, {
+    cause,
+    metadata,
   });
 }
 
 /**
  * Creates a standardized not found error for missing records.
- * @returns NotFoundError with standard message
+ * @returns AppError with NotFound code and standard message
  */
-export function createNotFoundError(): NotFoundError {
-  return new NotFoundError('Record not found');
+export function createNotFoundError(): AppError {
+  return notFound('Record not found');
 }
 
 /**
  * Union type of all possible repository errors.
  * Used in Result<T, DBError> return types throughout the repository layer.
  */
-export type DBError = ValidationError | NotFoundError | ErrorWithMetadata;
+export type DBError = AppError;

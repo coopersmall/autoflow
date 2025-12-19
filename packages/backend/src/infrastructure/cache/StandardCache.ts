@@ -44,12 +44,13 @@ import {
   setCached,
 } from '@backend/infrastructure/cache/actions/standard';
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import { createCachedGetter } from '@backend/infrastructure/utils/createCachedGetter';
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
 import type { UserId } from '@core/domain/user/user';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { ExtractMethods } from '@core/types';
 import type { Validator } from '@core/validation/validate';
 import { err, ok, type Result } from 'neverthrow';
@@ -63,9 +64,9 @@ export type IStandardCache<
 > = ExtractMethods<StandardCache<ID, T>>;
 
 /**
- * Context for StandardCache construction.
+ * Configuration for StandardCache construction.
  */
-export interface StandardCacheContext<T> {
+export interface StandardCacheConfig<T> {
   logger: ILogger;
   appConfig: IAppConfigurationService;
   validator: Validator<T>;
@@ -91,7 +92,7 @@ export class StandardCache<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > {
-  private readonly getAdapter: () => Result<ICacheAdapter, ErrorWithMetadata>;
+  private readonly getAdapter: () => Result<ICacheAdapter, AppError>;
 
   /**
    * Creates a new StandardCache instance.
@@ -102,7 +103,7 @@ export class StandardCache<
    */
   constructor(
     private readonly namespace: string,
-    private readonly ctx: StandardCacheContext<T>,
+    private readonly ctx: StandardCacheConfig<T>,
     private readonly dependencies: StandardCacheDependencies = {
       createCacheClientFactory,
       createCacheAdapter,
@@ -136,81 +137,97 @@ export class StandardCache<
   /**
    * Retrieves a value from cache by ID and user ID.
    * Optionally executes onMiss callback and caches the result on cache miss.
+   * @param ctx - Request context
    * @param id - Entity ID
    * @param userId - User ID for scoping
    * @param onMiss - Optional callback to execute on cache miss
    * @returns Cached value or error
    */
   async get(
+    ctx: Context,
     id: ID,
     userId: UserId,
-    onMiss?: (id: ID, userId: UserId) => Promise<Result<T, ErrorWithMetadata>>,
-  ): Promise<Result<T, ErrorWithMetadata>> {
+    onMiss?: (
+      ctx: Context,
+      id: ID,
+      userId: UserId,
+    ) => Promise<Result<T, AppError>>,
+  ): Promise<Result<T, AppError>> {
     const adapter = this.getAdapter();
     if (adapter.isErr()) {
       return err(adapter.error);
     }
 
     return this.standardCacheActions.getCached(
-      {
-        adapter: adapter.value,
-        logger: this.ctx.logger,
-        validator: this.ctx.validator,
-        generateKey: this.generateKey.bind(this),
-      },
+      ctx,
       {
         id,
         userId,
         onMiss,
         setCached: this.set.bind(this),
       },
+      {
+        adapter: adapter.value,
+        logger: this.ctx.logger,
+        validator: this.ctx.validator,
+        generateKey: this.generateKey.bind(this),
+      },
     );
   }
 
   /**
    * Stores a value in cache.
+   * @param ctx - Request context
    * @param item - Value to cache (must have id property)
    * @param userId - User ID for scoping
    * @param ttl - Time-to-live in seconds (default: 3600)
    * @returns Success or error
    */
   async set(
+    ctx: Context,
     item: T,
     userId: UserId,
     ttl: number = 3600,
-  ): Promise<Result<void, ErrorWithMetadata>> {
+  ): Promise<Result<void, AppError>> {
     const adapter = this.getAdapter();
     if (adapter.isErr()) {
       return err(adapter.error);
     }
 
     return this.standardCacheActions.setCached(
+      ctx,
+      { item, userId, ttl },
       {
         adapter: adapter.value,
         generateKey: this.generateKey.bind(this),
       },
-      { item, userId, ttl },
     );
   }
 
   /**
    * Deletes a value from cache.
+   * @param ctx - Request context
    * @param id - Entity ID
    * @param userId - User ID for scoping
    * @returns Success or error
    */
-  async del(id: ID, userId: UserId): Promise<Result<void, ErrorWithMetadata>> {
+  async del(
+    ctx: Context,
+    id: ID,
+    userId: UserId,
+  ): Promise<Result<void, AppError>> {
     const adapter = this.getAdapter();
     if (adapter.isErr()) {
       return err(adapter.error);
     }
 
     return this.standardCacheActions.deleteCached(
+      ctx,
+      { id, userId },
       {
         adapter: adapter.value,
         generateKey: this.generateKey.bind(this),
       },
-      { id, userId },
     );
   }
 

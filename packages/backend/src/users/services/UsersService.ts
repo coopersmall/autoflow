@@ -8,11 +8,11 @@ import { type User, UserId } from '@core/domain/user/user';
 
 export { createUsersService };
 
-function createUsersService(ctx: UsersServiceContext): IUsersService {
-  return Object.freeze(new UsersService(ctx));
+function createUsersService(config: UsersServiceConfig): IUsersService {
+  return Object.freeze(new UsersService(config));
 }
 
-interface UsersServiceContext {
+interface UsersServiceConfig {
   appConfig: IAppConfigurationService;
   logger: ILogger;
 }
@@ -27,20 +27,20 @@ class UsersService
   implements IUsersService
 {
   constructor(
-    private readonly context: UsersServiceContext,
+    private readonly usersConfig: UsersServiceConfig,
     private readonly dependencies: UsersServiceDependencies = {
       createUsersRepo,
       createUsersCache,
     },
   ) {
-    const appConfig = context.appConfig;
+    const appConfig = usersConfig.appConfig;
 
     super('users', {
-      ...context,
+      ...usersConfig,
       repo: () => this.dependencies.createUsersRepo({ appConfig }),
       cache: () =>
         this.dependencies.createUsersCache({
-          logger: context.logger,
+          logger: usersConfig.logger,
           appConfig,
         }),
       newId: UserId,

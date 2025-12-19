@@ -1,4 +1,5 @@
 import type { ISharedCache } from '@backend/infrastructure/cache/SharedCache';
+import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { ISharedRepo } from '@backend/infrastructure/repos/SharedRepo';
 import {
@@ -10,7 +11,7 @@ import {
 } from '@backend/infrastructure/services/actions/shared';
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { ExtractMethods } from '@core/types';
 import type { Result } from 'neverthrow';
 
@@ -19,7 +20,7 @@ export type ISharedService<
   T extends Item<ID> = Item<ID>,
 > = ExtractMethods<SharedService<ID, T>>;
 
-interface SharedServiceContext<
+interface SharedServiceConfig<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > {
@@ -44,7 +45,7 @@ export class SharedService<
 {
   constructor(
     readonly serviceName: string,
-    private readonly sharedServiceCtx: SharedServiceContext<ID, T>,
+    private readonly config: SharedServiceConfig<ID, T>,
     private readonly sharedServiceActions: SharedServiceActions = {
       getItem,
       getAllItems,
@@ -54,71 +55,77 @@ export class SharedService<
     },
   ) {}
 
-  async get(id: ID): Promise<Result<T, ErrorWithMetadata>> {
+  async get(ctx: Context, id: ID): Promise<Result<T, AppError>> {
     return this.sharedServiceActions.getItem(
+      ctx,
+      { id },
       {
-        logger: this.sharedServiceCtx.logger,
+        logger: this.config.logger,
         repo: this.repo,
         cache: this.cache,
         serviceName: this.serviceName,
       },
-      { id },
     );
   }
 
-  async all(): Promise<Result<T[], ErrorWithMetadata>> {
-    return this.sharedServiceActions.getAllItems({
+  async all(ctx: Context): Promise<Result<T[], AppError>> {
+    return this.sharedServiceActions.getAllItems(ctx, {
       repo: this.repo,
     });
   }
 
   async create(
+    ctx: Context,
     data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>,
-  ): Promise<Result<T, ErrorWithMetadata>> {
+  ): Promise<Result<T, AppError>> {
     return this.sharedServiceActions.createItem(
+      ctx,
+      { data },
       {
-        logger: this.sharedServiceCtx.logger,
+        logger: this.config.logger,
         repo: this.repo,
         cache: this.cache,
         serviceName: this.serviceName,
-        newId: this.sharedServiceCtx.newId,
+        newId: this.config.newId,
       },
-      { data },
     );
   }
 
   async update(
+    ctx: Context,
     id: ID,
     data: Partial<T>,
-  ): Promise<Result<T, ErrorWithMetadata>> {
+  ): Promise<Result<T, AppError>> {
     return this.sharedServiceActions.updateItem(
+      ctx,
+      { id, data },
       {
-        logger: this.sharedServiceCtx.logger,
+        logger: this.config.logger,
         repo: this.repo,
         cache: this.cache,
         serviceName: this.serviceName,
       },
-      { id, data },
     );
   }
 
-  async delete(id: ID): Promise<Result<T, ErrorWithMetadata>> {
+  async delete(ctx: Context, id: ID): Promise<Result<T, AppError>> {
     return this.sharedServiceActions.deleteItem(
+      ctx,
+      { id },
       {
-        logger: this.sharedServiceCtx.logger,
+        logger: this.config.logger,
         repo: this.repo,
         cache: this.cache,
         serviceName: this.serviceName,
       },
-      { id },
     );
   }
 
   protected get cache() {
-    return this.sharedServiceCtx.cache?.();
+    return this.config.cache?.();
   }
 
   protected get repo() {
-    return this.sharedServiceCtx.repo();
+    return this.config.repo();
   }
 }

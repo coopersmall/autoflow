@@ -12,12 +12,12 @@ import { createIntegrationsRepo } from '../repos/IntegrationsRepo.ts';
 export { createIntegrationsService };
 
 function createIntegrationsService(
-  ctx: IntegrationsServiceContext,
+  config: IntegrationsServiceConfig,
 ): IIntegrationsService {
-  return Object.freeze(new IntegrationsService(ctx));
+  return Object.freeze(new IntegrationsService(config));
 }
 
-interface IntegrationsServiceContext {
+interface IntegrationsServiceConfig {
   logger: ILogger;
   appConfig: IAppConfigurationService;
 }
@@ -32,20 +32,20 @@ class IntegrationsService
   implements IIntegrationsService
 {
   constructor(
-    private readonly ctx: IntegrationsServiceContext,
+    private readonly integrationsConfig: IntegrationsServiceConfig,
     private readonly dependencies: IntegrationsServiceDependencies = {
       createIntegrationsRepo,
       createIntegrationsCache,
     },
   ) {
-    const appConfig = ctx.appConfig;
+    const appConfig = integrationsConfig.appConfig;
 
     super('integrations', {
-      ...ctx,
+      ...integrationsConfig,
       repo: () => dependencies.createIntegrationsRepo(appConfig),
       cache: () =>
         dependencies.createIntegrationsCache({
-          logger: ctx.logger,
+          logger: integrationsConfig.logger,
           appConfig,
         }),
       newId: IntegrationId,

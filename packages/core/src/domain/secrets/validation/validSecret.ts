@@ -6,22 +6,20 @@ import {
   secretSchema,
   storedSecretSchema,
 } from '@core/domain/secrets/Secret.ts';
-import type { ValidationError } from '@core/errors/ValidationError.ts';
+import type { AppError } from '@core/errors/AppError.ts';
 import { validate } from '@core/validation/validate.ts';
 import type { Result } from 'neverthrow';
 
-export function validSecret(input: unknown): Result<Secret, ValidationError> {
+export function validSecret(input: unknown): Result<Secret, AppError> {
   return validate(secretSchema, input);
 }
 
 export function validStoredSecret(
   input: unknown,
-): Result<StoredSecret, ValidationError> {
+): Result<StoredSecret, AppError> {
   return validate(storedSecretSchema, input);
 }
 
-export function validSecretId(
-  input: unknown,
-): Result<SecretId, ValidationError> {
+export function validSecretId(input: unknown): Result<SecretId, AppError> {
   return validate(secretIdSchema, input);
 }

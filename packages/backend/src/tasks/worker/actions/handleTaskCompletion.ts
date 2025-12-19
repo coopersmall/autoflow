@@ -3,7 +3,7 @@ import type { TaskId } from '@backend/tasks/domain/TaskId';
 import { TaskId as TaskIdConstructor } from '@backend/tasks/domain/TaskId';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 
-export interface HandleTaskCompletionContext {
+export interface HandleTaskCompletionDeps {
   readonly logger: ILogger;
   readonly queueName: string;
   readonly enqueueUpdate: (update: {
@@ -22,10 +22,10 @@ export interface HandleTaskCompletionRequest {
  * Handles task completion by enqueueing a database update.
  */
 export function handleTaskCompletion(
-  ctx: HandleTaskCompletionContext,
+  deps: HandleTaskCompletionDeps,
   request: HandleTaskCompletionRequest,
 ): void {
-  const { logger, queueName, enqueueUpdate } = ctx;
+  const { logger, queueName, enqueueUpdate } = deps;
   const { jobId } = request;
 
   const taskId = TaskIdConstructor(jobId);

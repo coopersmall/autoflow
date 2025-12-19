@@ -2,16 +2,20 @@
  * Error factory functions and types for task operations.
  * Provides standardized error creation for task-related operations.
  */
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
-import { NotFoundError } from '@core/errors/NotFoundError';
+import {
+  type AppError,
+  badRequest,
+  internalError,
+  notFound,
+} from '@core/errors';
 
 /**
  * Creates a task not found error.
  * @param taskId - The ID of the task that was not found
- * @returns NotFoundError with task context
+ * @returns AppError with NotFound code and task context
  */
-export function createTaskNotFoundError(taskId: string): NotFoundError {
-  return new NotFoundError(`Task not found: ${taskId}`);
+export function createTaskNotFoundError(taskId: string): AppError {
+  return notFound(`Task not found: ${taskId}`);
 }
 
 /**
@@ -19,20 +23,22 @@ export function createTaskNotFoundError(taskId: string): NotFoundError {
  * @param operation - The operation that failed (e.g., 'retry', 'cancel')
  * @param error - The underlying error
  * @param metadata - Additional error context
- * @returns ErrorWithMetadata with task operation context
+ * @returns AppError with InternalServer code and task operation context
  */
 export function createTaskOperationError(
   operation: string,
   error: unknown,
   metadata?: Record<string, unknown>,
-): ErrorWithMetadata {
+): AppError {
   const message =
     error instanceof Error ? error.message : `Task ${operation} failed`;
   const cause = error instanceof Error ? error : undefined;
-  return new ErrorWithMetadata(message, 'InternalServer', {
-    operation,
-    ...metadata,
-    ...(cause ? { cause } : {}),
+  return internalError(message, {
+    cause,
+    metadata: {
+      operation,
+      ...metadata,
+    },
   });
 }
 
@@ -40,18 +46,19 @@ export function createTaskOperationError(
  * Creates an invalid task state error.
  * @param currentState - The current state of the task
  * @param attemptedOperation - The operation that was attempted
- * @returns ErrorWithMetadata with state transition context
+ * @returns AppError with BadRequest code and state transition context
  */
 export function createInvalidTaskStateError(
   currentState: string,
   attemptedOperation: string,
-): ErrorWithMetadata {
-  return new ErrorWithMetadata(
+): AppError {
+  return badRequest(
     `Cannot ${attemptedOperation} task in ${currentState} state`,
-    'BadRequest',
     {
-      currentState,
-      attemptedOperation,
+      metadata: {
+        currentState,
+        attemptedOperation,
+      },
     },
   );
 }
@@ -60,4 +67,4 @@ export function createInvalidTaskStateError(
  * Union type of all possible task errors.
  * Used in Result<T, TaskError> return types throughout the tasks layer.
  */
-export type TaskError = NotFoundError | ErrorWithMetadata;
+export type TaskError = AppError;

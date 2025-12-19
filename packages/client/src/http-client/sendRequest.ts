@@ -1,7 +1,7 @@
 import {
-  ErrorWithMetadata,
+  type AppError,
   getErrorFromString,
-  type HttpRequestError,
+  internalError,
 } from '@autoflow/core';
 import { err, ok, type Result } from 'neverthrow';
 
@@ -10,7 +10,7 @@ export async function sendRequest(
   timeoutId: NodeJS.Timeout,
   options: RequestInit = {},
   beforeSend?: (options: RequestInit) => Promise<RequestInit>,
-): Promise<Result<unknown, HttpRequestError>> {
+): Promise<Result<unknown, AppError>> {
   let response: Response;
   let opts = options;
   if (beforeSend) {
@@ -43,10 +43,9 @@ export async function sendRequest(
   } catch (error) {
     clearTimeout(timeoutId);
     return err(
-      new ErrorWithMetadata('Failed to parse response JSON', 'InternalServer', {
-        url,
-        options,
+      internalError('Failed to parse response JSON', {
         cause: error,
+        metadata: { url, options },
       }),
     );
   }

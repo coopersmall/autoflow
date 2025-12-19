@@ -1,30 +1,30 @@
 export {
-  type BulkUpdateTasksContext,
+  type BulkUpdateTasksDeps,
   type BulkUpdateTasksRequest,
   bulkUpdateTasks,
 } from './bulkUpdateTasks.ts';
 export {
-  type ExecuteTaskQueryContext,
+  type ExecuteTaskQueryDeps,
   type ExecuteTaskQueryRequest,
   executeTaskQuery,
 } from './executeTaskQuery.ts';
 export {
-  type GetTasksByStatusContext,
+  type GetTasksByStatusDeps,
   type GetTasksByStatusRequest,
   getTasksByStatus,
 } from './getTasksByStatus.ts';
 export {
-  type GetTasksByTaskNameContext,
+  type GetTasksByTaskNameDeps,
   type GetTasksByTaskNameRequest,
   getTasksByTaskName,
 } from './getTasksByTaskName.ts';
 export {
-  type GetTasksByUserIdContext,
+  type GetTasksByUserIdDeps,
   type GetTasksByUserIdRequest,
   getTasksByUserId,
 } from './getTasksByUserId.ts';
 export {
-  type ListTasksContext,
+  type ListTasksDeps,
   type ListTasksRequest,
   listTasks,
 } from './listTasks.ts';

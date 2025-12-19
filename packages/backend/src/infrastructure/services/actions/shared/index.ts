@@ -1,21 +1,17 @@
 export {
-  type CreateItemContext,
+  type CreateItemDeps,
   type CreateItemRequest,
   createItem,
 } from './createItem.ts';
 export {
-  type DeleteItemContext,
+  type DeleteItemDeps,
   type DeleteItemRequest,
   deleteItem,
 } from './deleteItem.ts';
-export { type GetAllItemsContext, getAllItems } from './getAllItems.ts';
+export { type GetAllItemsDeps, getAllItems } from './getAllItems.ts';
+export { type GetItemDeps, type GetItemRequest, getItem } from './getItem.ts';
 export {
-  type GetItemContext,
-  type GetItemRequest,
-  getItem,
-} from './getItem.ts';
-export {
-  type UpdateItemContext,
+  type UpdateItemDeps,
   type UpdateItemRequest,
   updateItem,
 } from './updateItem.ts';

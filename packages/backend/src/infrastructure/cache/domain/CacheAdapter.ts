@@ -5,7 +5,7 @@
  * serialization, and cache operations. Adapters sit between cache classes
  * (SharedCache/StandardCache) and the underlying cache client.
  */
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Validator } from '@core/validation/validate';
 import type { Result } from 'neverthrow';
 import type { ICacheClient } from './Cache.ts';
@@ -31,10 +31,7 @@ export interface ICacheAdapter {
    * @param validator - Validation function for type checking
    * @returns Parsed and validated value, or error
    */
-  get<T>(
-    key: string,
-    validator: Validator<T>,
-  ): Promise<Result<T, ErrorWithMetadata>>;
+  get<T>(key: string, validator: Validator<T>): Promise<Result<T, AppError>>;
 
   /**
    * Stores a typed value in cache.
@@ -47,14 +44,14 @@ export interface ICacheAdapter {
     key: string,
     value: T,
     options?: CacheOptions,
-  ): Promise<Result<void, ErrorWithMetadata>>;
+  ): Promise<Result<void, AppError>>;
 
   /**
    * Deletes a value from cache.
    * @param key - Raw cache key (will be namespaced)
    * @returns Success or error
    */
-  del(key: string): Promise<Result<void, ErrorWithMetadata>>;
+  del(key: string): Promise<Result<void, AppError>>;
 
   /**
    * Returns the underlying cache client.

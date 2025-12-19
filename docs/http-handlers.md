@@ -36,13 +36,19 @@ Incoming Request
     - app: Cookie authentication → Permission check
     ↓
 2. Request Context Building
-    - Extract correlation ID
-    - Build context with helpers (getParam, getBody, etc.)
+    - Extract correlation ID from headers (or generate new)
+    - Extract abort signal from Request
+    - Build RequestContext with helpers (getParam, getBody, etc.)
     ↓
-3. Handler Execution
-    - Business logic runs with type-safe context
+3. Context Creation
+    - Create Context from RequestContext
+    - Context = { correlationId, signal }
     ↓
-4. Response
+4. Handler Execution
+    - Pass Context to service calls
+    - Business logic runs with distributed tracing
+    ↓
+5. Response
     - Success: Return Response
     - Error: Convert to appropriate HTTP status
 ```
@@ -198,13 +204,16 @@ class CustomHandler implements IHttpHandler {
 }
 ```
 
-## Request Context
+## Request Context and Context
 
-Handlers receive a `RequestContext` with helper methods:
+Handlers receive a `RequestContext` with helper methods, which contains everything needed to create a `Context` for service calls.
+
+### RequestContext (HTTP-specific)
 
 ```typescript
 interface RequestContext {
-  correlationId: CorrelationId;
+  correlationId: CorrelationId;  // For distributed tracing
+  signal: AbortSignal;           // For request cancellation
   
   // Extract URL parameters
   getParam<T>(name: string, validator: Validator<T>): Result<T, ErrorWithMetadata>;
@@ -217,30 +226,52 @@ interface RequestContext {
   
   // Get request headers
   getHeader(name: string): string | null;
+  
+  // Optional: User session (if authenticated)
+  session?: UserSession;
+}
+```
+
+### Context (Service layer)
+
+Create a `Context` from `RequestContext` to pass to services:
+
+```typescript
+import { fromRequestContext } from '@backend/infrastructure/context';
+
+handler: async (requestContext) => {
+  // Create Context for service calls
+  const ctx = fromRequestContext(requestContext);
+  
+  // Now pass ctx to all service operations
+  const result = await service.get(ctx, id);
 }
 ```
 
 ### Example Usage
 
 ```typescript
-handler: async (ctx) => {
-  // Get URL parameter
-  const userId = ctx.getParam('id', validUserId);
+import { fromRequestContext } from '@backend/infrastructure/context';
+import { buildHttpErrorResponse } from '@backend/infrastructure/http/handlers/errors/buildHttpErrorResponse';
+
+handler: async (requestContext) => {
+  // 1. Create Context for service layer
+  const ctx = fromRequestContext(requestContext);
+  
+  // 2. Extract and validate URL parameter
+  const userId = requestContext.getParam('id', validUserId);
   if (userId.isErr()) {
     return buildHttpErrorResponse(userId.error);
   }
 
-  // Get query parameter
-  const limit = ctx.getSearchParam('limit', validNumber);
-  
-  // Get and validate body
-  const body = await ctx.getBody(validCreateUserRequest);
+  // 3. Extract and validate request body
+  const body = await requestContext.getBody(validCreateUserRequest);
   if (body.isErr()) {
     return buildHttpErrorResponse(body.error);
   }
 
-  // Use the validated data
-  const result = await service.create(body.value);
+  // 4. Call service with Context
+  const result = await service.create(ctx, body.value);
   
   if (result.isErr()) {
     return buildHttpErrorResponse(result.error);
@@ -249,6 +280,12 @@ handler: async (ctx) => {
   return Response.json(result.value, { status: 201 });
 }
 ```
+
+**Key Points**:
+- `RequestContext` is HTTP-specific (has helpers like `getParam`, `getBody`)
+- `Context` is for service layer (has `correlationId`, `signal`)
+- Convert `RequestContext` → `Context` using `fromRequestContext()`
+- Pass `Context` to all service calls for distributed tracing
 
 ## Error Handling
 

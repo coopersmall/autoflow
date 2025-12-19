@@ -1,4 +1,4 @@
-import type { ValidationError } from '@core/errors/ValidationError';
+import type { AppError } from '@core/errors';
 import type { Validator } from '@core/validation/validate';
 import type { Result } from 'neverthrow';
 
@@ -22,7 +22,7 @@ export function extractSearchParam<T>({
   searchParams,
   name,
   validator,
-}: ExtractSearchParamRequest<T>): Result<T, ValidationError> {
+}: ExtractSearchParamRequest<T>): Result<T, AppError> {
   const value = searchParams.get(name);
   return validator(value);
 }

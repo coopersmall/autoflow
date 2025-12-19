@@ -1,4 +1,4 @@
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 import type {
   IWorkerClient,
@@ -34,5 +34,5 @@ export interface IWorkerClientFactory {
     queueName: string,
     handler: WorkerJobHandler,
     type?: WorkerClientType,
-  ): Result<IWorkerClient, ErrorWithMetadata>;
+  ): Result<IWorkerClient, AppError>;
 }

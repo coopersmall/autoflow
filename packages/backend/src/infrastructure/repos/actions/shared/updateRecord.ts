@@ -1,3 +1,4 @@
+import type { Context } from '@backend/infrastructure/context';
 import { convertQueryResultsToData } from '@backend/infrastructure/repos/actions/convertQueryResultsToData';
 import type { IRelationalDatabaseAdapter } from '@backend/infrastructure/repos/domain/DatabaseAdapter';
 import {
@@ -6,15 +7,16 @@ import {
 } from '@backend/infrastructure/repos/errors/DBError';
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
-import type { ValidationError } from '@core/errors/ValidationError';
+import type { AppError } from '@core/errors';
+
 import { err, ok, type Result } from 'neverthrow';
 
-export interface UpdateRecordContext<
+export interface UpdateRecordDeps<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > {
   readonly adapter: IRelationalDatabaseAdapter;
-  readonly validator: (data: unknown) => Result<T, ValidationError>;
+  readonly validator: (data: unknown) => Result<T, AppError>;
 }
 
 export interface UpdateRecordRequest<ID extends Id<string>, T> {
@@ -29,10 +31,11 @@ export async function updateRecord<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 >(
-  ctx: UpdateRecordContext<ID, T>,
+  ctx: Context,
   request: UpdateRecordRequest<ID, T>,
+  deps: UpdateRecordDeps<ID, T>,
 ): Promise<Result<T, DBError>> {
-  const { adapter, validator } = ctx;
+  const { adapter, validator } = deps;
   const { id, data } = request;
 
   const {

@@ -3,7 +3,7 @@ import type {
   ITasksRepo,
   ListTasksFilters,
 } from '@backend/tasks/domain/TasksRepo';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
 
 export interface ListTasksContext {
@@ -17,7 +17,7 @@ export interface ListTasksRequest {
 export async function listTasks(
   ctx: ListTasksContext,
   request: ListTasksRequest,
-): Promise<Result<TaskRecord[], ErrorWithMetadata>> {
+): Promise<Result<TaskRecord[], AppError>> {
   const result = await ctx.tasksRepo.listTasks(request.filters);
 
   if (result.isErr()) {

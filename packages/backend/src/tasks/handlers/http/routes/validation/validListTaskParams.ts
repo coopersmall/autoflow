@@ -2,38 +2,39 @@ import type { TaskStatus } from '@backend/tasks/domain/TaskStatus';
 import { validTaskStatus } from '@backend/tasks/domain/validation/validTaskRecord';
 import type { UserId } from '@core/domain/user/user';
 import { validUserId } from '@core/domain/user/validation/validUser';
-import type { ValidationError } from '@core/errors/ValidationError';
+import type { AppError } from '@core/errors';
+
 import { optional, validate } from '@core/validation/validate';
 import type { Result } from 'neverthrow';
 import zod from 'zod';
 
 export function validOptionalTaskStatusParam(
   input: unknown,
-): Result<TaskStatus | undefined, ValidationError> {
+): Result<TaskStatus | undefined, AppError> {
   return optional(validTaskStatus)(input);
 }
 
 export function validOptionalTaskNameParam(
   input: unknown,
-): Result<string | undefined, ValidationError> {
+): Result<string | undefined, AppError> {
   return optional(taskNameValidator)(input);
 }
 
 export function validOptionalUserIdParam(
   input: unknown,
-): Result<UserId | undefined, ValidationError> {
+): Result<UserId | undefined, AppError> {
   return optional(validUserId)(input);
 }
 
 export function validOptionalLimitParam(
   input: unknown,
-): Result<number | undefined, ValidationError> {
+): Result<number | undefined, AppError> {
   return optional(limitValidator)(input);
 }
 
 export function validOptionalOffsetParam(
   input: unknown,
-): Result<number | undefined, ValidationError> {
+): Result<number | undefined, AppError> {
   return optional(offsetValidator)(input);
 }
 

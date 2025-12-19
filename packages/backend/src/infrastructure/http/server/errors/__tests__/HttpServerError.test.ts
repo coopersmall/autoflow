@@ -16,7 +16,7 @@ describe('HttpServerError', () => {
       expect(error.message).toBe('Something went wrong');
       expect(error.code).toBe('InternalServer');
       expect(error.metadata.serverType).toBe('bun');
-      expect(error.metadata.cause).toBe(originalError);
+      expect(error.cause).toBe(originalError);
     });
 
     it('should create error with unknown error', () => {
@@ -25,7 +25,7 @@ describe('HttpServerError', () => {
       expect(error.message).toBe('HTTP server error');
       expect(error.code).toBe('InternalServer');
       expect(error.metadata.port).toBe(3000);
-      expect(error.metadata.cause).toBeUndefined();
+      expect(error.cause).toBeUndefined();
     });
 
     it('should create error without metadata', () => {
@@ -34,7 +34,7 @@ describe('HttpServerError', () => {
 
       expect(error.message).toBe('Test error');
       expect(error.code).toBe('InternalServer');
-      expect(error.metadata.cause).toBe(originalError);
+      expect(error.cause).toBe(originalError);
     });
   });
 
@@ -48,7 +48,7 @@ describe('HttpServerError', () => {
       expect(error.message).toBe('Client failed');
       expect(error.code).toBe('InternalServer');
       expect(error.metadata.clientType).toBe('bun');
-      expect(error.metadata.cause).toBe(originalError);
+      expect(error.cause).toBe(originalError);
     });
 
     it('should create client error with unknown error', () => {
@@ -68,7 +68,7 @@ describe('HttpServerError', () => {
       expect(error.message).toBe('Port already in use');
       expect(error.code).toBe('InternalServer');
       expect(error.metadata.port).toBe(8080);
-      expect(error.metadata.cause).toBe(originalError);
+      expect(error.cause).toBe(originalError);
     });
 
     it('should create start error with unknown error', () => {
@@ -87,7 +87,7 @@ describe('HttpServerError', () => {
 
       expect(error.metadata.port).toBe(3000);
       expect(error.metadata.serverType).toBe('bun');
-      expect(error.metadata.cause).toBe(originalError);
+      expect(error.cause).toBe(originalError);
     });
   });
 });

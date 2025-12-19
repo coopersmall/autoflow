@@ -10,34 +10,31 @@ import {
   type UpdateTaskRecord,
   updateTaskRecordSchema,
 } from '@backend/tasks/domain/TaskRecord';
-import type { ValidationError } from '@core/errors/ValidationError';
+import type { AppError } from '@core/errors';
+
 import { validate } from '@core/validation/validate';
 import type { Result } from 'neverthrow';
 
-export function validTaskRecord(
-  input: unknown,
-): Result<TaskRecord, ValidationError> {
+export function validTaskRecord(input: unknown): Result<TaskRecord, AppError> {
   return validate(taskRecordSchema, input);
 }
 
-export function validTaskId(input: unknown): Result<TaskId, ValidationError> {
+export function validTaskId(input: unknown): Result<TaskId, AppError> {
   return validate(taskIdSchema, input);
 }
 
-export function validTaskStatus(
-  input: unknown,
-): Result<TaskStatus, ValidationError> {
+export function validTaskStatus(input: unknown): Result<TaskStatus, AppError> {
   return validate(taskStatusSchema, input);
 }
 
 export function validPartialTaskRecord(
   input: unknown,
-): Result<PartialTaskRecord, ValidationError> {
+): Result<PartialTaskRecord, AppError> {
   return validate(partialTaskRecordSchema, input);
 }
 
 export function validUpdateTaskRecord(
   input: unknown,
-): Result<UpdateTaskRecord, ValidationError> {
+): Result<UpdateTaskRecord, AppError> {
   return validate(updateTaskRecordSchema, input);
 }

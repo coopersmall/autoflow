@@ -15,19 +15,21 @@ export interface RetryTaskHandlerContext {
  * Retry a failed task
  */
 export function retryTaskHandler(ctx: RetryTaskHandlerContext) {
-  return async ({ getParam, correlationId }: RequestContext) => {
+  return async (requestContext: RequestContext) => {
+    const { ctx: context, getParam } = requestContext;
+
     const taskIdResult = getParam('id', validTaskId);
     if (taskIdResult.isErr()) {
       return buildHttpErrorResponse(taskIdResult.error);
     }
 
-    const task = await ctx.tasksService.get(taskIdResult.value);
+    const task = await ctx.tasksService.get(context, taskIdResult.value);
     if (task.isErr()) {
       return buildHttpErrorResponse(task.error);
     }
 
     const result = await ctx.tasksService.retryTask(
-      correlationId,
+      context,
       taskIdResult.value,
     );
 
@@ -37,7 +39,7 @@ export function retryTaskHandler(ctx: RetryTaskHandlerContext) {
 
     return Response.json(
       {
-        correlationId,
+        correlationId: context.correlationId,
         task: result.value,
       },
       { status: 200 },

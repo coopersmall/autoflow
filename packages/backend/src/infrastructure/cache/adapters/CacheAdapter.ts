@@ -9,7 +9,7 @@
  * - Serialize typed values to JSON strings for storage
  * - Deserialize and validate JSON strings from cache
  * - Handle cache misses (null) vs errors
- * - Wrap client errors in standardized ErrorWithMetadata
+ * - Wrap client errors in standardized AppError
  * - Provide clean interface for cache operations
  *
  * Architecture:
@@ -34,7 +34,7 @@ import {
   createCacheSetError,
 } from '@backend/infrastructure/cache/errors/CacheError';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Validator } from '@core/validation/validate';
 import { err, ok, type Result } from 'neverthrow';
 
@@ -78,7 +78,7 @@ class CacheAdapter implements ICacheAdapter {
   async get<T>(
     key: string,
     validator: Validator<T>,
-  ): Promise<Result<T, ErrorWithMetadata>> {
+  ): Promise<Result<T, AppError>> {
     try {
       const data = await this.client.get(key);
 
@@ -118,7 +118,7 @@ class CacheAdapter implements ICacheAdapter {
     key: string,
     value: T,
     options?: CacheOptions,
-  ): Promise<Result<void, ErrorWithMetadata>> {
+  ): Promise<Result<void, AppError>> {
     try {
       const serialized = serializeCacheData(value, { key });
 
@@ -145,7 +145,7 @@ class CacheAdapter implements ICacheAdapter {
    * @param key - Cache key to delete
    * @returns Success or error
    */
-  async del(key: string): Promise<Result<void, ErrorWithMetadata>> {
+  async del(key: string): Promise<Result<void, AppError>> {
     try {
       await this.client.del(key);
       return ok(undefined);

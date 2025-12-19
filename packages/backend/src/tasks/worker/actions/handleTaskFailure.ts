@@ -3,7 +3,7 @@ import type { TaskId } from '@backend/tasks/domain/TaskId';
 import { TaskId as TaskIdConstructor } from '@backend/tasks/domain/TaskId';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 
-export interface HandleTaskFailureContext {
+export interface HandleTaskFailureDeps {
   readonly logger: ILogger;
   readonly queueName: string;
   readonly enqueueUpdate: (update: {
@@ -22,10 +22,10 @@ export interface HandleTaskFailureRequest {
  * Handles task failure by logging and enqueueing a database update.
  */
 export function handleTaskFailure(
-  ctx: HandleTaskFailureContext,
+  deps: HandleTaskFailureDeps,
   request: HandleTaskFailureRequest,
 ): void {
-  const { logger, queueName, enqueueUpdate } = ctx;
+  const { logger, queueName, enqueueUpdate } = deps;
   const { jobId, error } = request;
 
   const taskId = TaskIdConstructor(jobId);
