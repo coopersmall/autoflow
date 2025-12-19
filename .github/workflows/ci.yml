@@ -14,21 +14,17 @@ permissions:
   actions: write
 
 jobs:
-  # === Build Phase ===
-  # Runs immediately, other jobs depend on this
   build-actions:
     name: Build Actions
     uses: ./.github/workflows/build-actions.yml
 
-  # === Code Quality Jobs ===
-  # All run in parallel after build-actions completes
   lint:
     name: Lint
     needs: [build-actions]
     uses: ./.github/workflows/verify-nix.yml
     if: ${{ github.event_name == 'pull_request' && (github.event.action == 'synchronize' || github.event.action == 'opened') }}
     with:
-      command: "bun run lint"
+      command: "make lint"
       name: "Lint"
 
   typecheck:
@@ -37,7 +33,7 @@ jobs:
     uses: ./.github/workflows/verify-nix.yml
     if: ${{ github.event_name == 'pull_request' && (github.event.action == 'synchronize' || github.event.action == 'opened') }}
     with:
-      command: "bun run tsc"
+      command: "make tsc"
       name: "Type Check"
 
   test:
@@ -55,9 +51,6 @@ jobs:
       command: "bun run build"
       name: "Build"
 
-  # === PR Verification Jobs ===
-  # create-checklist runs immediately (no dependencies - uses github-script, not custom actions)
-  # verify-* jobs run in parallel after build-actions completes
   create-checklist:
     name: Create PR Checklist
     # No 'needs' - runs immediately in parallel with build-actions

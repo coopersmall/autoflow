@@ -18,18 +18,20 @@ async function run() {
   );
 
   if (!checklistComment) {
-    core.setFailed(
-      "Required Checklist Missing - Could not find the required acknowledgements checklist in the PR comments.",
+    core.error(
+      "Could not find the required acknowledgements checklist in the PR comments.",
+      { title: "Required Checklist Missing" },
     );
-    return;
+    process.exit(1);
   }
 
   const uncheckedBoxes = (checklistComment.body.match(/\[ \]/g) || []).length;
   if (uncheckedBoxes > 0) {
-    core.setFailed(
-      `Missing Checklist Items - Found ${uncheckedBoxes} unchecked item${uncheckedBoxes > 1 ? "s" : ""} in the PR checklist.`,
+    core.error(
+      `Found ${uncheckedBoxes} unchecked item${uncheckedBoxes > 1 ? "s" : ""} in the PR checklist.`,
+      { title: "Missing Checklist Items" },
     );
-    return;
+    process.exit(1);
   }
 
   core.info(

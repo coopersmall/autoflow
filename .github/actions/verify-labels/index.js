@@ -11,10 +11,11 @@ async function run() {
     .map((label) => label.toLowerCase());
 
   if (!parsed || parsed.length === 0) {
-    core.setFailed(
-      `No Labels Found - Please add one of the required labels: ${requiredLabels.join(", ")}`,
+    core.error(
+      `Please add one of the required labels: ${requiredLabels.join(", ")}`,
+      { title: "No Labels Found" },
     );
-    return;
+    process.exit(1);
   }
 
   const matchingLabels = requiredLabels.filter((required) =>
@@ -22,17 +23,19 @@ async function run() {
   );
 
   if (matchingLabels.length === 0) {
-    core.setFailed(
-      `Missing Required Label - PR must have one of these labels: ${requiredLabels.join(", ")}`,
+    core.error(
+      `PR must have one of these labels: ${requiredLabels.join(", ")}`,
+      { title: "Missing Required Label" },
     );
-    return;
+    process.exit(1);
   }
 
   if (matchingLabels.length > 1) {
-    core.setFailed(
-      `Multiple Conflicting Labels - PR cannot have multiple labels from: ${requiredLabels.join(", ")}. Current: ${matchingLabels.join(", ")}`,
+    core.error(
+      `PR cannot have multiple labels from: ${requiredLabels.join(", ")}. Current: ${matchingLabels.join(", ")}`,
+      { title: "Multiple Conflicting Labels" },
     );
-    return;
+    process.exit(1);
   }
 
   core.info(`Labels Verified - PR has the correct label: ${matchingLabels[0]}`);

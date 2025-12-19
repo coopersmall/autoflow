@@ -5,18 +5,20 @@ async function run() {
 
   const whatHeaderRegex = /^#+\s*What\s*$/m;
   if (!whatHeaderRegex.test(prBody)) {
-    core.setFailed(
-      'Missing "What" Section - Please add a "What" section to your PR description (# What, ## What, or ### What).',
+    core.error(
+      'Please add a "What" section to your PR description (# What, ## What, or ### What).',
+      { title: 'Missing "What" Section' },
     );
-    return;
+    process.exit(1);
   }
 
   const testingHeaderRegex = /^#+\s*Testing\s*$/m;
   if (!testingHeaderRegex.test(prBody)) {
-    core.setFailed(
-      'Missing "Testing" Section - Please add a "Testing" section to your PR description (# Testing, ## Testing, or ### Testing).',
+    core.error(
+      'Please add a "Testing" section to your PR description (# Testing, ## Testing, or ### Testing).',
+      { title: 'Missing "Testing" Section' },
     );
-    return;
+    process.exit(1);
   }
 
   core.info(
