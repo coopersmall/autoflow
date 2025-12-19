@@ -1,4 +1,5 @@
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { TextResponse } from '@core/domain/ai/response/index.ts';
 import type { ExtractMethods } from '@core/types';
 import type { ToolSet } from 'ai';
 import type { Schema } from 'zod';
@@ -44,7 +45,7 @@ class AIService {
     },
   ) {}
 
-  async completion<TOOLS extends ToolSet>(request: CompletionRequest<TOOLS>) {
+  async completion(request: CompletionRequest): TextResponse {
     return this.actions.completion(this.config, request);
   }
 
