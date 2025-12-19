@@ -1,4 +1,5 @@
 # Rules
+
 1. First think through the problem, read the codebase and use documentation to write your plan.
 2. Before your begin work, check in with me so I can verify your plan.
 3. Once we agree on your plan, write your plan to a markdown file named PLAN.md in the root directory of the project.
