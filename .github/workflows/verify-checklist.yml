@@ -1,0 +1,36 @@
+name: Verify Checklist
+
+on:
+  workflow_call:
+    inputs:
+      issue_number:
+        required: true
+        type: number
+        description: "The issue/PR number"
+
+permissions:
+  pull-requests: write
+  contents: read
+  checks: write
+  issues: read
+  actions: read
+
+jobs:
+  verify-checklist:
+    name: Verify Checklist
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Built Actions
+        uses: actions/download-artifact@v4
+        with:
+          name: actions
+          path: .github/actions
+
+      - name: Verify Acknowledgements
+        uses: ./.github/actions/verify-checklist/
+        with:
+          issue_number: ${{ inputs.issue_number }}
+          token: ${{ secrets.GITHUB_TOKEN }}

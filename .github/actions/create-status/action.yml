@@ -1,0 +1,21 @@
+name: Create Status Check
+description: Creates a status check for the PR
+
+inputs:
+  name:
+    description: "The name of the status check"
+    required: true
+  sha:
+    description: "The commit SHA"
+    required: true
+  token:
+    description: "The GitHub token to use for authentication"
+    required: true
+
+outputs:
+  check_id:
+    description: "The ID of the status check"
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

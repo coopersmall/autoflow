@@ -4,7 +4,7 @@
 INFRA_DOCKER_FILE=./packages/backend/docker-compose.yml
 TEST_DOCKER_FILE=./packages/backend/testing/docker-compose.test.yml
 
-.PHONY: setup deps dev dev-api dev-worker dev-web dev-all start start-api start-worker start-web build db-push db-generate db-migrate install-pre-push infra-start infra-stop shell nix-shell nix-update nix-check nix-info test test-integration test-start test-stop lint format format-unsafe tsc help
+.PHONY: setup deps dev dev-api dev-worker dev-web dev-all start start-api start-worker start-web build db-push db-generate db-migrate install-pre-push infra-start infra-stop shell nix-shell nix-update nix-check nix-info test test-integration test-start test-stop lint format format-unsafe tsc build\:actions help
 
 # === Setup ===
 setup:
@@ -73,7 +73,6 @@ infra-stop:
 # === Nix Development Environment ===
 shell:
 	@echo "Entering Nix development shell..."
-	@echo "Note: Install direnv for automatic environment loading"
 	nix develop ./scripts/nix
 
 nix-shell: shell
@@ -114,6 +113,17 @@ format-unsafe:
 tsc:
 	bun run tsc
 
+# === GitHub Actions ===
+build\:actions:
+	@echo "Building GitHub Actions..."
+	@cd .github/actions && npm install -g @vercel/ncc 2>/dev/null || true
+	@for dir in .github/actions/*/; do \
+		if [ -f "$$dir/index.js" ]; then \
+			echo "Building $$dir..."; \
+			ncc build "$$dir/index.js" -o "$$dir/dist"; \
+		fi \
+	done
+
 # === Help ===
 help:
 	@echo "Autoflow Workspace Commands:"
@@ -147,6 +157,9 @@ help:
 	@echo "    make format         - Format code with Biome"
 	@echo "    make format-unsafe  - Format code with Biome (unsafe fixes)"
 	@echo "    make tsc            - Type check"
+	@echo ""
+	@echo "  GitHub Actions:"
+	@echo "    make build:actions  - Build custom GitHub Actions"
 	@echo ""
 	@echo "  Nix Environment:"
 	@echo "    make shell          - Enter Nix development shell"

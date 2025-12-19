@@ -1,0 +1,83 @@
+name: Verify Tests
+
+on:
+  workflow_call:
+    inputs:
+      sha:
+        description: "The commit SHA"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  checks: write
+  actions: read
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: testdb
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U test -d testdb"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:6-alpine
+        ports:
+          - 6380:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Built Actions
+        uses: actions/download-artifact@v4
+        with:
+          name: actions
+          path: .github/actions
+
+      - name: Create Status
+        id: status
+        uses: ./.github/actions/create-status/
+        with:
+          name: 'Tests Verification'
+          sha: ${{ inputs.sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Setup Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Install Dependencies
+        run: nix develop ./scripts/nix --command bun install --frozen-lockfile
+
+      - name: Run Tests
+        id: action
+        run: nix develop ./scripts/nix --command bun test
+        continue-on-error: true
+
+      - name: Update Status
+        uses: ./.github/actions/update-status/
+        with:
+          check_id: ${{ steps.status.outputs.check_id }}
+          outcome: ${{ steps.action.outcome }}
+          token: ${{ secrets.GITHUB_TOKEN }}

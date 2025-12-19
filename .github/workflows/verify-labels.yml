@@ -1,0 +1,42 @@
+name: Verify Labels
+
+on:
+  workflow_call:
+    inputs:
+      labels:
+        type: string
+        description: "The labels to verify"
+      required_labels:
+        type: string
+        description: "The labels that are required"
+      sha:
+        required: true
+        type: string
+        description: "The commit SHA"
+
+permissions:
+  pull-requests: read
+  contents: read
+  checks: write
+
+jobs:
+  verify-labels:
+    name: Verify Labels
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Built Actions
+        uses: actions/download-artifact@v4
+        with:
+          name: actions
+          path: .github/actions
+
+      - name: Verify Labels
+        uses: ./.github/actions/verify-labels/
+        with:
+          labels: ${{ inputs.labels }}
+          required_labels: ${{ inputs.required_labels }}
+          sha: ${{ inputs.sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,39 @@
+name: Verify Description
+
+on:
+  workflow_call:
+    inputs:
+      pr_body:
+        required: true
+        type: string
+      sha:
+        required: true
+        type: string
+
+permissions:
+  pull-requests: write
+  contents: read
+  checks: write
+  issues: read
+  actions: read
+
+jobs:
+  verify-description:
+    name: Verify Description
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Built Actions
+        uses: actions/download-artifact@v4
+        with:
+          name: actions
+          path: .github/actions
+
+      - name: Verify Description
+        uses: ./.github/actions/verify-description/
+        with:
+          pr_body: ${{ inputs.pr_body }}
+          sha: ${{ inputs.sha }}
+          token: ${{ secrets.GITHUB_TOKEN }}

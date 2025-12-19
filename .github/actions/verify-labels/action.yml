@@ -1,0 +1,20 @@
+name: Verify PR Labels
+description: Verifies that the PR has the required labels
+
+inputs:
+  labels:
+    required: true
+    description: "The labels to verify"
+  required_labels:
+    required: true
+    description: "The labels that are required"
+  sha:
+    description: "The commit SHA"
+    required: true
+  token:
+    description: "The GitHub token to use for authentication"
+    required: true
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

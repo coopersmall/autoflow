@@ -1,0 +1,17 @@
+name: Verify PR Description
+description: Verifies that the PR description has the required sections
+
+inputs:
+  pr_body:
+    description: "The PR body"
+    required: true
+  sha:
+    description: "The commit SHA"
+    required: true
+  token:
+    description: "The GitHub token to use for authentication"
+    required: true
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

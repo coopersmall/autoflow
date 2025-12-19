@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited, labeled, unlabeled]
+  issue_comment:
+    types: [created, edited]
+
+permissions:
+  pull-requests: write
+  contents: read
+  checks: write
+  issues: write
+  actions: write
+
+jobs:
+  # === Build Phase ===
+  # Runs immediately, other jobs depend on this
+  build-actions:
+    name: Build Actions
+    uses: ./.github/workflows/build-actions.yml
+
+  # === Code Quality Jobs ===
+  # All run in parallel after build-actions completes
+  lint:
+    name: Lint
+    needs: [build-actions]
+    uses: ./.github/workflows/verify-nix.yml
+    if: ${{ github.event_name == 'pull_request' && (github.event.action == 'synchronize' || github.event.action == 'opened') }}
+    with:
+      command: "bun run lint"
+      name: "Lint"
+      sha: ${{ github.event.pull_request.head.sha }}
+
+  typecheck:
+    name: Type Check
+    needs: [build-actions]
+    uses: ./.github/workflows/verify-nix.yml
+    if: ${{ github.event_name == 'pull_request' && (github.event.action == 'synchronize' || github.event.action == 'opened') }}
+    with:
+      command: "bun run tsc"
+      name: "Type Check"
+      sha: ${{ github.event.pull_request.head.sha }}
+
+  test:
+    name: Tests
+    needs: [build-actions]
+    uses: ./.github/workflows/verify-test.yml
+    if: ${{ github.event_name == 'pull_request' && (github.event.action == 'synchronize' || github.event.action == 'opened') }}
+    with:
+      sha: ${{ github.event.pull_request.head.sha }}
+
+  build:
+    name: Build
+    needs: [build-actions]
+    uses: ./.github/workflows/verify-nix.yml
+    if: ${{ github.event_name == 'pull_request' && (github.event.action == 'synchronize' || github.event.action == 'opened') }}
+    with:
+      command: "bun run build"
+      name: "Build"
+      sha: ${{ github.event.pull_request.head.sha }}
+
+  # === PR Verification Jobs ===
+  # create-checklist runs immediately (no dependencies - uses github-script, not custom actions)
+  # verify-* jobs run in parallel after build-actions completes
+  create-checklist:
+    name: Create PR Checklist
+    # No 'needs' - runs immediately in parallel with build-actions
+    uses: ./.github/workflows/create-checklist.yml
+    with:
+      issue_number: ${{ github.event.pull_request.number }}
+    if: ${{ github.event_name == 'pull_request' && (github.event.action == 'opened' || github.event.action == 'reopened') }}
+
+  verify-checklist:
+    name: Verify PR Checklist
+    needs: [build-actions]
+    uses: ./.github/workflows/verify-checklist.yml
+    with:
+      issue_number: ${{ github.event.pull_request.number || github.event.issue.number }}
+    if: ${{ github.event_name == 'pull_request' || (github.event_name == 'issue_comment' && github.event.issue.pull_request) }}
+
+  verify-description:
+    name: Verify PR Description
+    needs: [build-actions]
+    uses: ./.github/workflows/verify-description.yml
+    with:
+      pr_body: ${{ github.event.pull_request.body }}
+      sha: ${{ github.event.pull_request.head.sha }}
+    if: ${{ github.event_name == 'pull_request' }}
+
+  verify-labels:
+    name: Verify PR Labels
+    needs: [build-actions]
+    uses: ./.github/workflows/verify-labels.yml
+    with:
+      labels: ${{ toJson(github.event.pull_request.labels.*.name) }}
+      required_labels: "enhancement,bug"
+      sha: ${{ github.event.pull_request.head.sha }}
+    secrets: inherit
+    if: ${{ github.event_name == 'pull_request' }}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
