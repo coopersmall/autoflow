@@ -11,6 +11,12 @@ async function run() {
     .map((label) => label.toLowerCase());
 
   if (!parsed || parsed.length === 0) {
+    await core.summary
+      .addHeading("No Labels Found", 2)
+      .addRaw(
+        `Please add one of the required labels: ${requiredLabels.join(", ")}`,
+      )
+      .write();
     core.error(
       `Please add one of the required labels: ${requiredLabels.join(", ")}`,
       { title: "No Labels Found" },
@@ -23,6 +29,10 @@ async function run() {
   );
 
   if (matchingLabels.length === 0) {
+    await core.summary
+      .addHeading("Missing Required Label", 2)
+      .addRaw(`PR must have one of these labels: ${requiredLabels.join(", ")}`)
+      .write();
     core.error(
       `PR must have one of these labels: ${requiredLabels.join(", ")}`,
       { title: "Missing Required Label" },
@@ -31,6 +41,12 @@ async function run() {
   }
 
   if (matchingLabels.length > 1) {
+    await core.summary
+      .addHeading("Multiple Conflicting Labels", 2)
+      .addRaw(
+        `PR cannot have multiple labels from: ${requiredLabels.join(", ")}. Current: ${matchingLabels.join(", ")}`,
+      )
+      .write();
     core.error(
       `PR cannot have multiple labels from: ${requiredLabels.join(", ")}. Current: ${matchingLabels.join(", ")}`,
       { title: "Multiple Conflicting Labels" },
@@ -38,6 +54,10 @@ async function run() {
     process.exit(1);
   }
 
+  await core.summary
+    .addHeading("Labels Verified", 2)
+    .addRaw(`PR has the correct label: ${matchingLabels[0]}`)
+    .write();
   core.info(`Labels Verified - PR has the correct label: ${matchingLabels[0]}`);
 }
 

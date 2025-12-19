@@ -18,6 +18,12 @@ async function run() {
   );
 
   if (!checklistComment) {
+    await core.summary
+      .addHeading("Required Checklist Missing", 2)
+      .addRaw(
+        "Could not find the required acknowledgements checklist in the PR comments.",
+      )
+      .write();
     core.error(
       "Could not find the required acknowledgements checklist in the PR comments.",
       { title: "Required Checklist Missing" },
@@ -27,6 +33,12 @@ async function run() {
 
   const uncheckedBoxes = (checklistComment.body.match(/\[ \]/g) || []).length;
   if (uncheckedBoxes > 0) {
+    await core.summary
+      .addHeading("Missing Checklist Items", 2)
+      .addRaw(
+        `Found ${uncheckedBoxes} unchecked item${uncheckedBoxes > 1 ? "s" : ""} in the PR checklist. Please complete all required acknowledgements.`,
+      )
+      .write();
     core.error(
       `Found ${uncheckedBoxes} unchecked item${uncheckedBoxes > 1 ? "s" : ""} in the PR checklist.`,
       { title: "Missing Checklist Items" },
@@ -34,6 +46,10 @@ async function run() {
     process.exit(1);
   }
 
+  await core.summary
+    .addHeading("Checklist Complete", 2)
+    .addRaw("All required checklist items have been completed.")
+    .write();
   core.info(
     "Checklist Complete - All required checklist items have been completed.",
   );
