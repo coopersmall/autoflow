@@ -142,7 +142,7 @@ if (existsSync(outdir)) {
 const start = performance.now();
 
 // Scan for all HTML files in the project (relative to package's src directory)
-const entrypoints = [...new Bun.Glob("**.html").scanSync(srcDir)]
+const entrypoints = [...new Bun.Glob("**/*.html").scanSync(srcDir)]
   .map((a) => path.resolve(srcDir, a))
   .filter((dir) => !dir.includes("node_modules"));
 console.log(
