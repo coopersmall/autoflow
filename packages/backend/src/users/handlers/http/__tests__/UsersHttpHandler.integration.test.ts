@@ -1,11 +1,11 @@
-import { beforeAll, describe, expect, it } from "bun:test";
-import { setupHttpIntegrationTest } from "@backend/testing/integration/httpIntegrationTest";
-import { createAPIUserHandlers } from "@backend/users/handlers/http/UsersHttpHandler";
-import { UserId } from "@core/domain/user/user";
-import { validUser } from "@core/domain/user/validation/validUser";
-import * as fc from "fast-check";
+import { beforeAll, describe, expect, it } from 'bun:test';
+import { setupHttpIntegrationTest } from '@backend/testing/integration/httpIntegrationTest';
+import { createAPIUserHandlers } from '@backend/users/handlers/http/UsersHttpHandler';
+import { UserId } from '@core/domain/user/user';
+import { validUser } from '@core/domain/user/validation/validUser';
+import * as fc from 'fast-check';
 
-describe("UsersHttpHandler Integration Tests", () => {
+describe('UsersHttpHandler Integration Tests', () => {
   const {
     getHttpServer,
     getHttpClient,
@@ -31,7 +31,7 @@ describe("UsersHttpHandler Integration Tests", () => {
     await getHttpServer().start(handlers);
   });
 
-  describe("Property Tests", () => {
+  describe('Property Tests', () => {
     // Arbitraries for property-based testing
     const invalidBodyArb = fc.oneof(
       // Missing required field
@@ -41,7 +41,7 @@ describe("UsersHttpHandler Integration Tests", () => {
       fc.record({ schemaVersion: fc.float() }),
       // Invalid types
       fc.constant(null),
-      fc.constant("not an object"),
+      fc.constant('not an object'),
       fc.constant(123),
       fc.constant([1, 2, 3]),
       fc.constant(true),
@@ -49,14 +49,14 @@ describe("UsersHttpHandler Integration Tests", () => {
       fc.constant({}),
     );
 
-    it("should reject all invalid request bodies with 400 for POST /api/users", async () => {
+    it('should reject all invalid request bodies with 400 for POST /api/users', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const headers = await auth.createAdminHeaders();
 
       await fc.assert(
         fc.asyncProperty(invalidBodyArb, async (body) => {
-          const response = await client.post("/api/users", body, { headers });
+          const response = await client.post('/api/users', body, { headers });
 
           // All invalid payloads should be rejected with 400
           expect(response.status).toBe(400);
@@ -65,14 +65,14 @@ describe("UsersHttpHandler Integration Tests", () => {
       );
     });
 
-    it("should reject all invalid request bodies with 400 for PUT /api/users/:id", async () => {
+    it('should reject all invalid request bodies with 400 for PUT /api/users/:id', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const headers = await auth.createAdminHeaders();
 
       // Create a valid user first to update
       const createResponse = await client.post(
-        "/api/users",
+        '/api/users',
         { schemaVersion: 1 },
         { headers },
       );
@@ -81,7 +81,7 @@ describe("UsersHttpHandler Integration Tests", () => {
 
       // For PUT, empty object is valid (no fields to update), so filter it out
       const invalidBodyForPutArb = invalidBodyArb.filter((body) => {
-        return JSON.stringify(body) !== "{}";
+        return JSON.stringify(body) !== '{}';
       });
 
       await fc.assert(
@@ -100,14 +100,14 @@ describe("UsersHttpHandler Integration Tests", () => {
     });
   });
 
-  describe("POST /api/users", () => {
-    it("should create user with admin token (201)", async () => {
+  describe('POST /api/users', () => {
+    it('should create user with admin token (201)', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const headers = await auth.createAdminHeaders();
 
       const response = await client.post(
-        "/api/users",
+        '/api/users',
         { schemaVersion: 1 },
         { headers },
       );
@@ -124,23 +124,23 @@ describe("UsersHttpHandler Integration Tests", () => {
       expect(user.updatedAt).toBeInstanceOf(Date);
     });
 
-    it("should return 401 when no auth header provided", async () => {
+    it('should return 401 when no auth header provided', async () => {
       const client = getHttpClient();
 
-      const response = await client.post("/api/users", { schemaVersion: 1 });
+      const response = await client.post('/api/users', { schemaVersion: 1 });
 
       expect(response.status).toBe(401);
     });
 
-    it("should return 401 when invalid token provided", async () => {
+    it('should return 401 when invalid token provided', async () => {
       const client = getHttpClient();
       const headers = {
-        Authorization: "Bearer invalid-token",
-        "Content-Type": "application/json",
+        Authorization: 'Bearer invalid-token',
+        'Content-Type': 'application/json',
       };
 
       const response = await client.post(
-        "/api/users",
+        '/api/users',
         { schemaVersion: 1 },
         { headers },
       );
@@ -148,14 +148,14 @@ describe("UsersHttpHandler Integration Tests", () => {
       expect(response.status).toBe(401);
     });
 
-    it("should return 401 when expired token provided", async () => {
+    it('should return 401 when expired token provided', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const expiredToken = await auth.createExpiredToken();
       const headers = auth.createBearerHeaders(expiredToken);
 
       const response = await client.post(
-        "/api/users",
+        '/api/users',
         { schemaVersion: 1 },
         { headers },
       );
@@ -163,14 +163,14 @@ describe("UsersHttpHandler Integration Tests", () => {
       expect(response.status).toBe(401);
     });
 
-    it("should return 403 when token has no permissions", async () => {
+    it('should return 403 when token has no permissions', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const token = await auth.createUnauthorizedToken();
       const headers = auth.createBearerHeaders(token);
 
       const response = await client.post(
-        "/api/users",
+        '/api/users',
         { schemaVersion: 1 },
         { headers },
       );
@@ -178,14 +178,14 @@ describe("UsersHttpHandler Integration Tests", () => {
       expect(response.status).toBe(403);
     });
 
-    it("should return 403 when token has read-only permissions", async () => {
+    it('should return 403 when token has read-only permissions', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const token = await auth.createTokenWithReadAccess();
       const headers = auth.createBearerHeaders(token);
 
       const response = await client.post(
-        "/api/users",
+        '/api/users',
         { schemaVersion: 1 },
         { headers },
       );
@@ -193,14 +193,14 @@ describe("UsersHttpHandler Integration Tests", () => {
       expect(response.status).toBe(403);
     });
 
-    it("should return 400 when invalid body provided", async () => {
+    it('should return 400 when invalid body provided', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const headers = await auth.createAdminHeaders();
 
       const response = await client.post(
-        "/api/users",
-        { invalid: "data" },
+        '/api/users',
+        { invalid: 'data' },
         { headers },
       );
 
@@ -208,14 +208,14 @@ describe("UsersHttpHandler Integration Tests", () => {
     });
   });
 
-  describe("GET /api/users/:id", () => {
-    it("should retrieve user by id with admin token (200)", async () => {
+  describe('GET /api/users/:id', () => {
+    it('should retrieve user by id with admin token (200)', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const headers = await auth.createAdminHeaders();
 
       const createResponse = await client.post(
-        "/api/users",
+        '/api/users',
         { schemaVersion: 1 },
         { headers },
       );
@@ -236,7 +236,7 @@ describe("UsersHttpHandler Integration Tests", () => {
       expect(retrievedUser.schemaVersion).toBe(1);
     });
 
-    it("should return 404 when user not found", async () => {
+    it('should return 404 when user not found', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const headers = await auth.createAdminHeaders();
@@ -249,32 +249,32 @@ describe("UsersHttpHandler Integration Tests", () => {
       expect(response.status).toBe(404);
     });
 
-    it("should return 401 when no auth header provided", async () => {
+    it('should return 401 when no auth header provided', async () => {
       const client = getHttpClient();
 
-      const response = await client.get("/api/users/some-id");
+      const response = await client.get('/api/users/some-id');
 
       expect(response.status).toBe(401);
     });
 
-    it("should return 403 when token has no permissions", async () => {
+    it('should return 403 when token has no permissions', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const token = await auth.createUnauthorizedToken();
       const headers = auth.createBearerHeaders(token);
 
-      const response = await client.get("/api/users/some-id", { headers });
+      const response = await client.get('/api/users/some-id', { headers });
 
       expect(response.status).toBe(403);
     });
 
-    it("should allow read with read:users permission (200)", async () => {
+    it('should allow read with read:users permission (200)', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const adminHeaders = await auth.createAdminHeaders();
 
       const createResponse = await client.post(
-        "/api/users",
+        '/api/users',
         { schemaVersion: 1 },
         { headers: adminHeaders },
       );
@@ -294,14 +294,14 @@ describe("UsersHttpHandler Integration Tests", () => {
     });
   });
 
-  describe("PUT /api/users/:id", () => {
-    it("should update user with admin token (200)", async () => {
+  describe('PUT /api/users/:id', () => {
+    it('should update user with admin token (200)', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const headers = await auth.createAdminHeaders();
 
       const createResponse = await client.post(
-        "/api/users",
+        '/api/users',
         { schemaVersion: 1 },
         { headers },
       );
@@ -328,13 +328,13 @@ describe("UsersHttpHandler Integration Tests", () => {
       );
     });
 
-    it("should return 403 when token has read-only permissions", async () => {
+    it('should return 403 when token has read-only permissions', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const adminHeaders = await auth.createAdminHeaders();
 
       const createResponse = await client.post(
-        "/api/users",
+        '/api/users',
         { schemaVersion: 1 },
         { headers: adminHeaders },
       );
@@ -355,7 +355,7 @@ describe("UsersHttpHandler Integration Tests", () => {
       expect(updateResponse.status).toBe(403);
     });
 
-    it("should return 404 when user not found", async () => {
+    it('should return 404 when user not found', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const headers = await auth.createAdminHeaders();
@@ -371,14 +371,14 @@ describe("UsersHttpHandler Integration Tests", () => {
     });
   });
 
-  describe("DELETE /api/users/:id", () => {
-    it("should delete user with admin token (200)", async () => {
+  describe('DELETE /api/users/:id', () => {
+    it('should delete user with admin token (200)', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const headers = await auth.createAdminHeaders();
 
       const createResponse = await client.post(
-        "/api/users",
+        '/api/users',
         { schemaVersion: 1 },
         { headers },
       );
@@ -401,7 +401,7 @@ describe("UsersHttpHandler Integration Tests", () => {
       expect(getResponse.status).toBe(404);
     });
 
-    it("should return 404 when user not found", async () => {
+    it('should return 404 when user not found', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const headers = await auth.createAdminHeaders();
@@ -414,13 +414,13 @@ describe("UsersHttpHandler Integration Tests", () => {
       expect(response.status).toBe(404);
     });
 
-    it("should return 403 when token has read-only permissions", async () => {
+    it('should return 403 when token has read-only permissions', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const adminHeaders = await auth.createAdminHeaders();
 
       const createResponse = await client.post(
-        "/api/users",
+        '/api/users',
         { schemaVersion: 1 },
         { headers: adminHeaders },
       );
@@ -441,17 +441,17 @@ describe("UsersHttpHandler Integration Tests", () => {
     });
   });
 
-  describe("GET /api/users", () => {
-    it("should retrieve all users with admin token (200)", async () => {
+  describe('GET /api/users', () => {
+    it('should retrieve all users with admin token (200)', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const headers = await auth.createAdminHeaders();
 
-      await client.post("/api/users", { schemaVersion: 1 }, { headers });
-      await client.post("/api/users", { schemaVersion: 1 }, { headers });
-      await client.post("/api/users", { schemaVersion: 1 }, { headers });
+      await client.post('/api/users', { schemaVersion: 1 }, { headers });
+      await client.post('/api/users', { schemaVersion: 1 }, { headers });
+      await client.post('/api/users', { schemaVersion: 1 }, { headers });
 
-      const response = await client.get("/api/users", { headers });
+      const response = await client.get('/api/users', { headers });
 
       expect(response.status).toBe(200);
 
@@ -461,12 +461,12 @@ describe("UsersHttpHandler Integration Tests", () => {
       }
     });
 
-    it("should return empty array when no users exist (200)", async () => {
+    it('should return empty array when no users exist (200)', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const headers = await auth.createAdminHeaders();
 
-      const response = await client.get("/api/users", { headers });
+      const response = await client.get('/api/users', { headers });
 
       expect(response.status).toBe(200);
 
@@ -476,21 +476,21 @@ describe("UsersHttpHandler Integration Tests", () => {
       }
     });
 
-    it("should return 401 when no auth header provided", async () => {
+    it('should return 401 when no auth header provided', async () => {
       const client = getHttpClient();
 
-      const response = await client.get("/api/users");
+      const response = await client.get('/api/users');
 
       expect(response.status).toBe(401);
     });
 
-    it("should return 403 when token has no permissions", async () => {
+    it('should return 403 when token has no permissions', async () => {
       const client = getHttpClient();
       const auth = getTestAuth();
       const token = await auth.createUnauthorizedToken();
       const headers = auth.createBearerHeaders(token);
 
-      const response = await client.get("/api/users", { headers });
+      const response = await client.get('/api/users', { headers });
 
       expect(response.status).toBe(403);
     });
