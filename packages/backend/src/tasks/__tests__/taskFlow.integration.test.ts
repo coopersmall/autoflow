@@ -423,14 +423,17 @@ describe('Task Flow Integration Tests', () => {
       try {
         await worker.start();
 
-        // Schedule task with 1 second delay
+        // Schedule task with 100ms delay (short enough for fast tests)
         const correlationId = CorrelationId();
         const ctx = createMockContext({ correlationId });
+        const scheduledAt = new Date();
+        const delayMs = 100;
+
         const scheduleResult = await scheduler.schedule(
           ctx,
           testTask,
           { message: 'Delayed task' },
-          { delayMs: 1000 },
+          { delayMs },
         );
 
         expect(scheduleResult.isOk()).toBe(true);
@@ -438,15 +441,27 @@ describe('Task Flow Integration Tests', () => {
         expect(taskRecord.status).toBe('delayed');
         expect(taskRecord.delayUntil).toBeDefined();
 
-        // Verify task is not processed immediately
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        expect(processedTasks.length).toBe(0);
+        // Verify delayUntil is set correctly relative to scheduledAt
+        const expectedDelayUntil = new Date(scheduledAt.getTime() + delayMs);
+        const delayUntilTime = taskRecord.delayUntil!.getTime();
+        expect(delayUntilTime).toBeGreaterThanOrEqual(
+          expectedDelayUntil.getTime() - 50,
+        );
+        expect(delayUntilTime).toBeLessThanOrEqual(
+          expectedDelayUntil.getTime() + 50,
+        );
 
         // Wait for task to be processed after delay
         await waitForCondition(
           () => processedTasks.length > 0,
-          5000,
+          2000,
           'Delayed task was not processed in time',
+        );
+
+        // Verify task was processed after the delay
+        const processedAt = new Date();
+        expect(processedAt.getTime()).toBeGreaterThanOrEqual(
+          delayUntilTime - 50,
         );
 
         expect(processedTasks.length).toBe(1);

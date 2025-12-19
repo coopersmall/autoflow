@@ -1,0 +1,33 @@
+name: Verify Nix
+
+on:
+  workflow_call:
+    inputs:
+      command:
+        description: "Command to run inside nix develop"
+        required: true
+        type: string
+      name:
+        description: "Name of the check"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: ${{ inputs.name }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Install Dependencies
+        run: nix develop ./scripts/nix --command bun install --frozen-lockfile
+
+      - name: ${{ inputs.name }}
+        run: nix develop ./scripts/nix --command ${{ inputs.command }}

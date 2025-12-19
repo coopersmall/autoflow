@@ -1,0 +1,11 @@
+name: Verify PR Description
+description: Verifies that the PR description has the required sections
+
+inputs:
+  pr_body:
+    description: "The PR body"
+    required: true
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

@@ -1,0 +1,14 @@
+name: Verify PR Checklist
+description: Verifies that the PR checklist has been completed
+
+inputs:
+  issue_number:
+    description: "The PR number"
+    required: true
+  token:
+    description: "The GitHub token to use for authentication"
+    required: true
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'

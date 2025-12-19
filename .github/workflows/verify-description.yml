@@ -1,0 +1,30 @@
+name: Verify PR Description
+
+on:
+  workflow_call:
+    inputs:
+      pr_body:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify-description:
+    name: Verify PR Description
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download Built Actions
+        uses: actions/download-artifact@v4
+        with:
+          name: actions
+          path: .github/actions
+
+      - name: Verify Description
+        uses: ./.github/actions/verify-description/
+        with:
+          pr_body: ${{ inputs.pr_body }}

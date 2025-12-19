@@ -1,0 +1,13 @@
+{
+  "name": "actions",
+  "version": "1.0.0",
+  "description": "Custom GitHub Actions for autoflow CI",
+  "type": "module",
+  "scripts": {
+    "build": "echo 'Actions are plain JS, no build needed'"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.0"
+  }
+}

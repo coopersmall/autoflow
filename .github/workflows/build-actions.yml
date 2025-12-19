@@ -1,0 +1,45 @@
+name: Build Actions
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  build-actions:
+    name: Build Actions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: .github/actions/package-lock.json
+
+      - name: Cache Node Modules
+        uses: actions/cache@v4
+        with:
+          path: .github/actions/node_modules
+          key: ${{ runner.os }}-actions-node-${{ hashFiles('.github/actions/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-actions-node-
+
+      - name: Install Dependencies
+        working-directory: ./.github/actions
+        run: npm ci
+
+      - name: Build Actions
+        run: make build:actions
+
+      - name: Upload Built Actions
+        uses: actions/upload-artifact@v4
+        with:
+          name: actions
+          path: .github/actions/**/dist/
+          compression-level: 0

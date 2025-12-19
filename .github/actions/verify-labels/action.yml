@@ -1,0 +1,14 @@
+name: Verify PR Labels
+description: Verifies that the PR has the required labels
+
+inputs:
+  labels:
+    required: true
+    description: "The labels to verify"
+  required_labels:
+    required: true
+    description: "The labels that are required"
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
