@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   verify-description:
-    name: Verify Description
+    name: Verify PR Description
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

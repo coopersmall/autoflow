@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   verify-checklist:
-    name: Verify Checklist
+    name: Verify PR Checklist
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
