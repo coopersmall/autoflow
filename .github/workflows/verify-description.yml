@@ -6,16 +6,9 @@ on:
       pr_body:
         required: true
         type: string
-      sha:
-        required: true
-        type: string
 
 permissions:
-  pull-requests: write
   contents: read
-  checks: write
-  issues: read
-  actions: read
 
 jobs:
   verify-description:
@@ -35,5 +28,3 @@ jobs:
         uses: ./.github/actions/verify-description/
         with:
           pr_body: ${{ inputs.pr_body }}
-          sha: ${{ inputs.sha }}
-          token: ${{ secrets.GITHUB_TOKEN }}

@@ -10,25 +10,25 @@
  * These tests require real Redis and PostgreSQL connections.
  */
 
-import { beforeEach, describe, expect, it } from 'bun:test';
-import { createMockContext } from '@backend/infrastructure/context/__mocks__/Context.mock';
-import { FAST_RETRY_CONFIG } from '@backend/infrastructure/queue/domain/QueueConfig';
-import type { TaskContext } from '@backend/tasks/domain/TaskContext';
-import { defineTask } from '@backend/tasks/domain/TaskDefinition';
-import type { TaskError } from '@backend/tasks/domain/TaskError';
-import type { TaskResult } from '@backend/tasks/domain/TaskResult';
-import { createTaskQueue } from '@backend/tasks/queue/TaskQueue';
-import { createTasksRepo } from '@backend/tasks/repos/TasksRepo';
-import { createTaskScheduler } from '@backend/tasks/scheduler/TaskScheduler';
-import { createTaskWorker } from '@backend/tasks/worker/TaskWorker';
-import { setupIntegrationTest } from '@backend/testing/integration/integrationTest';
-import { CorrelationId } from '@core/domain/CorrelationId';
-import { validate } from '@core/validation/validate';
-import * as fc from 'fast-check';
-import { err, ok, type Result } from 'neverthrow';
-import zod from 'zod';
+import { beforeEach, describe, expect, it } from "bun:test";
+import { createMockContext } from "@backend/infrastructure/context/__mocks__/Context.mock";
+import { FAST_RETRY_CONFIG } from "@backend/infrastructure/queue/domain/QueueConfig";
+import type { TaskContext } from "@backend/tasks/domain/TaskContext";
+import { defineTask } from "@backend/tasks/domain/TaskDefinition";
+import type { TaskError } from "@backend/tasks/domain/TaskError";
+import type { TaskResult } from "@backend/tasks/domain/TaskResult";
+import { createTaskQueue } from "@backend/tasks/queue/TaskQueue";
+import { createTasksRepo } from "@backend/tasks/repos/TasksRepo";
+import { createTaskScheduler } from "@backend/tasks/scheduler/TaskScheduler";
+import { createTaskWorker } from "@backend/tasks/worker/TaskWorker";
+import { setupIntegrationTest } from "@backend/testing/integration/integrationTest";
+import { CorrelationId } from "@core/domain/CorrelationId";
+import { validate } from "@core/validation/validate";
+import * as fc from "fast-check";
+import { err, ok, type Result } from "neverthrow";
+import zod from "zod";
 
-describe('Task Flow Integration Tests', () => {
+describe("Task Flow Integration Tests", () => {
   const { getConfig, getLogger } = setupIntegrationTest();
 
   // Test payloads
@@ -67,7 +67,7 @@ describe('Task Flow Integration Tests', () => {
         failureCount++;
         return err({
           success: false as const,
-          reason: 'Simulated task failure',
+          reason: "Simulated task failure",
           lastAttemptAt: new Date(),
         });
       }
@@ -90,7 +90,7 @@ describe('Task Flow Integration Tests', () => {
       handler,
       options: {
         maxAttempts: options?.maxAttempts ?? 3,
-        priority: 'normal',
+        priority: "normal",
       },
     });
   };
@@ -100,7 +100,7 @@ describe('Task Flow Integration Tests', () => {
     failureCount = 0;
   });
 
-  describe('Property Tests', () => {
+  describe("Property Tests", () => {
     // Arbitraries for property-based testing
     const validPayloadArb = fc.record({
       message: fc.string({ minLength: 1, maxLength: 1000 }),
@@ -121,10 +121,10 @@ describe('Task Flow Integration Tests', () => {
       // Completely invalid structure
       fc.constant(null),
       fc.constant(undefined),
-      fc.constant('not an object'),
+      fc.constant("not an object"),
     );
 
-    it('should accept all valid payloads that match schema', async () => {
+    it("should accept all valid payloads that match schema", async () => {
       const config = getConfig();
       const logger = getLogger();
       const queueName = `test-queue-valid-${Date.now()}`;
@@ -153,7 +153,7 @@ describe('Task Flow Integration Tests', () => {
       );
     });
 
-    it('should reject payloads that do not match schema', async () => {
+    it("should reject payloads that do not match schema", async () => {
       const config = getConfig();
       const logger = getLogger();
       const queueName = `test-queue-invalid-${Date.now()}`;
@@ -174,7 +174,7 @@ describe('Task Flow Integration Tests', () => {
           expect(scheduleResult.isErr()).toBe(true);
           if (scheduleResult.isErr()) {
             const error = scheduleResult.error;
-            expect(error.message).toContain('validation');
+            expect(error.message).toContain("validation");
           }
         }),
         { numRuns: 30 },
@@ -182,8 +182,8 @@ describe('Task Flow Integration Tests', () => {
     });
   });
 
-  describe('Schedule → Process → Complete', () => {
-    it('should complete a task successfully', async () => {
+  describe("Schedule → Process → Complete", () => {
+    it("should complete a task successfully", async () => {
       const config = getConfig();
       const logger = getLogger();
       const queueName = `test-queue-${Date.now()}`;
@@ -206,31 +206,31 @@ describe('Task Flow Integration Tests', () => {
         const correlationId = CorrelationId();
         const ctx = createMockContext({ correlationId });
         const scheduleResult = await scheduler.schedule(ctx, testTask, {
-          message: 'Hello, World!',
+          message: "Hello, World!",
         });
 
         expect(scheduleResult.isOk()).toBe(true);
         const taskRecord = scheduleResult._unsafeUnwrap();
-        expect(taskRecord.status).toBe('pending');
+        expect(taskRecord.status).toBe("pending");
         expect(taskRecord.taskName).toBe(queueName);
 
         // Wait for task to be processed
         await waitForCondition(
           () => processedTasks.length > 0,
           5000,
-          'Task was not processed in time',
+          "Task was not processed in time",
         );
 
         // Verify task was processed
         expect(processedTasks.length).toBe(1);
-        expect(processedTasks[0].payload.message).toBe('Hello, World!');
+        expect(processedTasks[0].payload.message).toBe("Hello, World!");
 
         // Verify task status in database
         const repo = createTasksRepo({ appConfig: config });
         const getResult = await repo.get(ctx, taskRecord.id);
         expect(getResult.isOk()).toBe(true);
         const updatedTask = getResult._unsafeUnwrap();
-        expect(updatedTask.status).toBe('completed');
+        expect(updatedTask.status).toBe("completed");
         expect(updatedTask.completedAt).toBeDefined();
 
         // Verify queue is empty
@@ -251,7 +251,7 @@ describe('Task Flow Integration Tests', () => {
       }
     });
 
-    it('should process multiple tasks concurrently', async () => {
+    it("should process multiple tasks concurrently", async () => {
       const config = getConfig();
       const logger = getLogger();
       const queueName = `test-queue-concurrent-${Date.now()}`;
@@ -283,7 +283,7 @@ describe('Task Flow Integration Tests', () => {
         await waitForCondition(
           () => processedTasks.length >= 5,
           10000,
-          'Not all tasks were processed in time',
+          "Not all tasks were processed in time",
         );
 
         expect(processedTasks.length).toBe(5);
@@ -308,14 +308,14 @@ describe('Task Flow Integration Tests', () => {
     });
   });
 
-  describe('Schedule → Process → Fail → Retry', () => {
+  describe("Schedule → Process → Fail → Retry", () => {
     // This test uses FAST_RETRY_CONFIG (100ms backoff) for fast execution
     // With maxAttempts=3 and 100ms exponential backoff:
     // - Attempt 1: immediate
     // - Attempt 2: after 100ms delay
     // - Attempt 3: after 200ms delay
     // Total: ~300ms + processing time
-    it('should retry failed task and eventually fail permanently', async () => {
+    it("should retry failed task and eventually fail permanently", async () => {
       const config = getConfig();
       const logger = getLogger();
       const queueName = `test-queue-fail-${Date.now()}`;
@@ -340,7 +340,7 @@ describe('Task Flow Integration Tests', () => {
         const correlationId = CorrelationId();
         const ctx = createMockContext({ correlationId });
         const scheduleResult = await scheduler.schedule(ctx, testTask, {
-          message: 'Will fail',
+          message: "Will fail",
           shouldFail: true,
         });
 
@@ -352,7 +352,7 @@ describe('Task Flow Integration Tests', () => {
         await waitForCondition(
           () => failureCount >= 3,
           5000,
-          'Task did not exhaust retries in time',
+          "Task did not exhaust retries in time",
         );
 
         // Give time for the final status update
@@ -363,7 +363,7 @@ describe('Task Flow Integration Tests', () => {
         const getResult = await repo.get(ctx, taskRecord.id);
         expect(getResult.isOk()).toBe(true);
         const updatedTask = getResult._unsafeUnwrap();
-        expect(updatedTask.status).toBe('failed');
+        expect(updatedTask.status).toBe("failed");
         expect(updatedTask.failedAt).toBeDefined();
         expect(updatedTask.error).toBeDefined();
       } finally {
@@ -372,8 +372,8 @@ describe('Task Flow Integration Tests', () => {
     });
   });
 
-  describe('Schedule → Cancel', () => {
-    it('should cancel a pending task', async () => {
+  describe("Schedule → Cancel", () => {
+    it("should cancel a pending task", async () => {
       const config = getConfig();
       const logger = getLogger();
       const queueName = `test-queue-cancel-${Date.now()}`;
@@ -385,7 +385,7 @@ describe('Task Flow Integration Tests', () => {
       const correlationId = CorrelationId();
       const ctx = createMockContext({ correlationId });
       const scheduleResult = await scheduler.schedule(ctx, testTask, {
-        message: 'Will be cancelled',
+        message: "Will be cancelled",
       });
 
       expect(scheduleResult.isOk()).toBe(true);
@@ -394,20 +394,20 @@ describe('Task Flow Integration Tests', () => {
       // Cancel the task directly in the database
       const repo = createTasksRepo({ appConfig: config });
       const cancelResult = await repo.update(ctx, taskRecord.id, {
-        status: 'cancelled',
+        status: "cancelled",
       });
 
       expect(cancelResult.isOk()).toBe(true);
       const cancelledTask = cancelResult._unsafeUnwrap();
-      expect(cancelledTask.status).toBe('cancelled');
+      expect(cancelledTask.status).toBe("cancelled");
 
       // Verify task was not processed
       expect(processedTasks.length).toBe(0);
     });
   });
 
-  describe('Delayed tasks', () => {
-    it('should schedule and process delayed task', async () => {
+  describe("Delayed tasks", () => {
+    it("should schedule and process delayed task", async () => {
       const config = getConfig();
       const logger = getLogger();
       const queueName = `test-queue-delayed-${Date.now()}`;
@@ -423,41 +423,56 @@ describe('Task Flow Integration Tests', () => {
       try {
         await worker.start();
 
-        // Schedule task with 1 second delay
+        // Schedule task with 100ms delay (short enough for fast tests)
         const correlationId = CorrelationId();
         const ctx = createMockContext({ correlationId });
+        const scheduledAt = new Date();
+        const delayMs = 100;
+
         const scheduleResult = await scheduler.schedule(
           ctx,
           testTask,
-          { message: 'Delayed task' },
-          { delayMs: 1000 },
+          { message: "Delayed task" },
+          { delayMs },
         );
 
         expect(scheduleResult.isOk()).toBe(true);
         const taskRecord = scheduleResult._unsafeUnwrap();
-        expect(taskRecord.status).toBe('delayed');
+        expect(taskRecord.status).toBe("delayed");
         expect(taskRecord.delayUntil).toBeDefined();
 
-        // Verify task is not processed immediately
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        expect(processedTasks.length).toBe(0);
+        // Verify delayUntil is set correctly relative to scheduledAt
+        const expectedDelayUntil = new Date(scheduledAt.getTime() + delayMs);
+        const delayUntilTime = taskRecord.delayUntil!.getTime();
+        expect(delayUntilTime).toBeGreaterThanOrEqual(
+          expectedDelayUntil.getTime() - 50,
+        );
+        expect(delayUntilTime).toBeLessThanOrEqual(
+          expectedDelayUntil.getTime() + 50,
+        );
 
         // Wait for task to be processed after delay
         await waitForCondition(
           () => processedTasks.length > 0,
-          5000,
-          'Delayed task was not processed in time',
+          2000,
+          "Delayed task was not processed in time",
+        );
+
+        // Verify task was processed after the delay
+        const processedAt = new Date();
+        expect(processedAt.getTime()).toBeGreaterThanOrEqual(
+          delayUntilTime - 50,
         );
 
         expect(processedTasks.length).toBe(1);
-        expect(processedTasks[0].payload.message).toBe('Delayed task');
+        expect(processedTasks[0].payload.message).toBe("Delayed task");
 
         // Verify task status in database
         const repo = createTasksRepo({ appConfig: config });
         const getResult = await repo.get(ctx, taskRecord.id);
         expect(getResult.isOk()).toBe(true);
         const updatedTask = getResult._unsafeUnwrap();
-        expect(updatedTask.status).toBe('completed');
+        expect(updatedTask.status).toBe("completed");
 
         // Verify queue is empty
         const queue = createTaskQueue({
@@ -479,8 +494,8 @@ describe('Task Flow Integration Tests', () => {
     });
   });
 
-  describe('Task validation', () => {
-    it('should reject task with invalid payload', async () => {
+  describe("Task validation", () => {
+    it("should reject task with invalid payload", async () => {
       const config = getConfig();
       const logger = getLogger();
       const queueName = `test-queue-validation-${Date.now()}`;
@@ -491,7 +506,7 @@ describe('Task Flow Integration Tests', () => {
       // Schedule task with invalid payload (missing required 'message' field)
       const correlationId = CorrelationId();
       const ctx = createMockContext({ correlationId });
-      const invalidPayload = { invalidField: 'test' } as unknown as TestPayload;
+      const invalidPayload = { invalidField: "test" } as unknown as TestPayload;
       const scheduleResult = await scheduler.schedule(
         ctx,
         testTask,
@@ -499,7 +514,7 @@ describe('Task Flow Integration Tests', () => {
       );
 
       expect(scheduleResult.isErr()).toBe(true);
-      expect(scheduleResult._unsafeUnwrapErr().message).toContain('validation');
+      expect(scheduleResult._unsafeUnwrapErr().message).toContain("validation");
     });
   });
 });

@@ -9,15 +9,9 @@ on:
       required_labels:
         type: string
         description: "The labels that are required"
-      sha:
-        required: true
-        type: string
-        description: "The commit SHA"
 
 permissions:
-  pull-requests: read
   contents: read
-  checks: write
 
 jobs:
   verify-labels:
@@ -38,5 +32,3 @@ jobs:
         with:
           labels: ${{ inputs.labels }}
           required_labels: ${{ inputs.required_labels }}
-          sha: ${{ inputs.sha }}
-          token: ${{ secrets.GITHUB_TOKEN }}

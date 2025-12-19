@@ -9,11 +9,8 @@ on:
         description: "The issue/PR number"
 
 permissions:
-  pull-requests: write
   contents: read
-  checks: write
   issues: read
-  actions: read
 
 jobs:
   verify-checklist:

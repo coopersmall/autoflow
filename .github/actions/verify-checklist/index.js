@@ -1,16 +1,11 @@
 import * as github from "@actions/github";
 import * as core from "@actions/core";
 
-const checkName = "Checklist Verification";
-
-async function run({ context, octokit }, issueNumber) {
-  const check = await octokit.rest.checks.create({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    name: checkName,
-    head_sha: context.sha,
-    status: "in_progress",
-  });
+async function run() {
+  const issueNumber = core.getInput("issue_number");
+  const token = core.getInput("token");
+  const octokit = github.getOctokit(token);
+  const context = github.context;
 
   const response = await octokit.rest.issues.listComments({
     owner: context.repo.owner,
@@ -23,55 +18,23 @@ async function run({ context, octokit }, issueNumber) {
   );
 
   if (!checklistComment) {
-    await octokit.rest.checks.update({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      check_run_id: check.data.id,
-      status: "completed",
-      conclusion: "failure",
-      output: {
-        title: "Required Checklist Missing",
-        summary:
-          "Could not find the required acknowledgements checklist in the PR comments.",
-        text: "Please ensure that the PR includes the Required Acknowledgements checklist.",
-      },
-    });
+    core.setFailed(
+      "Required Checklist Missing - Could not find the required acknowledgements checklist in the PR comments.",
+    );
     return;
   }
 
   const uncheckedBoxes = (checklistComment.body.match(/\[ \]/g) || []).length;
   if (uncheckedBoxes > 0) {
-    await octokit.rest.checks.update({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      check_run_id: check.data.id,
-      status: "completed",
-      conclusion: "failure",
-      output: {
-        title: "Missing Checklist Items",
-        summary: `Found ${uncheckedBoxes} unchecked item${uncheckedBoxes > 1 ? "s" : ""} in the PR checklist`,
-        text: "Please complete all items in the Required Acknowledgements checklist before proceeding.",
-      },
-    });
+    core.setFailed(
+      `Missing Checklist Items - Found ${uncheckedBoxes} unchecked item${uncheckedBoxes > 1 ? "s" : ""} in the PR checklist.`,
+    );
     return;
   }
 
-  await octokit.rest.checks.update({
-    owner: context.repo.owner,
-    repo: context.repo.repo,
-    check_run_id: check.data.id,
-    status: "completed",
-    conclusion: "success",
-    output: {
-      title: "Checklist Complete",
-      summary: "All required checklist items have been completed.",
-      text: "The PR checklist has been properly filled out.",
-    },
-  });
+  core.info(
+    "Checklist Complete - All required checklist items have been completed.",
+  );
 }
 
-const issueNumber = core.getInput("issue_number");
-const context = github.context;
-const octokit = github.getOctokit(core.getInput("token"));
-
-await run({ context, octokit }, issueNumber);
+await run();

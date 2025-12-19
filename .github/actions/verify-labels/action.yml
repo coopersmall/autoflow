@@ -8,12 +8,6 @@ inputs:
   required_labels:
     required: true
     description: "The labels that are required"
-  sha:
-    description: "The commit SHA"
-    required: true
-  token:
-    description: "The GitHub token to use for authentication"
-    required: true
 
 runs:
   using: 'node20'
