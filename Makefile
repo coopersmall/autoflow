@@ -14,7 +14,6 @@ setup:
 
 # === Dependencies ===
 deps: install-pre-push
-	@ln -sf ./CONTRIBUTING.md ./AGENTS.md
 	bun install
 
 # === Development ===

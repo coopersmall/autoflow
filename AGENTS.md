@@ -1,4 +1,5 @@
 # Rules
+
 1. First think through the problem, read the codebase and use documentation to write your plan.
 2. Before your begin work, check in with me so I can verify your plan.
 3. Once we agree on your plan, write your plan to a markdown file named PLAN.md in the root directory of the project.
@@ -27,39 +28,3 @@ Refer to specific guides for various aspects of the project:
 
 ### Quality
 - [Testing Guide](./docs/testing.md) - Unit and integration testing
-
-# Project Structure
-
-```
-autoflow/
-├── apps/
-│   ├── api/          # API server
-│   ├── worker/       # Background worker
-│   └── web/          # Web frontend
-├── packages/
-│   ├── backend/      # Backend services and infrastructure
-│   │   └── src/
-│   │       ├── infrastructure/     # Foundational code (how things work)
-│   │       │   ├── cache/          # Cache abstractions
-│   │       │   ├── repos/          # Repository abstractions
-│   │       │   ├── services/       # SharedService + StandardService
-│   │       │   ├── http/           # HTTP server framework
-│   │       │   ├── logger/         # Logging utility
-│   │       │   ├── configuration/  # App configuration
-│   │       │   ├── encryption/     # Encryption utilities
-│   │       │   ├── queue/          # Queue abstractions (BullMQ, SQS, etc.)
-│   │       │   └── db/             # Database schema
-│   │       ├── ai/                 # AI/LLM features
-│   │       ├── auth/               # Authentication
-│   │       ├── integrations/       # Third-party integrations
-│   │       ├── markets/            # Market data
-│   │       ├── secrets/            # Secrets management
-│   │       ├── tasks/              # Background tasks
-│   │       └── users/              # User management
-│   ├── client/       # HTTP client
-│   ├── core/         # Domain models
-│   └── web/          # Web components
-├── docs/             # Documentation
-├── scripts/          # Development scripts
-└── Makefile          # Development commands
-```
