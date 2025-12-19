@@ -2,10 +2,12 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize]
 
 permissions:
   contents: read
   checks: write
+  actions: write
 
 jobs:
   build-actions:
