@@ -15,7 +15,6 @@ jobs:
     uses: ./.github/workflows/build-actions.yml
 
   lint:
-    name: Lint
     needs: [build-actions]
     uses: ./.github/workflows/verify-nix.yml
     with:
@@ -23,7 +22,6 @@ jobs:
       name: "Lint"
 
   typecheck:
-    name: Type Check
     needs: [build-actions]
     uses: ./.github/workflows/verify-nix.yml
     with:
@@ -31,12 +29,10 @@ jobs:
       name: "Type Check"
 
   test:
-    name: Tests
     needs: [build-actions]
     uses: ./.github/workflows/verify-test.yml
 
   build:
-    name: Build
     needs: [build-actions]
     uses: ./.github/workflows/verify-nix.yml
     with:
