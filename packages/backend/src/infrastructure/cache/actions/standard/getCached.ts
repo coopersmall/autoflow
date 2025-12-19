@@ -1,13 +1,14 @@
 import type { ICacheAdapter } from '@backend/infrastructure/cache/domain/CacheAdapter';
+import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
 import type { UserId } from '@core/domain/user/user';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Validator } from '@core/validation/validate';
 import { err, ok, type Result } from 'neverthrow';
 
-export interface GetCachedContext<
+export interface GetCachedDeps<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > {
@@ -24,14 +25,16 @@ export interface GetCachedRequest<
   readonly id: ID;
   readonly userId: UserId;
   readonly onMiss?: (
+    ctx: Context,
     id: ID,
     userId: UserId,
-  ) => Promise<Result<T, ErrorWithMetadata>>;
+  ) => Promise<Result<T, AppError>>;
   readonly setCached: (
+    ctx: Context,
     item: T,
     userId: UserId,
     ttl?: number,
-  ) => Promise<Result<void, ErrorWithMetadata>>;
+  ) => Promise<Result<void, AppError>>;
 }
 
 /**
@@ -43,10 +46,11 @@ export async function getCached<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 >(
-  ctx: GetCachedContext<ID, T>,
+  ctx: Context,
   request: GetCachedRequest<ID, T>,
-): Promise<Result<T, ErrorWithMetadata>> {
-  const { adapter, logger, validator, generateKey } = ctx;
+  deps: GetCachedDeps<ID, T>,
+): Promise<Result<T, AppError>> {
+  const { adapter, logger, validator, generateKey } = deps;
   const { id, userId, onMiss, setCached } = request;
 
   const key = generateKey(id, userId);
@@ -55,15 +59,16 @@ export async function getCached<
 
   // Cache miss with onMiss callback
   if (result.isErr() && onMiss) {
-    const missResult = await onMiss(id, userId);
+    const missResult = await onMiss(ctx, id, userId);
     if (missResult.isErr()) {
       return err(missResult.error);
     }
 
     // Try to cache the result
-    const setResult = await setCached(missResult.value, userId);
+    const setResult = await setCached(ctx, missResult.value, userId);
     if (setResult.isErr()) {
       logger.error('Cache set failed on cache miss', setResult.error, {
+        correlationId: ctx.correlationId,
         id,
         userId,
         key,

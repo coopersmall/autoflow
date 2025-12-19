@@ -1,5 +1,5 @@
 import type { Request } from '@backend/infrastructure/http/handlers/domain/Request';
-import type { ValidationError } from '@core/errors/ValidationError';
+import type { AppError } from '@core/errors';
 import type { Validator } from '@core/validation/validate';
 import type { Result } from 'neverthrow';
 
@@ -23,7 +23,7 @@ export function extractRequestParam<T>({
   request,
   name,
   validator,
-}: ExtractRequestParamRequest<T>): Result<T, ValidationError> {
+}: ExtractRequestParamRequest<T>): Result<T, AppError> {
   const value = request.params[name];
   return validator(value);
 }

@@ -1,3 +1,4 @@
+import type { Context } from '@backend/infrastructure/context';
 import type { StreamPart } from '@core/domain/ai/streamingPart';
 import {
   validAnnotationsArray,
@@ -15,14 +16,14 @@ import {
   validToolCallStreamingStartPart,
   validToolResultPart,
 } from '@core/domain/ai/validation/validStreamPart';
-import type { CorrelationId } from '@core/domain/CorrelationId';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { type AppError, internalError } from '@core/errors';
 import { err, ok, type Result } from 'neverthrow';
 
 export function parseDataStreamLine(
-  correlationId: CorrelationId,
+  ctx: Context,
   line: string,
-): Result<StreamPart, ErrorWithMetadata> {
+): Result<StreamPart, AppError> {
+  const correlationId = ctx.correlationId;
   if (!line.trim()) {
     return ok({
       type: 'text',
@@ -34,14 +35,9 @@ export function parseDataStreamLine(
   const colonIndex = line.indexOf(':');
   if (colonIndex === -1) {
     return err(
-      new ErrorWithMetadata(
-        'Invalid stream line format: missing colon',
-        'InternalServer',
-        {
-          correlationId,
-          line,
-        },
-      ),
+      internalError('Invalid stream line format: missing colon', {
+        metadata: { correlationId, line },
+      }),
     );
   }
 
@@ -57,15 +53,13 @@ export function parseDataStreamLine(
         const contentResult = validStringContent(parsedContent);
         if (contentResult.isErr()) {
           return err(
-            new ErrorWithMetadata(
-              'Invalid text content in stream line',
-              'InternalServer',
-              {
+            internalError('Invalid text content in stream line', {
+              metadata: {
                 correlationId,
                 line,
                 validationError: contentResult.error,
               },
-            ),
+            }),
           );
         }
         return ok({ type: 'text', content: contentResult.value });
@@ -76,15 +70,13 @@ export function parseDataStreamLine(
         const contentResult = validStringContent(parsedContent);
         if (contentResult.isErr()) {
           return err(
-            new ErrorWithMetadata(
-              'Invalid reasoning content in stream line',
-              'InternalServer',
-              {
+            internalError('Invalid reasoning content in stream line', {
+              metadata: {
                 correlationId,
                 line,
                 validationError: contentResult.error,
               },
-            ),
+            }),
           );
         }
         return ok({ type: 'reasoning', content: contentResult.value });
@@ -95,15 +87,13 @@ export function parseDataStreamLine(
         const validatedResult = validRedactedReasoningPart(parsedContent);
         if (validatedResult.isErr()) {
           return err(
-            new ErrorWithMetadata(
-              'Invalid redacted reasoning content in stream line',
-              'InternalServer',
-              {
+            internalError('Invalid redacted reasoning content in stream line', {
+              metadata: {
                 correlationId,
                 line,
                 validationError: validatedResult.error,
               },
-            ),
+            }),
           );
         }
         return ok(validatedResult.value);
@@ -114,13 +104,14 @@ export function parseDataStreamLine(
         const validatedResult = validReasoningSignaturePart(parsedContent);
         if (validatedResult.isErr()) {
           return err(
-            new ErrorWithMetadata(
+            internalError(
               'Invalid reasoning signature content in stream line',
-              'InternalServer',
               {
-                correlationId,
-                line,
-                validationError: validatedResult.error,
+                metadata: {
+                  correlationId,
+                  line,
+                  validationError: validatedResult.error,
+                },
               },
             ),
           );
@@ -133,15 +124,13 @@ export function parseDataStreamLine(
         const validatedResult = validSourcePart(parsedContent);
         if (validatedResult.isErr()) {
           return err(
-            new ErrorWithMetadata(
-              'Invalid source content in stream line',
-              'InternalServer',
-              {
+            internalError('Invalid source content in stream line', {
+              metadata: {
                 correlationId,
                 line,
                 validationError: validatedResult.error,
               },
-            ),
+            }),
           );
         }
         return ok(validatedResult.value);
@@ -152,15 +141,13 @@ export function parseDataStreamLine(
         const validatedResult = validFilePart(parsedContent);
         if (validatedResult.isErr()) {
           return err(
-            new ErrorWithMetadata(
-              'Invalid file content in stream line',
-              'InternalServer',
-              {
+            internalError('Invalid file content in stream line', {
+              metadata: {
                 correlationId,
                 line,
                 validationError: validatedResult.error,
               },
-            ),
+            }),
           );
         }
         return ok(validatedResult.value);
@@ -171,15 +158,13 @@ export function parseDataStreamLine(
         const validatedResult = validDataArray(parsedContent);
         if (validatedResult.isErr()) {
           return err(
-            new ErrorWithMetadata(
-              'Invalid data content in stream line',
-              'InternalServer',
-              {
+            internalError('Invalid data content in stream line', {
+              metadata: {
                 correlationId,
                 line,
                 validationError: validatedResult.error,
               },
-            ),
+            }),
           );
         }
         return ok({ type: 'data', content: validatedResult.value });
@@ -190,15 +175,13 @@ export function parseDataStreamLine(
         const validatedResult = validAnnotationsArray(parsedContent);
         if (validatedResult.isErr()) {
           return err(
-            new ErrorWithMetadata(
-              'Invalid message annotation content in stream line',
-              'InternalServer',
-              {
+            internalError('Invalid message annotation content in stream line', {
+              metadata: {
                 correlationId,
                 line,
                 validationError: validatedResult.error,
               },
-            ),
+            }),
           );
         }
         return ok({
@@ -212,15 +195,13 @@ export function parseDataStreamLine(
         const validatedResult = validStringContent(parsedContent);
         if (validatedResult.isErr()) {
           return err(
-            new ErrorWithMetadata(
-              'Invalid error message content in stream line',
-              'InternalServer',
-              {
+            internalError('Invalid error message content in stream line', {
+              metadata: {
                 correlationId,
                 line,
                 validationError: validatedResult.error,
               },
-            ),
+            }),
           );
         }
         return ok({ type: 'error', message: validatedResult.value });
@@ -231,13 +212,14 @@ export function parseDataStreamLine(
         const validatedResult = validToolCallStreamingStartPart(parsedContent);
         if (validatedResult.isErr()) {
           return err(
-            new ErrorWithMetadata(
+            internalError(
               'Invalid tool call streaming start content in stream line',
-              'InternalServer',
               {
-                correlationId,
-                line,
-                validationError: validatedResult.error,
+                metadata: {
+                  correlationId,
+                  line,
+                  validationError: validatedResult.error,
+                },
               },
             ),
           );
@@ -250,15 +232,13 @@ export function parseDataStreamLine(
         const validatedResult = validToolCallDeltaPart(parsedContent);
         if (validatedResult.isErr()) {
           return err(
-            new ErrorWithMetadata(
-              'Invalid tool call delta content in stream line',
-              'InternalServer',
-              {
+            internalError('Invalid tool call delta content in stream line', {
+              metadata: {
                 correlationId,
                 line,
                 validationError: validatedResult.error,
               },
-            ),
+            }),
           );
         }
         return ok(validatedResult.value);
@@ -269,15 +249,13 @@ export function parseDataStreamLine(
         const validatedResult = validToolCallPart(parsedContent);
         if (validatedResult.isErr()) {
           return err(
-            new ErrorWithMetadata(
-              'Invalid tool call content in stream line',
-              'InternalServer',
-              {
+            internalError('Invalid tool call content in stream line', {
+              metadata: {
                 correlationId,
                 line,
                 validationError: validatedResult.error,
               },
-            ),
+            }),
           );
         }
         return ok(validatedResult.value);
@@ -288,15 +266,13 @@ export function parseDataStreamLine(
         const validatedResult = validToolResultPart(parsedContent);
         if (validatedResult.isErr()) {
           return err(
-            new ErrorWithMetadata(
-              'Invalid tool result content in stream line',
-              'InternalServer',
-              {
+            internalError('Invalid tool result content in stream line', {
+              metadata: {
                 correlationId,
                 line,
                 validationError: validatedResult.error,
               },
-            ),
+            }),
           );
         }
         return ok(validatedResult.value);
@@ -307,15 +283,13 @@ export function parseDataStreamLine(
         const validatedResult = validStartStepPart(parsedContent);
         if (validatedResult.isErr()) {
           return err(
-            new ErrorWithMetadata(
-              'Invalid start step content in stream line',
-              'InternalServer',
-              {
+            internalError('Invalid start step content in stream line', {
+              metadata: {
                 correlationId,
                 line,
                 validationError: validatedResult.error,
               },
-            ),
+            }),
           );
         }
         return ok(validatedResult.value);
@@ -326,15 +300,13 @@ export function parseDataStreamLine(
         const validatedResult = validFinishStepPart(parsedContent);
         if (validatedResult.isErr()) {
           return err(
-            new ErrorWithMetadata(
-              'Invalid finish step content in stream line',
-              'InternalServer',
-              {
+            internalError('Invalid finish step content in stream line', {
+              metadata: {
                 correlationId,
                 line,
                 validationError: validatedResult.error,
               },
-            ),
+            }),
           );
         }
         return ok(validatedResult.value);
@@ -345,15 +317,13 @@ export function parseDataStreamLine(
         const validatedResult = validFinishMessagePart(parsedContent);
         if (validatedResult.isErr()) {
           return err(
-            new ErrorWithMetadata(
-              'Invalid finish message content in stream line',
-              'InternalServer',
-              {
+            internalError('Invalid finish message content in stream line', {
+              metadata: {
                 correlationId,
                 line,
                 validationError: validatedResult.error,
               },
-            ),
+            }),
           );
         }
         return ok(validatedResult.value);
@@ -361,19 +331,20 @@ export function parseDataStreamLine(
 
       default:
         return err(
-          new ErrorWithMetadata('Unknown stream part type', 'InternalServer', {
-            correlationId,
-            line,
-            unknownTypeId: typeId,
+          internalError('Unknown stream part type', {
+            metadata: {
+              correlationId,
+              line,
+              unknownTypeId: typeId,
+            },
           }),
         );
     }
   } catch (jsonError) {
     return err(
-      new ErrorWithMetadata('Invalid JSON in stream line', 'InternalServer', {
-        correlationId,
-        line,
+      internalError('Invalid JSON in stream line', {
         cause: jsonError,
+        metadata: { correlationId, line },
       }),
     );
   }

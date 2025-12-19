@@ -1,8 +1,8 @@
+import type { Context } from '@backend/infrastructure/context';
 import type { QueueStats } from '@backend/infrastructure/queue/domain/QueueStats';
 import type { ISharedService } from '@backend/infrastructure/services/SharedService';
-import type { CorrelationId } from '@core/domain/CorrelationId';
 import type { UserId } from '@core/domain/user/user';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 import type { TaskId } from './TaskId.ts';
 import type { TaskRecord } from './TaskRecord.ts';
@@ -11,29 +11,23 @@ import type { ListTasksFilters } from './TasksRepo.ts';
 
 export type ITasksService = Readonly<
   ISharedService<TaskId, TaskRecord> & {
-    getByStatus(
-      status: TaskStatus,
-    ): Promise<Result<TaskRecord[], ErrorWithMetadata>>;
-    getByTaskName(
-      taskName: string,
-    ): Promise<Result<TaskRecord[], ErrorWithMetadata>>;
-    getByUserId(
-      userId: UserId,
-    ): Promise<Result<TaskRecord[], ErrorWithMetadata>>;
+    getByStatus(status: TaskStatus): Promise<Result<TaskRecord[], AppError>>;
+    getByTaskName(taskName: string): Promise<Result<TaskRecord[], AppError>>;
+    getByUserId(userId: UserId): Promise<Result<TaskRecord[], AppError>>;
     listTasks(
       filters?: ListTasksFilters,
-    ): Promise<Result<TaskRecord[], ErrorWithMetadata>>;
+    ): Promise<Result<TaskRecord[], AppError>>;
     getQueueStats(
-      correlationId: CorrelationId,
+      ctx: Context,
       queueName: string,
-    ): Promise<Result<QueueStats, ErrorWithMetadata>>;
+    ): Promise<Result<QueueStats, AppError>>;
     cancelTask(
-      correlationId: CorrelationId,
+      ctx: Context,
       taskId: TaskId,
-    ): Promise<Result<TaskRecord, ErrorWithMetadata>>;
+    ): Promise<Result<TaskRecord, AppError>>;
     retryTask(
-      correlationId: CorrelationId,
+      ctx: Context,
       taskId: TaskId,
-    ): Promise<Result<TaskRecord, ErrorWithMetadata>>;
+    ): Promise<Result<TaskRecord, AppError>>;
   }
 >;

@@ -1,6 +1,33 @@
 # Testing Guide
 
-Autoflow uses [Bun's test runner](https://bun.sh/docs/cli/test) for unit and integration tests. This guide covers testing patterns, best practices, and how to write effective tests for Result types and services.
+Autoflow uses [Bun's test runner](https://bun.sh/docs/cli/test) with a focus on **integration testing** and **property-based testing**. This guide covers our testing philosophy, patterns, and best practices.
+
+## Testing Philosophy
+
+Our testing approach prioritizes real behavior over mocked behavior:
+
+| Priority | Test Type | Purpose |
+|----------|-----------|---------|
+| **1st** | Integration tests | Test real behavior with real infrastructure |
+| **2nd** | Property tests | Verify invariants that must hold for all inputs |
+| **3rd** | Unit tests | Only for specific edge cases not covered above |
+
+### Why This Approach?
+
+1. **Integration tests catch real bugs** - Testing with real databases and caches catches issues that mocked tests miss
+2. **Property tests find edge cases** - Random input generation discovers bugs that fixed examples never would
+3. **Less mocking = less maintenance** - Mocks often test implementation details, not behavior
+4. **Confidence in refactoring** - Integration tests don't break when you change internal implementation
+
+### When to Use Each Type
+
+| Use Integration Tests For | Use Property Tests For | Use Unit Tests For |
+|---------------------------|------------------------|-------------------|
+| Service CRUD operations | Data round-trips (encrypt/decrypt) | Time-dependent behavior |
+| HTTP handler responses | Validation (accept valid, reject invalid) | Specific error messages |
+| Database queries | Security properties (isolation, uniqueness) | Helper API testing |
+| Cache behavior | State transitions | One-off edge cases |
+| End-to-end flows | Input/output preservation | Complex algorithms |
 
 ## Quick Reference
 
@@ -17,8 +44,8 @@ make lint              # Lint check
 
 | Type | Pattern | Location |
 |------|---------|----------|
-| Unit tests | `*.test.ts` | `__tests__/` folder next to source |
 | Integration tests | `*.integration.test.ts` | `__tests__/` folder |
+| Unit tests | `*.test.ts` | `__tests__/` folder next to source |
 | Mocks | `*.mock.ts` | `__mocks__/` folder next to source |
 
 ### Directory Structure
@@ -27,253 +54,143 @@ make lint              # Lint check
 src/services/users/
 ├── UsersService.ts
 ├── __tests__/
-│   └── UsersService.integration.test.ts
+│   └── UsersService.integration.test.ts  # Primary test file
 ├── __mocks__/
-│   └── UsersService.mock.ts
-├── actions/
-│   ├── createUser.ts
-│   └── __tests__/
-│       └── createUser.test.ts
+│   └── UsersService.mock.ts              # Only if needed elsewhere
 └── repos/
     └── UsersRepo.ts
 ```
 
-## Unit Testing
-
-### Basic Test Structure
-
-```typescript
-import { describe, expect, it, beforeEach, jest } from 'bun:test';
-
-describe('functionName', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should do something specific', () => {
-    expect.assertions(2);  // Always declare expected assertions
-
-    // Arrange
-    const input = 'test';
-
-    // Act
-    const result = functionName(input);
-
-    // Assert
-    expect(result).toBe('expected');
-    expect(result).toBeDefined();
-  });
-});
-```
-
-### Testing Actions
-
-Actions are pure functions, making them easy to test:
-
-```typescript
-// packages/backend/src/services/jwt/actions/__tests__/createClaim.test.ts
-
-import { getMockedLogger } from '@backend/logger/__mocks__/Logger.mock';
-import { getMockedAppConfigurationService } from '@backend/services/configuration/__mocks__/AppConfigurationService.mock';
-import { createClaim } from '@backend/services/jwt/actions/createClaim';
-import { UserId } from '@core/domain/user/user';
-import { beforeEach, describe, expect, it, jest } from 'bun:test';
-
-describe('createClaim', () => {
-  // Setup mocks
-  const mockLogger = getMockedLogger();
-  const mockAppConfig = getMockedAppConfigurationService();
-
-  const ctx = {
-    logger: mockLogger,
-    appConfig: () => mockAppConfig,
-  };
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should create JWT claim with userId and permissions', () => {
-    // Declare expected assertions
-    expect.assertions(4);
-
-    // Arrange
-    mockAppConfig.isLocal.mockReturnValueOnce(false);
-    mockAppConfig.site = 'https://example.com';
-
-    const request = {
-      userId: UserId('user-123'),
-      permissions: ['read:users'] as const,
-    };
-
-    // Act
-    const result = createClaim(ctx, request);
-
-    // Assert
-    expect(result.isOk()).toBe(true);
-    if (result.isOk()) {
-      expect(result.value.sub).toBe(request.userId);
-      expect(result.value.aud).toContain('read:users');
-      expect(result.value.iss).toBe('https://example.com');
-    }
-  });
-
-  it('should log debug message', () => {
-    expect.assertions(2);
-
-    mockAppConfig.isLocal.mockReturnValueOnce(false);
-
-    const result = createClaim(ctx, {
-      userId: UserId('user-123'),
-      permissions: [],
-    });
-
-    expect(result.isOk()).toBe(true);
-    expect(mockLogger.debug).toHaveBeenCalledWith(
-      'Created JWT claim',
-      expect.objectContaining({ userId: 'user-123' }),
-    );
-  });
-});
-```
-
-### Testing Result Types
-
-Always check `isOk()` or `isErr()` before accessing values:
-
-```typescript
-it('should return ok result with valid data', () => {
-  expect.assertions(3);
-
-  const result = someFunction(validInput);
-
-  expect(result.isOk()).toBe(true);
-  expect(result.isErr()).toBe(false);
-  
-  if (result.isOk()) {
-    expect(result.value).toBeDefined();
-  }
-});
-
-it('should return error with invalid data', () => {
-  expect.assertions(3);
-
-  const result = someFunction(invalidInput);
-
-  expect(result.isErr()).toBe(true);
-  expect(result.isOk()).toBe(false);
-  
-  if (result.isErr()) {
-    expect(result.error.message).toBe('Expected error message');
-  }
-});
-```
-
-### Testing Validation
-
-```typescript
-import { validUser } from '@core/domain/user/validation/validUser';
-import { UserId } from '@core/domain/user/user';
-import { describe, expect, it } from 'bun:test';
-
-describe('validUser', () => {
-  it('should validate correct user data', () => {
-    expect.assertions(2);
-
-    const input = {
-      id: UserId(),
-      email: 'test@example.com',
-      name: 'Test User',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      schemaVersion: 1,
-    };
-
-    const result = validUser(input);
-
-    expect(result.isOk()).toBe(true);
-    if (result.isOk()) {
-      expect(result.value.email).toBe('test@example.com');
-    }
-  });
-
-  it('should reject invalid email', () => {
-    expect.assertions(2);
-
-    const input = {
-      id: UserId(),
-      email: 'not-an-email',
-      name: 'Test User',
-      createdAt: new Date(),
-      schemaVersion: 1,
-    };
-
-    const result = validUser(input);
-
-    expect(result.isErr()).toBe(true);
-    if (result.isErr()) {
-      expect(result.error.message).toBe('Validation failed');
-    }
-  });
-});
-```
-
 ## Integration Testing
 
-### Setup
+Integration tests are the **primary form of testing** in Autoflow. They test real behavior with real PostgreSQL and Redis instances.
 
-Integration tests require real infrastructure (database, cache):
+### Basic Setup
 
 ```typescript
-import { createUsersService } from '@backend/services/users/UsersService';
-import { setupIntegrationTest } from '@backend/testing/integration/integrationTest';
 import { describe, expect, it } from 'bun:test';
+import { createMockContext } from '@backend/infrastructure/context/__mocks__/Context.mock';
+import { setupIntegrationTest } from '@backend/testing/integration/integrationTest';
+import { createUsersService } from '@backend/users';
 
 describe('UsersService Integration Tests', () => {
-  // Setup test infrastructure (database, cache)
   const { getConfig, getLogger } = setupIntegrationTest();
 
   const setup = () => {
     return createUsersService({
-      appConfig: () => getConfig(),
+      appConfig: getConfig(),
       logger: getLogger(),
     });
   };
 
   describe('create()', () => {
-    it('should create a user in database', async () => {
-      expect.assertions(3);
-      
+    it('should create a user in database and cache', async () => {
       const service = setup();
 
-      const result = await service.create({
+      const result = await service.create(createMockContext(), {
         schemaVersion: 1,
-        email: 'test@example.com',
-        name: 'Test User',
       });
 
       expect(result.isOk()).toBe(true);
       const user = result._unsafeUnwrap();
       expect(user.id).toBeDefined();
-      expect(user.email).toBe('test@example.com');
+      expect(user.schemaVersion).toBe(1);
     });
   });
 
   describe('get()', () => {
     it('should retrieve created user', async () => {
-      expect.assertions(2);
-      
       const service = setup();
 
       // Create
-      const createResult = await service.create({ schemaVersion: 1 });
+      const createResult = await service.create(createMockContext(), {
+        schemaVersion: 1,
+      });
       const created = createResult._unsafeUnwrap();
 
       // Get
-      const getResult = await service.get(created.id);
+      const getResult = await service.get(createMockContext(), created.id);
 
       expect(getResult.isOk()).toBe(true);
       expect(getResult._unsafeUnwrap().id).toBe(created.id);
+    });
+  });
+});
+```
+
+### HTTP Handler Integration Tests
+
+```typescript
+import { beforeAll, describe, expect, it } from 'bun:test';
+import { setupHttpIntegrationTest } from '@backend/testing/integration/httpIntegrationTest';
+import { createAPIUserHandlers } from '@backend/users/handlers/http/UsersHttpHandler';
+import { validUser } from '@core/domain/user/validation/validUser';
+
+describe('UsersHttpHandler Integration Tests', () => {
+  const {
+    getHttpServer,
+    getHttpClient,
+    getTestAuth,
+    getConfig,
+    getLogger,
+    getRouteFactory,
+  } = setupHttpIntegrationTest();
+
+  beforeAll(async () => {
+    const config = getConfig();
+    const logger = getLogger();
+    const routeFactory = getRouteFactory();
+
+    const handlers = [
+      createAPIUserHandlers({
+        logger,
+        appConfig: config,
+        routeFactory,
+      }),
+    ];
+
+    await getHttpServer().start(handlers);
+  });
+
+  describe('POST /api/users', () => {
+    it('should create user with admin token (201)', async () => {
+      const client = getHttpClient();
+      const auth = getTestAuth();
+      const headers = await auth.createAdminHeaders();
+
+      const response = await client.post(
+        '/api/users',
+        { schemaVersion: 1 },
+        { headers },
+      );
+
+      expect(response.status).toBe(201);
+
+      const result = await client.parseJson(response, validUser);
+      expect(result.isOk()).toBe(true);
+    });
+
+    it('should return 401 when no auth header provided', async () => {
+      const client = getHttpClient();
+
+      const response = await client.post('/api/users', { schemaVersion: 1 });
+
+      expect(response.status).toBe(401);
+    });
+
+    it('should return 403 when token has no permissions', async () => {
+      const client = getHttpClient();
+      const auth = getTestAuth();
+      const token = await auth.createUnauthorizedToken();
+      const headers = auth.createBearerHeaders(token);
+
+      const response = await client.post(
+        '/api/users',
+        { schemaVersion: 1 },
+        { headers },
+      );
+
+      expect(response.status).toBe(403);
     });
   });
 });
@@ -291,30 +208,268 @@ bun run test:integration
 make test-stop    # Stop containers
 ```
 
+## Property-Based Testing
+
+Property-based tests verify **invariants** that must hold for ALL valid inputs. They use the `fast-check` library to generate random test data.
+
+### Why Property Tests?
+
+| Fixed Examples | Property Tests |
+|----------------|----------------|
+| Test 1-3 specific inputs | Test 20-100 random inputs |
+| Miss edge cases | Discover edge cases automatically |
+| Brittle to changes | Robust to implementation changes |
+| Test what you think of | Test what you didn't think of |
+
+### Basic Structure
+
+```typescript
+import { describe, expect, it } from 'bun:test';
+import { setupIntegrationTest } from '@backend/testing/integration/integrationTest';
+import * as fc from 'fast-check';
+
+describe('SecretsService Integration Tests', () => {
+  const { getConfig, getLogger } = setupIntegrationTest();
+
+  describe('Property Tests', () => {
+    // Define arbitraries once at the top
+    const stringValueArb = fc.string({ minLength: 0, maxLength: 10000 });
+    const secretNameArb = fc.string({ minLength: 1, maxLength: 255 });
+
+    it('should encrypt and decrypt any string value', async () => {
+      const service = setup();
+
+      await fc.assert(
+        fc.asyncProperty(stringValueArb, async (value) => {
+          // Store secret
+          const storeResult = await service.store(ctx, {
+            name: 'test-secret',
+            value,
+          });
+          expect(storeResult.isOk()).toBe(true);
+
+          // Reveal secret
+          const revealResult = await service.reveal(ctx, storeResult.value.id);
+          expect(revealResult.isOk()).toBe(true);
+
+          // Value should round-trip exactly
+          expect(revealResult.value).toBe(value);
+        }),
+        { numRuns: 50 },
+      );
+    });
+
+    it('should produce unique ciphertext for same plaintext (salt uniqueness)', async () => {
+      const service = setup();
+
+      await fc.assert(
+        fc.asyncProperty(stringValueArb, async (value) => {
+          const result1 = await service.store(ctx, { name: 'secret1', value });
+          const result2 = await service.store(ctx, { name: 'secret2', value });
+
+          // Same plaintext should produce different ciphertext
+          expect(result1.value.encryptedValue).not.toBe(result2.value.encryptedValue);
+        }),
+        { numRuns: 50 },
+      );
+    });
+  });
+});
+```
+
+### Arbitrary Design Patterns
+
+```typescript
+// Enum values - use constantFrom
+const statusArb = fc.constantFrom('pending', 'active', 'completed', 'failed');
+
+// Strings with bounds
+const nameArb = fc.string({ minLength: 1, maxLength: 255 });
+
+// Unicode strings for special character handling
+const unicodeArb = fc.unicodeString({ minLength: 1, maxLength: 1000 });
+
+// JSON objects (not null/primitives)
+const jsonPayloadArb = fc.dictionary(
+  fc.string(),
+  fc.oneof(fc.string(), fc.integer(), fc.boolean(), fc.constant(null)),
+);
+
+// Optional fields
+const optionalArb = fc.option(fc.boolean(), { nil: undefined });
+
+// Invalid inputs (for rejection tests)
+const invalidStatusArb = fc.string().filter(
+  (s) => !['pending', 'active', 'completed', 'failed'].includes(s),
+);
+
+// Records with optional keys
+const filterArb = fc.record(
+  {
+    status: fc.option(statusArb, { nil: undefined }),
+    limit: fc.option(fc.integer({ min: 1, max: 100 }), { nil: undefined }),
+  },
+  { requiredKeys: [] },
+);
+
+// Varying counts for batch tests
+const countArb = fc.integer({ min: 2, max: 10 });
+```
+
+### numRuns Guidelines
+
+| Test Type | Recommended numRuns | Rationale |
+|-----------|---------------------|-----------|
+| Security properties (encryption, isolation) | 50 | Critical - need high confidence |
+| Data preservation (round-trip) | 50 | Important for correctness |
+| Validation (reject invalid) | 30 | Good coverage of invalid space |
+| Status/enum transitions | 20 | Limited valid states |
+| HTTP request validation | 30 | Balance speed and coverage |
+
+### Real Examples
+
+#### Validation Property Tests
+
+```typescript
+describe('Property Tests', () => {
+  const validPayloadArb = fc.record({
+    message: fc.string({ minLength: 1, maxLength: 1000 }),
+    shouldFail: fc.option(fc.boolean(), { nil: undefined }),
+  });
+
+  const invalidPayloadArb = fc.oneof(
+    fc.record({ wrongField: fc.string() }),
+    fc.record({ message: fc.integer() }), // wrong type
+    fc.constant(null),
+    fc.constant('not an object'),
+  );
+
+  it('should accept all valid payloads', async () => {
+    await fc.assert(
+      fc.asyncProperty(validPayloadArb, async (payload) => {
+        const result = await scheduler.schedule(ctx, task, payload);
+        expect(result.isOk()).toBe(true);
+      }),
+      { numRuns: 30 },
+    );
+  });
+
+  it('should reject all invalid payloads', async () => {
+    await fc.assert(
+      fc.asyncProperty(invalidPayloadArb, async (payload) => {
+        const result = await scheduler.schedule(ctx, task, payload as TestPayload);
+        expect(result.isErr()).toBe(true);
+      }),
+      { numRuns: 30 },
+    );
+  });
+});
+```
+
+#### CRUD Consistency Property Tests
+
+```typescript
+it('should maintain CRUD consistency for all operations', async () => {
+  const { usersService, usersRepo, usersCache } = setup();
+
+  await fc.assert(
+    fc.asyncProperty(fc.constant(1), async (schemaVersion) => {
+      // Create
+      const createResult = await usersService.create(ctx, { schemaVersion });
+      expect(createResult.isOk()).toBe(true);
+      const user = createResult._unsafeUnwrap();
+
+      // Read from all layers
+      const serviceGet = await usersService.get(ctx, user.id);
+      const cacheGet = await usersCache.get(ctx, user.id);
+      const repoGet = await usersRepo.get(ctx, user.id);
+
+      expect(serviceGet._unsafeUnwrap()).toEqual(user);
+      expect(cacheGet._unsafeUnwrap()).toEqual(user);
+      expect(repoGet._unsafeUnwrap()).toEqual(user);
+
+      // Delete and verify removal
+      await usersService.delete(ctx, user.id);
+      expect((await usersService.get(ctx, user.id)).isErr()).toBe(true);
+    }),
+    { numRuns: 20 },
+  );
+});
+```
+
+### When NOT to Use Property Tests
+
+1. **Time-dependent behavior** - Tests with real delays, timeouts
+2. **External service interactions** - Tests needing real workers
+3. **Specific error messages** - When exact error text matters
+4. **One-off edge cases** - Malformed data that doesn't fit a pattern
+5. **Fixed configuration** - Testing specific config values
+
+## Unit Testing
+
+Unit tests should be used **sparingly** - only for cases that integration and property tests can't cover well.
+
+### When to Use Unit Tests
+
+| Good Use Cases | Bad Use Cases (Use Integration Instead) |
+|----------------|----------------------------------------|
+| Pure algorithm testing | Service CRUD operations |
+| Time-dependent logic (delays, timeouts) | Database queries |
+| Specific error message validation | HTTP responses |
+| Helper utility functions | Cache behavior |
+| Complex calculation logic | End-to-end flows |
+
+### Basic Structure
+
+```typescript
+import { describe, expect, it } from 'bun:test';
+
+describe('calculateRetryDelay', () => {
+  it('should apply exponential backoff', () => {
+    expect(calculateRetryDelay(1)).toBe(100);
+    expect(calculateRetryDelay(2)).toBe(200);
+    expect(calculateRetryDelay(3)).toBe(400);
+  });
+
+  it('should cap at maximum delay', () => {
+    expect(calculateRetryDelay(10)).toBe(MAX_DELAY);
+  });
+});
+```
+
+### Testing Result Types
+
+Always check `isOk()` or `isErr()` before accessing values:
+
+```typescript
+it('should return ok result with valid data', () => {
+  const result = someFunction(validInput);
+
+  expect(result.isOk()).toBe(true);
+  if (result.isOk()) {
+    expect(result.value).toBeDefined();
+  }
+});
+
+it('should return error with invalid data', () => {
+  const result = someFunction(invalidInput);
+
+  expect(result.isErr()).toBe(true);
+  if (result.isErr()) {
+    expect(result.error.message).toContain('expected text');
+  }
+});
+```
+
 ## Creating Mocks
+
+Mocks should be used **sparingly** - primarily for injecting test doubles into code that requires them, not as a substitute for integration tests.
 
 ### Type-Safe Mocks
 
-Use `ExtractMockMethods<T>` for type-safe mocks:
-
-```typescript
-// __mocks__/Logger.mock.ts
-import type { ILogger } from '@backend/logger/Logger';
-import type { ExtractMockMethods } from '@core/types';
-import { mock } from 'bun:test';
-
-export function getMockedLogger(): ExtractMockMethods<ILogger> {
-  return {
-    debug: mock(),
-    info: mock(),
-    error: mock(),
-  };
-}
-```
-
 ```typescript
 // __mocks__/UsersService.mock.ts
-import type { IUsersService } from '@backend/services/users/domain/UsersService';
+import type { IUsersService } from '@backend/users/domain/UsersService';
 import type { ExtractMockMethods } from '@core/types';
 import { mock } from 'bun:test';
 
@@ -329,372 +484,111 @@ export function getMockedUsersService(): ExtractMockMethods<IUsersService> {
 }
 ```
 
-### Using Mocks
+### When Mocks Are Appropriate
 
-```typescript
-import { getMockedUsersService } from '@backend/services/users/__mocks__/UsersService.mock';
-import { UserId } from '@core/domain/user/user';
-import { ok } from 'neverthrow';
-
-describe('MyHandler', () => {
-  const mockUsersService = getMockedUsersService();
-
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
-
-  it('should call usersService.get', async () => {
-    expect.assertions(2);
-
-    const userId = UserId('test-id');
-    const mockUser = { id: userId, /* ... */ };
-
-    // Setup mock return value
-    mockUsersService.get.mockResolvedValueOnce(ok(mockUser));
-
-    // Act
-    const result = await myHandler({ userId });
-
-    // Assert
-    expect(mockUsersService.get).toHaveBeenCalledWith(userId);
-    expect(result.isOk()).toBe(true);
-  });
-});
-```
+| Appropriate | Not Appropriate |
+|-------------|-----------------|
+| External API clients | Database operations |
+| Email/SMS services | Cache operations |
+| Third-party SDKs | Service-to-service calls |
+| System clock/time | Internal business logic |
 
 ## Test Best Practices
 
-### 1. Use expect.assertions(n)
-
-Always declare expected assertion count at the start:
+### 1. Prefer Integration Tests
 
 ```typescript
-it('should do something', () => {
-  expect.assertions(3);  // Ensures all paths tested
+// Prefer: Real database test
+it('should create and retrieve user', async () => {
+  const service = createUsersService({ appConfig, logger });
+  
+  const created = await service.create(ctx, { schemaVersion: 1 });
+  const retrieved = await service.get(ctx, created._unsafeUnwrap().id);
+  
+  expect(retrieved.isOk()).toBe(true);
+});
 
-  const result = functionUnderTest();
-
-  expect(result.isOk()).toBe(true);
-  if (result.isOk()) {
-    expect(result.value).toBe('expected');
-    expect(result.value.length).toBeGreaterThan(0);
-  }
+// Avoid: Heavily mocked test
+it('should create and retrieve user', async () => {
+  mockRepo.create.mockResolvedValue(ok(mockUser));
+  mockRepo.get.mockResolvedValue(ok(mockUser));
+  mockCache.set.mockResolvedValue(ok(undefined));
+  // ... tests implementation details, not behavior
 });
 ```
 
-### 2. Check Result Types
-
-Always check `isOk()` or `isErr()` before accessing values:
+### 2. Use Property Tests for Invariants
 
 ```typescript
-// ❌ BAD - might throw
-const user = result.value;
-
-// ✅ GOOD - type-safe
-if (result.isOk()) {
-  const user = result.value;
-}
-
-// ✅ ACCEPTABLE in tests when certain
-const user = result._unsafeUnwrap();
-```
-
-### 3. Clear Mocks
-
-Clear mocks in `beforeEach` to avoid test pollution:
-
-```typescript
-beforeEach(() => {
-  jest.clearAllMocks();
-});
-```
-
-### 4. Use Factory Functions
-
-Use factory functions like `UserId()` to create test data:
-
-```typescript
-// ✅ GOOD
-const userId = UserId();
-const user = newUser({ id: userId, email: 'test@example.com' });
-
-// ❌ BAD - hard-coded values
-const userId = 'user-123';
-const user = { id: 'user-123', /* ... */ };
-```
-
-### 5. Isolate Tests
-
-Each test should be independent:
-
-```typescript
-// ❌ BAD - tests depend on each other
-let sharedUser: User;
-
-it('creates user', () => {
-  sharedUser = createUser();  // State shared
-});
-
-it('updates user', () => {
-  updateUser(sharedUser);  // Depends on previous test
-});
-
-// ✅ GOOD - tests are isolated
-it('creates user', () => {
-  const user = createUser();
-  expect(user).toBeDefined();
-});
-
-it('updates user', () => {
-  const user = createUser();  // Create fresh data
-  const updated = updateUser(user);
-  expect(updated).toBeDefined();
-});
-```
-
-### 6. Name Tests Descriptively
-
-Use clear, descriptive test names:
-
-```typescript
-// ❌ BAD
-it('works', () => { /* ... */ });
-it('test 1', () => { /* ... */ });
-
-// ✅ GOOD
-it('should return error when user not found', () => { /* ... */ });
-it('should create user with valid email', () => { /* ... */ });
-it('should reject password without uppercase letter', () => { /* ... */ });
-```
-
-## Testing Patterns
-
-### Testing Async Code
-
-```typescript
-it('should handle async operations', async () => {
-  expect.assertions(2);
-
-  const result = await asyncFunction();
-
-  expect(result.isOk()).toBe(true);
-  if (result.isOk()) {
-    expect(result.value).toBeDefined();
-  }
-});
-```
-
-### Testing Error Cases
-
-```typescript
-it('should return NotFoundError when user does not exist', async () => {
-  expect.assertions(3);
-
-  mockRepo.get.mockResolvedValueOnce(ok(null));
-
-  const result = await usersService.get(UserId('non-existent'));
-
-  expect(result.isErr()).toBe(true);
-  if (result.isErr()) {
-    expect(result.error.name).toBe('NotFoundError');
-    expect(result.error.message).toContain('not found');
-  }
-});
-```
-
-### Testing Side Effects
-
-```typescript
-it('should log error message on failure', async () => {
-  expect.assertions(2);
-
-  const error = new Error('Database error');
-  mockRepo.create.mockResolvedValueOnce(err(error));
-
-  const result = await usersService.create(userData);
-
-  expect(result.isErr()).toBe(true);
-  expect(mockLogger.error).toHaveBeenCalledWith(
-    expect.stringContaining('Failed'),
-    error,
-    expect.any(Object),
+// Prefer: Property test that verifies invariant
+it('should preserve data through round-trip', async () => {
+  await fc.assert(
+    fc.asyncProperty(fc.string(), async (value) => {
+      const encrypted = await encrypt(value);
+      const decrypted = await decrypt(encrypted);
+      expect(decrypted).toBe(value);
+    }),
   );
 });
-```
 
-### Testing Multiple Scenarios
-
-```typescript
-describe('calculateDiscount', () => {
-  it.each([
-    [100, 0, 100],
-    [100, 10, 90],
-    [100, 50, 50],
-    [100, 100, 0],
-  ])('should calculate %d - %d% = %d', (amount, discount, expected) => {
-    expect.assertions(1);
-
-    const result = calculateDiscount(amount, discount);
-
-    expect(result).toBe(expected);
-  });
+// Avoid: Single example that might miss edge cases
+it('should encrypt and decrypt', async () => {
+  const encrypted = await encrypt('hello');
+  const decrypted = await decrypt(encrypted);
+  expect(decrypted).toBe('hello');
 });
 ```
 
-## Test Coverage
+### 3. Isolate Tests
 
-### Running with Coverage
-
-```bash
-bun test --coverage
-```
-
-### Coverage Goals
-
-- **Unit tests**: Aim for 80%+ coverage of business logic
-- **Integration tests**: Cover critical paths and edge cases
-- **Acceptance**: 100% coverage not always necessary - focus on important code
-
-## Common Testing Scenarios
-
-### Testing Services
+Each test should be independent - don't share state between tests:
 
 ```typescript
-describe('UsersService', () => {
-  const mockRepo = getMockedUsersRepo();
-  const mockCache = getMockedUsersCache();
-  const mockLogger = getMockedLogger();
+// Good: Tests are isolated
+it('creates user', async () => {
+  const user = await service.create(ctx, data);
+  expect(user.isOk()).toBe(true);
+});
 
-  const createService = () => {
-    return new UsersService({
-      logger: mockLogger,
-      repo: () => mockRepo,
-      cache: () => mockCache,
-    });
-  };
-
-  it('should get user from cache if available', async () => {
-    expect.assertions(3);
-
-    const userId = UserId();
-    const cachedUser = newUser({ id: userId });
-
-    mockCache.get.mockResolvedValueOnce(ok(cachedUser));
-
-    const service = createService();
-    const result = await service.get(userId);
-
-    expect(result.isOk()).toBe(true);
-    expect(mockCache.get).toHaveBeenCalledWith(userId);
-    expect(mockRepo.get).not.toHaveBeenCalled();
-  });
+it('updates user', async () => {
+  const user = await service.create(ctx, data); // Fresh data
+  const updated = await service.update(ctx, user._unsafeUnwrap().id, newData);
+  expect(updated.isOk()).toBe(true);
 });
 ```
 
-### Testing HTTP Handlers
-
-#### Integration Tests
+### 4. Name Tests Descriptively
 
 ```typescript
-import { setupHttpIntegrationTest } from '@backend/testing/integration/httpIntegrationTest';
-import { createUsersService } from '@backend/users';
-import { createAPIUserHandlers } from '@backend/users';
+// Good
+it('should return 401 when no auth header provided', () => {});
+it('should reject payloads missing required message field', () => {});
 
-describe('GET /users/:id', () => {
-  const { getHttpServer, getHttpClient, getTestAuth, getConfig, getLogger, getRouteFactory } = 
-    setupHttpIntegrationTest();
-
-  beforeAll(async () => {
-    const config = getConfig();
-    const logger = getLogger();
-    const routeFactory = getRouteFactory();
-
-    // Create and start HTTP server with handlers
-    const handlers = [
-      createAPIUserHandlers({ logger, appConfig: config, routeFactory }),
-    ];
-
-    await getHttpServer().start(handlers);
-  });
-
-  it('should return user by id', async () => {
-    expect.assertions(3);
-
-    // Create service for test setup
-    const usersService = createUsersService({
-      logger: getLogger(),
-      appConfig: () => getConfig(),
-    });
-
-    const createResult = await usersService.create({ 
-      schemaVersion: 1,
-      email: 'test@example.com',
-      name: 'Test User',
-    });
-    const user = createResult._unsafeUnwrap();
-
-    // Make HTTP request
-    const client = getHttpClient();
-    const auth = getTestAuth();
-    const headers = await auth.createAdminHeaders();
-
-    const response = await client.get(`/api/users/${user.id}`, { headers });
-
-    expect(response.status).toBe(200);
-    const body = await response.json();
-    expect(body.id).toBe(user.id);
-    expect(body.schemaVersion).toBe(1);
-  });
-});
+// Bad
+it('works', () => {});
+it('test auth', () => {});
 ```
 
-#### Unit Tests with Middleware
-
-When testing routes with middleware configuration:
+### 5. Use Factory Functions
 
 ```typescript
-import { describe, expect, it, mock } from 'bun:test';
-import { getMockedLogger } from '@backend/infrastructure/logger/__mocks__/Logger.mock';
-import { getMockMiddleware } from '@backend/infrastructure/http/handlers/middleware/__mocks__/HttpMiddleware.mock';
+// Good
+const userId = UserId();
+const user = await service.create(ctx, { schemaVersion: 1 });
 
-describe('createRoute with middleware', () => {
-  it('should apply middleware to api routes', () => {
-    expect.assertions(2);
-
-    const logger = getMockedLogger();
-    const middleware = getMockMiddleware('success');
-    
-    // Create middleware factory that returns middleware
-    const mockMiddlewareFactory = mock(() => [middleware]);
-    
-    const middlewareConfig = {
-      api: [mockMiddlewareFactory],
-      app: [],
-      public: [],
-    };
-
-    const route = createRoute(
-      { logger, middlewareConfig, appConfig },
-      {
-        path: '/api/test',
-        method: 'GET',
-        routeType: 'api',
-        requiredPermissions: ['read:users'],
-        handler: async () => new Response('OK'),
-      },
-    );
-
-    // Verify middleware factory was called with permissions
-    expect(mockMiddlewareFactory).toHaveBeenCalledWith(
-      expect.objectContaining({
-        requiredPermissions: ['read:users'],
-      }),
-    );
-    
-    expect(route.path).toBe('/api/test');
-  });
-});
+// Bad - hard-coded values
+const userId = 'user-123';
 ```
+
+## Coverage Goals
+
+| Test Type | Goal | Purpose |
+|-----------|------|---------|
+| Integration tests | Primary coverage | Test real behavior with real infrastructure |
+| Property tests | Invariant coverage | Verify properties hold for all inputs |
+| Unit tests | Edge case coverage | Only for specific cases above can't cover |
+
+**Focus on behavior coverage, not line coverage.** A well-designed integration test covers more meaningful behavior than many unit tests with mocks.
 
 ## Debugging Tests
 
@@ -705,24 +599,28 @@ bun test path/to/file.test.ts
 bun test --grep "test name pattern"
 ```
 
+### Property Test Failures
+
+When a property test fails, fast-check provides:
+- **Seed**: Reproduce exact failure with `{ seed: 12345 }`
+- **Counterexample**: The input that caused failure
+- **Shrunk**: Simplified version of failing input
+
+```typescript
+// Reproduce a specific failure
+await fc.assert(
+  fc.asyncProperty(arb, async (value) => { /* ... */ }),
+  { seed: 12345, path: "0:1:2" }, // From failure output
+);
+```
+
 ### Test Timeouts
 
 ```typescript
 it('should complete within timeout', async () => {
-  // Default timeout is usually 5s
   const result = await longRunningOperation();
   expect(result).toBeDefined();
-}, 10000);  // 10 second timeout
-```
-
-### Debug Logging
-
-```typescript
-it('should process data', () => {
-  const data = processData(input);
-  console.log('Processed:', data);  // Allowed in tests
-  expect(data).toBeDefined();
-});
+}, 10000); // 10 second timeout
 ```
 
 ## Next Steps
@@ -730,9 +628,10 @@ it('should process data', () => {
 - [Services Guide](./services.md) - Build testable services
 - [Architecture Guide](./architecture.md) - Understand Result types
 - [Domain Modeling Guide](./domain-modeling.md) - Test domain validation
-- [Code Style Guide](./code-style.md) - Testing exceptions
+- [HTTP Handlers Guide](./http-handlers.md) - Test HTTP endpoints
 
 ## Resources
 
 - [Bun Test Documentation](https://bun.sh/docs/cli/test)
+- [fast-check Documentation](https://fast-check.dev/)
 - [neverthrow Documentation](https://github.com/supermacro/neverthrow)

@@ -14,6 +14,7 @@ import {
 } from '@backend/auth/actions/claims/validateClaim';
 import type { IAuthService } from '@backend/auth/domain/AuthService';
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { Context } from '@backend/infrastructure/context';
 import { createEncryptionService } from '@backend/infrastructure/encryption';
 import type { IEncryptionService } from '@backend/infrastructure/encryption/domain/EncryptionService';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
@@ -21,14 +22,14 @@ import type { JWTClaim } from '@core/domain/jwt/JWTClaim';
 import type { Permission } from '@core/domain/permissions/permissions';
 import type { UsersSession } from '@core/domain/session/UsersSession';
 import type { UserId } from '@core/domain/user/user';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 
-export function createAuthService(ctx: AuthServiceContext): IAuthService {
-  return Object.freeze(new AuthService(ctx));
+export function createAuthService(config: AuthServiceConfig): IAuthService {
+  return Object.freeze(new AuthService(config));
 }
 
-interface AuthServiceContext {
+interface AuthServiceConfig {
   logger: ILogger;
   appConfig: IAppConfigurationService;
 }
@@ -52,7 +53,7 @@ interface AuthServiceDependencies {
 class AuthService implements IAuthService {
   private readonly encryption: IEncryptionService;
   constructor(
-    private readonly context: AuthServiceContext,
+    private readonly config: AuthServiceConfig,
     private readonly actions: AuthServiceActions = {
       authenticate,
       createClaim,
@@ -65,7 +66,7 @@ class AuthService implements IAuthService {
     },
   ) {
     this.encryption = dependencies.createEncryptionService({
-      logger: this.context.logger,
+      logger: this.config.logger,
     });
   }
 
@@ -74,15 +75,13 @@ class AuthService implements IAuthService {
    * Routes to specific authentication handlers (cookie, bearer, etc.) using discriminated union pattern.
    */
   async authenticate(
+    ctx: Context,
     request: AuthenticationRequest,
-  ): Promise<Result<UsersSession, ErrorWithMetadata>> {
-    return this.actions.authenticate(
-      {
-        logger: this.context.logger,
-        encryption: () => this.encryption,
-      },
-      request,
-    );
+  ): Promise<Result<UsersSession, AppError>> {
+    return this.actions.authenticate(ctx, request, {
+      logger: this.config.logger,
+      encryption: () => this.encryption,
+    });
   }
 
   /**
@@ -91,37 +90,38 @@ class AuthService implements IAuthService {
    * In production, uses provided permissions with expiration.
    */
   createClaim(
+    ctx: Context,
     request: CreateClaimRequest,
-  ): Result<JWTClaim, ErrorWithMetadata> {
-    return this.actions.createClaim(
-      {
-        logger: this.context.logger,
-        appConfig: this.context.appConfig,
-      },
-      request,
-    );
+  ): Result<JWTClaim, AppError> {
+    return this.actions.createClaim(ctx, request, {
+      logger: this.config.logger,
+      appConfig: this.config.appConfig,
+    });
   }
 
   /**
    * Validates a JWT claim structure, expiration, and required permissions.
    */
   validateClaim(
+    ctx: Context,
     request: ValidateClaimRequest,
-  ): Result<JWTClaim, ErrorWithMetadata> {
-    return this.actions.validateClaim({ logger: this.context.logger }, request);
+  ): Result<JWTClaim, AppError> {
+    return this.actions.validateClaim(ctx, request, {
+      logger: this.config.logger,
+    });
   }
 
   /**
    * Extracts user ID from JWT claim subject field.
    */
-  getUserId(claim: JWTClaim): Result<UserId, ErrorWithMetadata> {
+  getUserId(claim: JWTClaim): Result<UserId, AppError> {
     return this.actions.extractUserId(claim);
   }
 
   /**
    * Extracts and validates permissions from JWT claim audience field.
    */
-  getPermissions(claim: JWTClaim): Result<Permission[], ErrorWithMetadata> {
+  getPermissions(claim: JWTClaim): Result<Permission[], AppError> {
     return this.actions.extractPermissions(claim);
   }
 }

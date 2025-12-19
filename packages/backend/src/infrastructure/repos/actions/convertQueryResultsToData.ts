@@ -11,7 +11,7 @@
  * RawDatabaseQuery (snake_case, ISO strings) → Domain Entity (camelCase, Date objects)
  */
 import type { RawDatabaseQuery } from '@backend/infrastructure/repos/domain/RawDatabaseQuery';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { type AppError, badRequest } from '@core/errors';
 import type { Validator } from '@core/validation/validate';
 import { err, ok, type Result } from 'neverthrow';
 
@@ -25,7 +25,7 @@ import { err, ok, type Result } from 'neverthrow';
 export function convertQueryResultsToData<T>(
   data: RawDatabaseQuery,
   validator: Validator<T>,
-): Result<T[], ErrorWithMetadata> {
+): Result<T[], AppError> {
   const items: T[] = [];
   for (const d of data) {
     let createdAt: Date;
@@ -33,9 +33,7 @@ export function convertQueryResultsToData<T>(
       createdAt =
         d.created_at instanceof Date ? d.created_at : new Date(d.created_at);
     } catch {
-      return err(
-        new ErrorWithMetadata('Invalid created_at date', 'BadRequest', {}),
-      );
+      return err(badRequest('Invalid created_at date', { metadata: {} }));
     }
     let updatedAt: Date | undefined;
     if (d.updated_at) {
@@ -43,9 +41,7 @@ export function convertQueryResultsToData<T>(
         updatedAt =
           d.updated_at instanceof Date ? d.updated_at : new Date(d.updated_at);
       } catch {
-        return err(
-          new ErrorWithMetadata('Invalid updated_at date', 'BadRequest', {}),
-        );
+        return err(badRequest('Invalid updated_at date', { metadata: {} }));
       }
     }
     const validated = validator({

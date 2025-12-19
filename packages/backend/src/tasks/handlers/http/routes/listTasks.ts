@@ -91,7 +91,7 @@ export function listTasksHandler(ctx: ListTasksHandlerContext) {
     // Return tasks with metadata
     return Response.json(
       {
-        correlationId: requestContext.correlationId,
+        correlationId: requestContext.ctx.correlationId,
         tasks,
         count: tasks.length,
         limit: filters.limit,

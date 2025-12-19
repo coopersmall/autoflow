@@ -1,12 +1,13 @@
 import type { ISharedCache } from '@backend/infrastructure/cache/SharedCache';
+import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { ISharedRepo } from '@backend/infrastructure/repos/SharedRepo';
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
 
-export interface CreateItemContext<
+export interface CreateItemDeps<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > {
@@ -28,23 +29,25 @@ export async function createItem<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 >(
-  ctx: CreateItemContext<ID, T>,
+  ctx: Context,
   request: CreateItemRequest<T>,
-): Promise<Result<T, ErrorWithMetadata>> {
-  const { newId, repo, cache, logger, serviceName } = ctx;
+  deps: CreateItemDeps<ID, T>,
+): Promise<Result<T, AppError>> {
+  const { newId, repo, cache, logger, serviceName } = deps;
   const { data } = request;
 
   const id = newId();
-  const result = await repo.create(id, data);
+  const result = await repo.create(ctx, id, data);
 
   if (result.isErr()) {
     return err(result.error);
   }
 
   if (cache) {
-    const setResult = await cache.set(id, result.value);
+    const setResult = await cache.set(ctx, id, result.value);
     if (setResult.isErr()) {
       logger.error('Failed to set cache after create', setResult.error, {
+        correlationId: ctx.correlationId,
         id,
         service: serviceName,
       });

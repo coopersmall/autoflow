@@ -1,4 +1,4 @@
-import type { Request } from '@backend/infrastructure/http/handlers/domain/Request';
+import type { BunRequest } from 'bun';
 
 /**
  * HTTP route handlers organized by path and method.
@@ -23,9 +23,9 @@ import type { Request } from '@backend/infrastructure/http/handlers/domain/Reque
  */
 export interface RouteHandlers {
   [path: string]: {
-    GET?: (req: Request) => Response | Promise<Response>;
-    POST?: (req: Request) => Response | Promise<Response>;
-    PUT?: (req: Request) => Response | Promise<Response>;
-    DELETE?: (req: Request) => Response | Promise<Response>;
+    GET?: (req: BunRequest) => Response | Promise<Response>;
+    POST?: (req: BunRequest) => Response | Promise<Response>;
+    PUT?: (req: BunRequest) => Response | Promise<Response>;
+    DELETE?: (req: BunRequest) => Response | Promise<Response>;
   };
 }

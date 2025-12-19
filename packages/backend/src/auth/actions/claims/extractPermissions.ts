@@ -3,22 +3,21 @@ import {
   type JWTClaim,
 } from '@core/domain/jwt/JWTClaim';
 import type { Permission } from '@core/domain/permissions/permissions';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { type AppError, internalError } from '@core/errors';
 import { err, ok, type Result } from 'neverthrow';
 
 export function extractPermissions(
   claim: JWTClaim,
-): Result<Permission[], ErrorWithMetadata> {
+): Result<Permission[], AppError> {
   try {
     const permissions = getPermissionsFromClaim(claim);
     return ok(permissions);
   } catch (cause) {
     return err(
-      new ErrorWithMetadata(
-        'Failed to extract permissions from JWT claim',
-        'InternalServer',
-        { claim, cause },
-      ),
+      internalError('Failed to extract permissions from JWT claim', {
+        cause,
+        metadata: { claim },
+      }),
     );
   }
 }

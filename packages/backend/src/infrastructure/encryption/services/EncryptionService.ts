@@ -1,3 +1,4 @@
+import type { Context } from '@backend/infrastructure/context';
 import {
   type DecodeTokenRequest,
   decodeToken,
@@ -15,7 +16,6 @@ import {
   encryptRSA,
 } from '@backend/infrastructure/encryption/actions/rsa/encrypt';
 import {
-  type GenerateKeyPairRequest,
   generateKeyPair,
   type RSAKeyPair,
 } from '@backend/infrastructure/encryption/actions/rsa/generateKeyPair';
@@ -23,18 +23,18 @@ import { generateSalt } from '@backend/infrastructure/encryption/actions/rsa/gen
 import type { IEncryptionService } from '@backend/infrastructure/encryption/domain/EncryptionService';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { JWTClaim } from '@core/domain/jwt/JWTClaim';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 
 export { createEncryptionService };
 
 function createEncryptionService(
-  ctx: EncryptionServiceContext,
+  config: EncryptionServiceConfig,
 ): IEncryptionService {
-  return Object.freeze(new EncryptionService(ctx));
+  return Object.freeze(new EncryptionService(config));
 }
 
-interface EncryptionServiceContext {
+interface EncryptionServiceConfig {
   logger: ILogger;
 }
 
@@ -53,7 +53,7 @@ interface EncryptionServiceActions {
  */
 class EncryptionService implements IEncryptionService {
   constructor(
-    private readonly context: EncryptionServiceContext,
+    private readonly config: EncryptionServiceConfig,
     private readonly actions: EncryptionServiceActions = {
       encryptRSA,
       decryptRSA,
@@ -66,30 +66,38 @@ class EncryptionService implements IEncryptionService {
 
   /**
    * Encrypts data using RSA public key with PKCS1 padding.
+   * @param ctx - Request context for tracing and cancellation
    * @param request - Encryption request object
-   * @param request.correlationId - Unique identifier for tracking this operation across logs
    * @param request.data - Binary data buffer to be encrypted
    * @param request.publicKey - RSA public key in PEM format as buffer
    * @returns Promise resolving to encrypted data buffer or error details
    */
   async encryptRSA(
+    ctx: Context,
     request: EncryptRSARequest,
-  ): Promise<Result<Buffer, ErrorWithMetadata>> {
-    return this.actions.encryptRSA(this.context, request);
+  ): Promise<Result<Buffer, AppError>> {
+    return this.actions.encryptRSA(
+      { ...this.config, correlationId: String(ctx.correlationId) },
+      request,
+    );
   }
 
   /**
    * Decrypts RSA-encrypted data using private key with PKCS1 padding.
+   * @param ctx - Request context for tracing and cancellation
    * @param request - Decryption request object
-   * @param request.correlationId - Unique identifier for tracking this operation across logs
    * @param request.data - Encrypted binary data buffer to be decrypted
    * @param request.privateKey - RSA private key in PEM format as buffer
    * @returns Promise resolving to decrypted data buffer or error details
    */
   async decryptRSA(
+    ctx: Context,
     request: DecryptRSARequest,
-  ): Promise<Result<Buffer, ErrorWithMetadata>> {
-    return this.actions.decryptRSA(this.context, request);
+  ): Promise<Result<Buffer, AppError>> {
+    return this.actions.decryptRSA(
+      { ...this.config, correlationId: String(ctx.correlationId) },
+      request,
+    );
   }
 
   /**
@@ -104,41 +112,46 @@ class EncryptionService implements IEncryptionService {
   /**
    * Generates a new RSA key pair for JWT signing and verification.
    * Uses RS256 algorithm with extractable keys.
-   * @param request - Key generation request object
-   * @param request.correlationId - Unique identifier for tracking this operation across logs
+   * @param ctx - Request context for tracing and cancellation
    * @returns Promise resolving to RSA key pair (private and public keys in PEM format) or error details
    */
-  async generateKeyPair(
-    request: GenerateKeyPairRequest,
-  ): Promise<Result<RSAKeyPair, ErrorWithMetadata>> {
-    return this.actions.generateKeyPair(this.context, request);
+  async generateKeyPair(ctx: Context): Promise<Result<RSAKeyPair, AppError>> {
+    return this.actions.generateKeyPair(this.config, ctx);
   }
 
   /**
    * Encodes a JWT claim into a signed token string using RSA private key.
+   * @param ctx - Request context for tracing and cancellation
    * @param request - Encoding request object
-   * @param request.correlationId - Unique identifier for tracking this operation across logs
    * @param request.claim - JWT claim object to encode
    * @param request.privateKey - RSA private key in PEM format for signing
    * @returns Promise resolving to signed JWT token string or error details
    */
   async encodeJWT(
+    ctx: Context,
     request: EncodeTokenRequest,
-  ): Promise<Result<string, ErrorWithMetadata>> {
-    return this.actions.encodeToken(this.context, request);
+  ): Promise<Result<string, AppError>> {
+    return this.actions.encodeToken(this.config, {
+      ...request,
+      correlationId: ctx.correlationId,
+    });
   }
 
   /**
    * Decodes and verifies a JWT token string using RSA public key.
+   * @param ctx - Request context for tracing and cancellation
    * @param request - Decoding request object
-   * @param request.correlationId - Unique identifier for tracking this operation across logs
    * @param request.token - Signed JWT token string to decode
    * @param request.publicKey - RSA public key in PEM format for verification
    * @returns Promise resolving to verified JWT claim object or error details
    */
   async decodeJWT(
+    ctx: Context,
     request: DecodeTokenRequest,
-  ): Promise<Result<JWTClaim, ErrorWithMetadata>> {
-    return this.actions.decodeToken(this.context, request);
+  ): Promise<Result<JWTClaim, AppError>> {
+    return this.actions.decodeToken(this.config, {
+      ...request,
+      correlationId: ctx.correlationId,
+    });
   }
 }

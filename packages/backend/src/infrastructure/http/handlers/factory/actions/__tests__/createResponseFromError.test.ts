@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'bun:test';
 import { createResponseFromError } from '@backend/infrastructure/http/handlers/factory/actions/createResponseFromError';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import {
+  badRequest,
+  forbidden,
+  gatewayTimeout,
+  internalError,
+  notFound,
+  timeout,
+  tooManyRequests,
+  unauthorized,
+} from '@core/errors';
 
 interface ErrorResponseBody {
   message: string;
@@ -9,7 +18,7 @@ interface ErrorResponseBody {
 
 describe('createResponseFromError', () => {
   it('should map BadRequest to 400', async () => {
-    const error = new ErrorWithMetadata('Bad request', 'BadRequest');
+    const error = badRequest('Bad request');
     const response = createResponseFromError(error);
 
     expect(response.status).toBe(400);
@@ -23,7 +32,7 @@ describe('createResponseFromError', () => {
   });
 
   it('should map Unauthorized to 401', async () => {
-    const error = new ErrorWithMetadata('Unauthorized', 'Unauthorized');
+    const error = unauthorized('Unauthorized');
     const response = createResponseFromError(error);
 
     expect(response.status).toBe(401);
@@ -37,7 +46,7 @@ describe('createResponseFromError', () => {
   });
 
   it('should map Forbidden to 403', async () => {
-    const error = new ErrorWithMetadata('Forbidden', 'Forbidden');
+    const error = forbidden('Forbidden');
     const response = createResponseFromError(error);
 
     expect(response.status).toBe(403);
@@ -51,7 +60,7 @@ describe('createResponseFromError', () => {
   });
 
   it('should map NotFound to 404', async () => {
-    const error = new ErrorWithMetadata('Not found', 'NotFound');
+    const error = notFound('Not found');
     const response = createResponseFromError(error);
 
     expect(response.status).toBe(404);
@@ -65,7 +74,7 @@ describe('createResponseFromError', () => {
   });
 
   it('should map Timeout to 408', async () => {
-    const error = new ErrorWithMetadata('Request timeout', 'Timeout');
+    const error = timeout('Request timeout');
     const response = createResponseFromError(error);
 
     expect(response.status).toBe(408);
@@ -79,7 +88,7 @@ describe('createResponseFromError', () => {
   });
 
   it('should map TooManyRequests to 429', async () => {
-    const error = new ErrorWithMetadata('Too many requests', 'TooManyRequests');
+    const error = tooManyRequests('Too many requests');
     const response = createResponseFromError(error);
 
     expect(response.status).toBe(429);
@@ -93,10 +102,7 @@ describe('createResponseFromError', () => {
   });
 
   it('should map InternalServer to 500', async () => {
-    const error = new ErrorWithMetadata(
-      'Internal server error',
-      'InternalServer',
-    );
+    const error = internalError('Internal server error');
     const response = createResponseFromError(error);
 
     expect(response.status).toBe(500);
@@ -110,7 +116,7 @@ describe('createResponseFromError', () => {
   });
 
   it('should map GatewayTimeout to 504', async () => {
-    const error = new ErrorWithMetadata('Gateway timeout', 'GatewayTimeout');
+    const error = gatewayTimeout('Gateway timeout');
     const response = createResponseFromError(error);
 
     expect(response.status).toBe(504);
@@ -124,10 +130,7 @@ describe('createResponseFromError', () => {
   });
 
   it('should include error message in response body', async () => {
-    const error = new ErrorWithMetadata(
-      'Custom error message',
-      'InternalServer',
-    );
+    const error = internalError('Custom error message');
     const response = createResponseFromError(error);
 
     const body: ErrorResponseBody = await response.json();
@@ -135,7 +138,7 @@ describe('createResponseFromError', () => {
   });
 
   it('should include error code in response body', async () => {
-    const error = new ErrorWithMetadata('Error occurred', 'BadRequest');
+    const error = badRequest('Error occurred');
     const response = createResponseFromError(error);
 
     const body: ErrorResponseBody = await response.json();
@@ -143,7 +146,7 @@ describe('createResponseFromError', () => {
   });
 
   it('should set content-type to application/json', () => {
-    const error = new ErrorWithMetadata('Error', 'InternalServer');
+    const error = internalError('Error');
     const response = createResponseFromError(error);
 
     expect(response.headers.get('Content-Type')).toBe('application/json');

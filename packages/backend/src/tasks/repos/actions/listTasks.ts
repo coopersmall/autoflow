@@ -1,17 +1,17 @@
 import type { IDatabaseClient } from '@backend/infrastructure/repos/domain/DatabaseClient';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 import type { ListTasksFilters } from '@backend/tasks/domain/TasksRepo';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { type AppError, internalError } from '@core/errors';
 import type { Validator } from '@core/validation/validate';
 import { err, type Result } from 'neverthrow';
 
-export interface ListTasksContext {
+export interface ListTasksDeps {
   readonly db: IDatabaseClient;
   readonly validator: Validator<TaskRecord>;
   readonly executeQuery: (
     query: () => Promise<unknown>,
     validator: Validator<TaskRecord>,
-  ) => Promise<Result<TaskRecord[], ErrorWithMetadata>>;
+  ) => Promise<Result<TaskRecord[], AppError>>;
 }
 
 export interface ListTasksRequest {
@@ -22,10 +22,10 @@ export interface ListTasksRequest {
  * List tasks with optional filters and pagination.
  */
 export async function listTasks(
-  ctx: ListTasksContext,
+  deps: ListTasksDeps,
   request: ListTasksRequest,
-): Promise<Result<TaskRecord[], ErrorWithMetadata>> {
-  const { db, validator, executeQuery } = ctx;
+): Promise<Result<TaskRecord[], AppError>> {
+  const { db, validator, executeQuery } = deps;
   const { filters } = request;
 
   try {
@@ -57,9 +57,9 @@ export async function listTasks(
     return await executeQuery(async () => query, validator);
   } catch (error) {
     return err(
-      new ErrorWithMetadata('Failed to list tasks', 'InternalServer', {
-        filters,
-        error: error instanceof Error ? error.message : String(error),
+      internalError('Failed to list tasks', {
+        cause: error instanceof Error ? error : undefined,
+        metadata: { filters },
       }),
     );
   }

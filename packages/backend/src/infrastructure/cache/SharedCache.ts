@@ -40,11 +40,12 @@ import {
   setCached,
 } from '@backend/infrastructure/cache/actions/shared';
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import { createCachedGetter } from '@backend/infrastructure/utils/createCachedGetter';
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { ExtractMethods } from '@core/types';
 import type { Validator } from '@core/validation/validate';
 import { err, ok, type Result } from 'neverthrow';
@@ -58,9 +59,9 @@ export type ISharedCache<
 > = ExtractMethods<SharedCache<ID, T>>;
 
 /**
- * Context for SharedCache construction.
+ * Configuration for SharedCache construction.
  */
-export interface SharedCacheContext<T> {
+export interface SharedCacheConfig<T> {
   logger: ILogger;
   appConfig: IAppConfigurationService;
   validator: Validator<T>;
@@ -86,7 +87,7 @@ export class SharedCache<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > {
-  private readonly getAdapter: () => Result<ICacheAdapter, ErrorWithMetadata>;
+  private readonly getAdapter: () => Result<ICacheAdapter, AppError>;
 
   /**
    * Creates a new SharedCache instance.
@@ -97,7 +98,7 @@ export class SharedCache<
    */
   constructor(
     private readonly namespace: string,
-    private readonly ctx: SharedCacheContext<T>,
+    private readonly ctx: SharedCacheConfig<T>,
     private readonly dependencies: SharedCacheDependencies = {
       createCacheClientFactory,
       createCacheAdapter,
@@ -130,77 +131,85 @@ export class SharedCache<
   /**
    * Retrieves a value from cache by ID.
    * Optionally executes onMiss callback and caches the result on cache miss.
+   * @param ctx - Request context
    * @param id - Entity ID
    * @param onMiss - Optional callback to execute on cache miss
    * @returns Cached value or error
    */
   async get(
+    ctx: Context,
     id: ID,
-    onMiss?: (id: ID) => Promise<Result<T, ErrorWithMetadata>>,
-  ): Promise<Result<T, ErrorWithMetadata>> {
+    onMiss?: (ctx: Context, id: ID) => Promise<Result<T, AppError>>,
+  ): Promise<Result<T, AppError>> {
     const adapterResult = this.getAdapter();
     if (adapterResult.isErr()) {
       return err(adapterResult.error);
     }
 
     return this.sharedCacheActions.getCached(
+      ctx,
+      {
+        id,
+        onMiss,
+        setCached: this.set.bind(this),
+      },
       {
         adapter: adapterResult.value,
         logger: this.ctx.logger,
         validator: this.ctx.validator,
         generateKey: this.generateKey.bind(this),
       },
-      {
-        id,
-        onMiss,
-        setCached: this.set.bind(this),
-      },
     );
   }
 
   /**
    * Stores a value in cache.
+   * @param ctx - Request context
    * @param id - Entity ID
    * @param item - Value to cache
    * @param ttl - Time-to-live in seconds (default: 3600)
    * @returns Success or error
    */
   async set(
+    ctx: Context,
     id: ID,
     item: T,
     ttl: number = 3600,
-  ): Promise<Result<void, ErrorWithMetadata>> {
+  ): Promise<Result<void, AppError>> {
     const adapter = this.getAdapter();
     if (adapter.isErr()) {
       return err(adapter.error);
     }
 
     return this.sharedCacheActions.setCached(
+      ctx,
+      { id, item, ttl },
       {
         adapter: adapter.value,
         generateKey: this.generateKey.bind(this),
       },
-      { id, item, ttl },
     );
   }
 
   /**
    * Deletes a value from cache.
+   * @param ctx - Request context
    * @param id - Entity ID
    * @returns Success or error
    */
-  async del(id: ID): Promise<Result<void, ErrorWithMetadata>> {
+  async del(ctx: Context, id: ID): Promise<Result<void, AppError>> {
     const adapter = this.getAdapter();
     if (adapter.isErr()) {
       return err(adapter.error);
     }
 
     return this.sharedCacheActions.deleteCached(
+      ctx,
+      { id },
       {
         adapter: adapter.value,
         generateKey: this.generateKey.bind(this),
       },
-      { id },
     );
   }
 

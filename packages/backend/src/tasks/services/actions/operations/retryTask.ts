@@ -1,29 +1,29 @@
+import type { Context } from '@backend/infrastructure/context/Context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { TaskId } from '@backend/tasks/domain/TaskId';
 import type { ITaskQueue } from '@backend/tasks/domain/TaskQueue';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 import type { ITasksRepo } from '@backend/tasks/domain/TasksRepo';
 import { createInvalidTaskStateError } from '@backend/tasks/errors/TaskError';
-import type { CorrelationId } from '@core/domain/CorrelationId';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
 
-export interface RetryTaskContext {
+export interface RetryTaskDeps {
   logger: ILogger;
   tasksRepo: ITasksRepo;
   taskQueue: (queueName: string) => ITaskQueue;
 }
 
 export interface RetryTaskRequest {
-  correlationId: CorrelationId;
   taskId: TaskId;
 }
 
 export async function retryTask(
-  ctx: RetryTaskContext,
+  ctx: Context,
   request: RetryTaskRequest,
-): Promise<Result<TaskRecord, ErrorWithMetadata>> {
-  const taskResult = await ctx.tasksRepo.get(request.taskId);
+  deps: RetryTaskDeps,
+): Promise<Result<TaskRecord, AppError>> {
+  const taskResult = await deps.tasksRepo.get(ctx, request.taskId);
   if (taskResult.isErr()) return err(taskResult.error);
 
   const task = taskResult.value;
@@ -32,7 +32,7 @@ export async function retryTask(
     return err(createInvalidTaskStateError(task.status, 'retry'));
   }
 
-  const updateResult = await ctx.tasksRepo.update(task.id, {
+  const updateResult = await deps.tasksRepo.update(ctx, task.id, {
     status: 'pending',
     attempts: 0,
     failedAt: null,
@@ -41,16 +41,13 @@ export async function retryTask(
 
   if (updateResult.isErr()) return err(updateResult.error);
 
-  const taskQueue = ctx.taskQueue(task.queueName);
+  const taskQueue = deps.taskQueue(task.queueName);
 
-  const enqueueResult = await taskQueue.enqueue(
-    request.correlationId,
-    updateResult.value,
-  );
+  const enqueueResult = await taskQueue.enqueue(ctx, updateResult.value);
 
   if (enqueueResult.isErr()) return err(enqueueResult.error);
 
-  ctx.logger.info('Task re-queued', {
+  deps.logger.info('Task re-queued', {
     taskId: task.id,
     jobId: enqueueResult.value.id,
   });

@@ -5,7 +5,7 @@
  * the repository layer. These abstractions allow different database implementations
  * (e.g., Bun SQL, Postgres, MySQL) to be swapped without changing repository code.
  */
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 import zod from 'zod';
 
@@ -40,5 +40,5 @@ export interface IDatabaseClientFactory {
   getDatabase(
     type: DatabaseClientType,
     table: string,
-  ): Result<IDatabaseClient, ErrorWithMetadata>;
+  ): Result<IDatabaseClient, AppError>;
 }

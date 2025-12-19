@@ -1,10 +1,12 @@
 import { beforeAll, describe, expect, it } from 'bun:test';
+import { createMockContext } from '@backend/infrastructure/context/__mocks__/Context.mock';
 import { TaskId } from '@backend/tasks/domain/TaskId';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 import { newTaskRecord } from '@backend/tasks/domain/TaskRecord';
 import { createTasksHttpHandler } from '@backend/tasks/handlers/http/TasksHttpHandler';
 import { createTasksRepo } from '@backend/tasks/repos/TasksRepo';
 import { setupHttpIntegrationTest } from '@backend/testing/integration/httpIntegrationTest';
+import * as fc from 'fast-check';
 
 // Response types for JSON parsing
 interface ListTasksResponse {
@@ -57,7 +59,8 @@ describe('TasksHttpHandler Integration Tests', () => {
       updatedAt: _updatedAt,
       ...data
     } = task;
-    const result = await repo.create(task.id, data);
+    const ctx = createMockContext();
+    const result = await repo.create(ctx, task.id, data);
     return result._unsafeUnwrap();
   };
 
@@ -75,6 +78,95 @@ describe('TasksHttpHandler Integration Tests', () => {
     ];
 
     await getHttpServer().start(handlers);
+  });
+
+  describe('Property Tests', () => {
+    // Arbitraries for property-based testing
+    const validStatusArb = fc.constantFrom(
+      'pending',
+      'active',
+      'completed',
+      'failed',
+      'cancelled',
+      'delayed',
+    );
+
+    const validFilterArb = fc.record(
+      {
+        status: fc.option(validStatusArb, { nil: undefined }),
+        taskName: fc.option(fc.string({ minLength: 1, maxLength: 100 }), {
+          nil: undefined,
+        }),
+        limit: fc.option(fc.integer({ min: 1, max: 100 }), { nil: undefined }),
+        offset: fc.option(fc.integer({ min: 0, max: 100 }), { nil: undefined }),
+      },
+      { requiredKeys: [] },
+    );
+
+    const invalidStatusArb = fc.oneof(
+      fc
+        .string({ minLength: 1, maxLength: 20 })
+        .filter(
+          (s) =>
+            ![
+              'pending',
+              'active',
+              'completed',
+              'failed',
+              'cancelled',
+              'delayed',
+            ].includes(s),
+        ),
+      fc.constant('INVALID'),
+      fc.constant('unknown'),
+      fc.constant('123'),
+    );
+
+    it('should accept all valid filter combinations for GET /api/tasks', async () => {
+      const client = getHttpClient();
+      const auth = getTestAuth();
+      const headers = await auth.createAdminHeaders();
+
+      await fc.assert(
+        fc.asyncProperty(validFilterArb, async (filters) => {
+          const queryParams = Object.entries(filters)
+            .filter(([_, v]) => v !== undefined)
+            .map(([k, v]) => `${k}=${encodeURIComponent(String(v))}`)
+            .join('&');
+
+          const url = queryParams ? `/api/tasks?${queryParams}` : '/api/tasks';
+          const response = await client.get(url, { headers });
+
+          // All valid filter combinations should return 200
+          expect(response.status).toBe(200);
+
+          const data: ListTasksResponse = await response.json();
+          expect(data.tasks).toBeDefined();
+          expect(Array.isArray(data.tasks)).toBe(true);
+          expect(typeof data.count).toBe('number');
+        }),
+        { numRuns: 30 },
+      );
+    });
+
+    it('should reject invalid status values with 400 for GET /api/tasks', async () => {
+      const client = getHttpClient();
+      const auth = getTestAuth();
+      const headers = await auth.createAdminHeaders();
+
+      await fc.assert(
+        fc.asyncProperty(invalidStatusArb, async (invalidStatus) => {
+          const response = await client.get(
+            `/api/tasks?status=${encodeURIComponent(invalidStatus)}`,
+            { headers },
+          );
+
+          // Invalid status should be rejected with 400
+          expect(response.status).toBe(400);
+        }),
+        { numRuns: 20 },
+      );
+    });
   });
 
   describe('GET /api/tasks', () => {
@@ -133,7 +225,8 @@ describe('TasksHttpHandler Integration Tests', () => {
         ...data
       } = task;
       const repo = createTasksRepo({ appConfig: getConfig() });
-      await repo.create(task.id, data);
+      const ctx = createMockContext();
+      await repo.create(ctx, task.id, data);
 
       const response = await client.get(
         '/api/tasks?taskName=unique:task:name',

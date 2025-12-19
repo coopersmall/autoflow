@@ -1,4 +1,4 @@
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 import type { IQueueClient } from './QueueClient.ts';
 import type { QueueProvider } from './WorkerClient.ts';
@@ -33,5 +33,5 @@ export interface IQueueClientFactory {
   getQueueClient(
     queueName: string,
     type?: QueueClientType,
-  ): Result<IQueueClient, ErrorWithMetadata>;
+  ): Result<IQueueClient, AppError>;
 }

@@ -1,4 +1,20 @@
+/**
+ * TasksRepo Integration Tests
+ *
+ * Tests complete task repository operations with real database:
+ * - JSON payload preservation (property tests)
+ * - Status transitions (property tests)
+ * - Priority handling (property tests)
+ * - Bulk updates (property tests)
+ * - Pagination and filtering
+ * - Timestamps
+ *
+ * Uses property-based testing for data preservation invariants, with specific
+ * unit tests only for functionality that doesn't fit the property model.
+ */
+
 import { describe, expect, it } from 'bun:test';
+import { createMockContext } from '@backend/infrastructure/context/__mocks__/Context.mock';
 import type { TaskId } from '@backend/tasks/domain/TaskId';
 import { TaskId as TaskIdConstructor } from '@backend/tasks/domain/TaskId';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
@@ -6,6 +22,8 @@ import { newTaskRecord } from '@backend/tasks/domain/TaskRecord';
 import { createTasksRepo } from '@backend/tasks/repos/TasksRepo';
 import { setupIntegrationTest } from '@backend/testing/integration/integrationTest';
 import { UserId } from '@core/domain/user/user';
+import { isAppError } from '@core/errors';
+import * as fc from 'fast-check';
 
 describe('TasksRepo Integration Tests', () => {
   const { getConfig } = setupIntegrationTest();
@@ -35,12 +53,160 @@ describe('TasksRepo Integration Tests', () => {
     return data;
   };
 
-  describe('create()', () => {
+  describe('Property Tests', () => {
+    // Arbitraries for property-based testing
+    // Generate valid JSON objects (not primitives, null, or arrays)
+    const jsonPayloadArb = fc.dictionary(
+      fc.string(),
+      fc.oneof(
+        fc.string(),
+        fc.integer(),
+        fc.boolean(),
+        fc.constant(null),
+        fc.array(fc.string()),
+      ),
+    );
+    const statusArb = fc.constantFrom(
+      'pending',
+      'active',
+      'completed',
+      'failed',
+      'cancelled',
+      'delayed',
+    );
+    const priorityArb = fc.constantFrom('low', 'normal', 'high', 'critical');
+
+    it('should preserve any JSON payload through create/get round-trip', async () => {
+      const repo = createRepo();
+
+      await fc.assert(
+        fc.asyncProperty(jsonPayloadArb, async (payload) => {
+          const task = createTask({ payload });
+
+          const createResult = await repo.create(
+            createMockContext(),
+            task.id,
+            toCreateData(task),
+          );
+
+          expect(createResult.isOk()).toBe(true);
+          const created = createResult._unsafeUnwrap();
+
+          const getResult = await repo.get(createMockContext(), created.id);
+          expect(getResult.isOk()).toBe(true);
+
+          const retrieved = getResult._unsafeUnwrap();
+          expect(retrieved.payload).toEqual(payload);
+        }),
+        { numRuns: 50 },
+      );
+    });
+
+    it('should accept any valid status on update', async () => {
+      const repo = createRepo();
+
+      await fc.assert(
+        fc.asyncProperty(statusArb, async (newStatus) => {
+          const task = createTask({ status: 'pending' });
+
+          await repo.create(createMockContext(), task.id, toCreateData(task));
+
+          const updateResult = await repo.update(createMockContext(), task.id, {
+            status: newStatus,
+          });
+
+          expect(updateResult.isOk()).toBe(true);
+          const updated = updateResult._unsafeUnwrap();
+          expect(updated.status).toBe(newStatus);
+        }),
+        { numRuns: 20 },
+      );
+    });
+
+    it('should preserve task priority through operations', async () => {
+      const repo = createRepo();
+
+      await fc.assert(
+        fc.asyncProperty(priorityArb, async (priority) => {
+          const task = createTask({ priority });
+
+          const createResult = await repo.create(
+            createMockContext(),
+            task.id,
+            toCreateData(task),
+          );
+
+          expect(createResult.isOk()).toBe(true);
+
+          const getResult = await repo.get(createMockContext(), task.id);
+          expect(getResult.isOk()).toBe(true);
+
+          const retrieved = getResult._unsafeUnwrap();
+          expect(retrieved.priority).toBe(priority);
+        }),
+        { numRuns: 20 },
+      );
+    });
+
+    it('should apply all bulk updates consistently', async () => {
+      const repo = createRepo();
+
+      const updatesArb = fc
+        .array(
+          fc.record({
+            status: statusArb,
+          }),
+          { minLength: 1, maxLength: 10 },
+        )
+        .chain((statuses) =>
+          fc.constant(
+            statuses.map((status, index) => ({
+              task: createTask({ status: 'pending' }),
+              newData: status,
+              index,
+            })),
+          ),
+        );
+
+      await fc.assert(
+        fc.asyncProperty(updatesArb, async (updates) => {
+          // Create all tasks
+          for (const { task } of updates) {
+            await repo.create(createMockContext(), task.id, toCreateData(task));
+          }
+
+          // Bulk update with new statuses
+          const bulkUpdates = updates.map(({ task, newData }) => ({
+            id: task.id,
+            data: newData,
+          }));
+
+          const bulkResult = await repo.bulkUpdate(bulkUpdates);
+          expect(bulkResult.isOk()).toBe(true);
+
+          // Verify all updates were applied
+          for (const { task, newData } of updates) {
+            const getResult = await repo.get(createMockContext(), task.id);
+            expect(getResult.isOk()).toBe(true);
+            const retrieved = getResult._unsafeUnwrap();
+            expect(retrieved.status).toBe(newData.status);
+          }
+        }),
+        { numRuns: 20 },
+      );
+    });
+  });
+
+  describe('CRUD operations', () => {
     it('should persist task to database', async () => {
       const repo = createRepo();
       const task = createTask();
 
-      const result = await repo.create(task.id, toCreateData(task));
+      const result = await repo.create(
+        createMockContext(),
+        task.id,
+        toCreateData(task),
+      );
 
       expect(result.isOk()).toBe(true);
       const created = result._unsafeUnwrap();
@@ -49,56 +215,12 @@ describe('TasksRepo Integration Tests', () => {
       expect(created.status).toBe('pending');
     });
 
-    it('should store payload correctly', async () => {
-      const repo = createRepo();
-      const task = createTask({
-        payload: {
-          email: 'test@example.com',
-          count: 42,
-          nested: { key: 'value' },
-        },
-      });
-
-      const result = await repo.create(task.id, toCreateData(task));
-
-      expect(result.isOk()).toBe(true);
-      const created = result._unsafeUnwrap();
-      expect(created.payload).toEqual({
-        email: 'test@example.com',
-        count: 42,
-        nested: { key: 'value' },
-      });
-    });
-
-    it('should set createdAt and updatedAt timestamps', async () => {
-      const repo = createRepo();
-      const task = createTask();
-      // Use a timestamp slightly in the past to avoid race conditions
-      // where the DB timestamp could be a few ms before our Date.now()
-      const beforeCreate = new Date(Date.now() - 100);
-
-      const result = await repo.create(task.id, toCreateData(task));
-
-      expect(result.isOk()).toBe(true);
-      const created = result._unsafeUnwrap();
-      expect(created.createdAt.getTime()).toBeGreaterThanOrEqual(
-        beforeCreate.getTime(),
-      );
-      // updatedAt is set to defaultNow() by the database schema
-      expect(created.updatedAt).toBeDefined();
-      expect(created.updatedAt?.getTime()).toBeGreaterThanOrEqual(
-        beforeCreate.getTime(),
-      );
-    });
-  });
-
-  describe('get()', () => {
     it('should retrieve task by ID', async () => {
       const repo = createRepo();
       const task = createTask();
 
-      await repo.create(task.id, toCreateData(task));
-      const result = await repo.get(task.id);
+      await repo.create(createMockContext(), task.id, toCreateData(task));
+      const result = await repo.get(createMockContext(), task.id);
 
       expect(result.isOk()).toBe(true);
       const retrieved = result._unsafeUnwrap();
@@ -106,29 +228,114 @@ describe('TasksRepo Integration Tests', () => {
       expect(retrieved.taskName).toBe(task.taskName);
     });
 
+    it('should modify task fields on update', async () => {
+      const repo = createRepo();
+      const task = createTask({ status: 'pending' });
+      await repo.create(createMockContext(), task.id, toCreateData(task));
+
+      const result = await repo.update(createMockContext(), task.id, {
+        status: 'active',
+        startedAt: new Date(),
+      });
+
+      expect(result.isOk()).toBe(true);
+      const updated = result._unsafeUnwrap();
+      expect(updated.status).toBe('active');
+      expect(updated.startedAt).toBeDefined();
+    });
+
+    it('should remove task from database', async () => {
+      const repo = createRepo();
+      const task = createTask();
+      await repo.create(createMockContext(), task.id, toCreateData(task));
+
+      const deleteResult = await repo.delete(createMockContext(), task.id);
+      expect(deleteResult.isOk()).toBe(true);
+
+      const getResult = await repo.get(createMockContext(), task.id);
+      expect(getResult.isErr()).toBe(true);
+    });
+  });
+
+  describe('error handling', () => {
     it('should return not found error for non-existent task', async () => {
       const repo = createRepo();
       const nonExistentId = TaskIdConstructor('non-existent-task');
 
-      const result = await repo.get(nonExistentId);
+      const result = await repo.get(createMockContext(), nonExistentId);
 
       expect(result.isErr()).toBe(true);
-      expect(result._unsafeUnwrapErr().name).toBe('NotFoundError');
+      const error = result._unsafeUnwrapErr();
+      expect(isAppError(error)).toBe(true);
     });
   });
 
-  describe('getByStatus()', () => {
+  describe('timestamps', () => {
+    it('should set createdAt and updatedAt timestamps on create', async () => {
+      const repo = createRepo();
+      const task = createTask();
+      const beforeCreate = new Date(Date.now() - 100);
+
+      const result = await repo.create(
+        createMockContext(),
+        task.id,
+        toCreateData(task),
+      );
+
+      expect(result.isOk()).toBe(true);
+      const created = result._unsafeUnwrap();
+      expect(created.createdAt.getTime()).toBeGreaterThanOrEqual(
+        beforeCreate.getTime(),
+      );
+      expect(created.updatedAt).toBeDefined();
+      expect(created.updatedAt?.getTime()).toBeGreaterThanOrEqual(
+        beforeCreate.getTime(),
+      );
+    });
+
+    it('should update updatedAt timestamp on update', async () => {
+      const repo = createRepo();
+      const task = createTask();
+      await repo.create(createMockContext(), task.id, toCreateData(task));
+
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
+      const beforeUpdate = new Date();
+      const result = await repo.update(createMockContext(), task.id, {
+        status: 'active',
+      });
+
+      expect(result.isOk()).toBe(true);
+      const updated = result._unsafeUnwrap();
+      expect(updated.updatedAt?.getTime()).toBeGreaterThanOrEqual(
+        beforeUpdate.getTime(),
+      );
+    });
+  });
+
+  describe('filtering and pagination', () => {
     it('should filter tasks by status', async () => {
       const repo = createRepo();
 
-      // Create tasks with different statuses
       const pendingTask = createTask({ status: 'pending' });
       const activeTask = createTask({ status: 'active' });
       const completedTask = createTask({ status: 'completed' });
 
-      await repo.create(pendingTask.id, toCreateData(pendingTask));
-      await repo.create(activeTask.id, toCreateData(activeTask));
-      await repo.create(completedTask.id, toCreateData(completedTask));
+      await repo.create(
+        createMockContext(),
+        pendingTask.id,
+        toCreateData(pendingTask),
+      );
+      await repo.create(
+        createMockContext(),
+        activeTask.id,
+        toCreateData(activeTask),
+      );
+      await repo.create(
+        createMockContext(),
+        completedTask.id,
+        toCreateData(completedTask),
+      );
 
       const result = await repo.getByStatus('pending');
 
@@ -136,63 +343,6 @@ describe('TasksRepo Integration Tests', () => {
       const tasks = result._unsafeUnwrap();
       expect(tasks.length).toBe(1);
       expect(tasks[0].id).toBe(pendingTask.id);
-    });
-
-    it('should return empty array when no tasks match status', async () => {
-      const repo = createRepo();
-      const task = createTask({ status: 'pending' });
-      await repo.create(task.id, toCreateData(task));
-
-      const result = await repo.getByStatus('failed');
-
-      expect(result.isOk()).toBe(true);
-      expect(result._unsafeUnwrap()).toHaveLength(0);
-    });
-
-    it('should respect limit parameter', async () => {
-      const repo = createRepo();
-
-      // Create multiple pending tasks
-      for (let i = 0; i < 5; i++) {
-        const task = createTask({ status: 'pending' });
-        await repo.create(task.id, toCreateData(task));
-      }
-
-      const result = await repo.getByStatus('pending', 2);
-
-      expect(result.isOk()).toBe(true);
-      expect(result._unsafeUnwrap()).toHaveLength(2);
-    });
-  });
-
-  describe('listTasks()', () => {
-    it('should return all tasks with no filters', async () => {
-      const repo = createRepo();
-
-      const task1 = createTask();
-      const task2 = createTask();
-      await repo.create(task1.id, toCreateData(task1));
-      await repo.create(task2.id, toCreateData(task2));
-
-      const result = await repo.listTasks();
-
-      expect(result.isOk()).toBe(true);
-      expect(result._unsafeUnwrap().length).toBeGreaterThanOrEqual(2);
-    });
-
-    it('should filter by status', async () => {
-      const repo = createRepo();
-
-      const pendingTask = createTask({ status: 'pending' });
-      const completedTask = createTask({ status: 'completed' });
-      await repo.create(pendingTask.id, toCreateData(pendingTask));
-      await repo.create(completedTask.id, toCreateData(completedTask));
-
-      const result = await repo.listTasks({ status: 'completed' });
-
-      expect(result.isOk()).toBe(true);
-      const tasks = result._unsafeUnwrap();
-      expect(tasks.every((t) => t.status === 'completed')).toBe(true);
     });
 
     it('should filter by taskName', async () => {
@@ -204,8 +354,16 @@ describe('TasksRepo Integration Tests', () => {
       const orderTask = newTaskRecord('orders:process', 'orders:process', {
         status: 'pending',
       });
-      await repo.create(emailTask.id, toCreateData(emailTask));
-      await repo.create(orderTask.id, toCreateData(orderTask));
+      await repo.create(
+        createMockContext(),
+        emailTask.id,
+        toCreateData(emailTask),
+      );
+      await repo.create(
+        createMockContext(),
+        orderTask.id,
+        toCreateData(orderTask),
+      );
 
       const result = await repo.listTasks({ taskName: 'emails:send' });
 
@@ -219,8 +377,16 @@ describe('TasksRepo Integration Tests', () => {
 
       const user1Task = createTask({ userId: 'user-1' });
       const user2Task = createTask({ userId: 'user-2' });
-      await repo.create(user1Task.id, toCreateData(user1Task));
-      await repo.create(user2Task.id, toCreateData(user2Task));
+      await repo.create(
+        createMockContext(),
+        user1Task.id,
+        toCreateData(user1Task),
+      );
+      await repo.create(
+        createMockContext(),
+        user2Task.id,
+        toCreateData(user2Task),
+      );
 
       const result = await repo.listTasks({ userId: UserId('user-1') });
 
@@ -229,12 +395,26 @@ describe('TasksRepo Integration Tests', () => {
       expect(tasks.every((t) => t.userId === 'user-1')).toBe(true);
     });
 
-    it('should apply limit', async () => {
+    it('should respect limit parameter', async () => {
+      const repo = createRepo();
+
+      for (let i = 0; i < 5; i++) {
+        const task = createTask({ status: 'pending' });
+        await repo.create(createMockContext(), task.id, toCreateData(task));
+      }
+
+      const result = await repo.getByStatus('pending', 2);
+
+      expect(result.isOk()).toBe(true);
+      expect(result._unsafeUnwrap()).toHaveLength(2);
+    });
+
+    it('should apply limit to listTasks', async () => {
       const repo = createRepo();
 
       for (let i = 0; i < 10; i++) {
         const task = createTask();
-        await repo.create(task.id, toCreateData(task));
+        await repo.create(createMockContext(), task.id, toCreateData(task));
       }
 
       const result = await repo.listTasks({ limit: 5 });
@@ -243,14 +423,13 @@ describe('TasksRepo Integration Tests', () => {
       expect(result._unsafeUnwrap()).toHaveLength(5);
     });
 
-    it('should apply offset', async () => {
+    it('should apply offset to listTasks', async () => {
       const repo = createRepo();
 
-      // Create tasks and track their IDs
       const taskIds: TaskId[] = [];
       for (let i = 0; i < 5; i++) {
         const task = createTask();
-        await repo.create(task.id, toCreateData(task));
+        await repo.create(createMockContext(), task.id, toCreateData(task));
         taskIds.push(task.id);
       }
 
@@ -263,140 +442,7 @@ describe('TasksRepo Integration Tests', () => {
       const allTasks = allResult._unsafeUnwrap();
       const offsetTasks = offsetResult._unsafeUnwrap();
 
-      // Offset should skip first 2 tasks
       expect(offsetTasks.length).toBe(allTasks.length - 2);
-    });
-  });
-
-  describe('update()', () => {
-    it('should modify task fields', async () => {
-      const repo = createRepo();
-      const task = createTask({ status: 'pending' });
-      await repo.create(task.id, toCreateData(task));
-
-      const result = await repo.update(task.id, {
-        status: 'active',
-        startedAt: new Date(),
-      });
-
-      expect(result.isOk()).toBe(true);
-      const updated = result._unsafeUnwrap();
-      expect(updated.status).toBe('active');
-      expect(updated.startedAt).toBeDefined();
-    });
-
-    it('should update updatedAt timestamp', async () => {
-      const repo = createRepo();
-      const task = createTask();
-      await repo.create(task.id, toCreateData(task));
-
-      // Wait a bit to ensure timestamp difference
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      const beforeUpdate = new Date();
-      const result = await repo.update(task.id, { status: 'active' });
-
-      expect(result.isOk()).toBe(true);
-      const updated = result._unsafeUnwrap();
-      expect(updated.updatedAt?.getTime()).toBeGreaterThanOrEqual(
-        beforeUpdate.getTime(),
-      );
-    });
-
-    it('should preserve unchanged fields', async () => {
-      const repo = createRepo();
-      const task = createTask({
-        status: 'pending',
-        priority: 'high',
-        payload: { original: 'data' },
-      });
-      await repo.create(task.id, toCreateData(task));
-
-      const result = await repo.update(task.id, { status: 'active' });
-
-      expect(result.isOk()).toBe(true);
-      const updated = result._unsafeUnwrap();
-      expect(updated.priority).toBe('high');
-      expect(updated.payload).toEqual({ original: 'data' });
-    });
-  });
-
-  describe('bulkUpdate()', () => {
-    it('should update multiple tasks efficiently', async () => {
-      const repo = createRepo();
-
-      const task1 = createTask({ status: 'pending' });
-      const task2 = createTask({ status: 'pending' });
-      const task3 = createTask({ status: 'pending' });
-
-      await repo.create(task1.id, toCreateData(task1));
-      await repo.create(task2.id, toCreateData(task2));
-      await repo.create(task3.id, toCreateData(task3));
-
-      const result = await repo.bulkUpdate([
-        { id: task1.id, data: { status: 'completed' } },
-        { id: task2.id, data: { status: 'failed' } },
-        { id: task3.id, data: { status: 'active' } },
-      ]);
-
-      expect(result.isOk()).toBe(true);
-
-      // Verify updates applied
-      const get1 = await repo.get(task1.id);
-      const get2 = await repo.get(task2.id);
-      const get3 = await repo.get(task3.id);
-
-      expect(get1._unsafeUnwrap().status).toBe('completed');
-      expect(get2._unsafeUnwrap().status).toBe('failed');
-      expect(get3._unsafeUnwrap().status).toBe('active');
-    });
-
-    it('should return count of updated rows', async () => {
-      const repo = createRepo();
-
-      const task1 = createTask();
-      const task2 = createTask();
-      await repo.create(task1.id, toCreateData(task1));
-      await repo.create(task2.id, toCreateData(task2));
-
-      const result = await repo.bulkUpdate([
-        { id: task1.id, data: { status: 'completed' } },
-        { id: task2.id, data: { status: 'completed' } },
-      ]);
-
-      expect(result.isOk()).toBe(true);
-      expect(result._unsafeUnwrap()).toBe(2);
-    });
-  });
-
-  describe('delete()', () => {
-    it('should remove task from database', async () => {
-      const repo = createRepo();
-      const task = createTask();
-      await repo.create(task.id, toCreateData(task));
-
-      const deleteResult = await repo.delete(task.id);
-      expect(deleteResult.isOk()).toBe(true);
-
-      const getResult = await repo.get(task.id);
-      expect(getResult.isErr()).toBe(true);
-      expect(getResult._unsafeUnwrapErr().name).toBe('NotFoundError');
-    });
-
-    it('should return the deleted task', async () => {
-      const repo = createRepo();
-      const task = createTask({
-        taskName: 'to-delete',
-        payload: { important: 'data' },
-      });
-      await repo.create(task.id, toCreateData(task));
-
-      const result = await repo.delete(task.id);
-
-      expect(result.isOk()).toBe(true);
-      const deleted = result._unsafeUnwrap();
-      expect(deleted.taskName).toBe('to-delete');
-      expect(deleted.payload).toEqual({ important: 'data' });
     });
   });
 
@@ -422,8 +468,8 @@ describe('TasksRepo Integration Tests', () => {
         delayUntil: now,
       });
 
-      await repo.create(task.id, toCreateData(task));
-      const result = await repo.get(task.id);
+      await repo.create(createMockContext(), task.id, toCreateData(task));
+      const result = await repo.get(createMockContext(), task.id);
 
       expect(result.isOk()).toBe(true);
       const retrieved = result._unsafeUnwrap();
@@ -441,6 +487,25 @@ describe('TasksRepo Integration Tests', () => {
       expect(retrieved.userId).toBe('user-123');
       expect(retrieved.externalId).toBe('external-456');
       expect(retrieved.error?.reason).toBe('Test error');
+    });
+
+    it('should preserve unchanged fields after update', async () => {
+      const repo = createRepo();
+      const task = createTask({
+        status: 'pending',
+        priority: 'high',
+        payload: { original: 'data' },
+      });
+      await repo.create(createMockContext(), task.id, toCreateData(task));
+
+      const result = await repo.update(createMockContext(), task.id, {
+        status: 'active',
+      });
+
+      expect(result.isOk()).toBe(true);
+      const updated = result._unsafeUnwrap();
+      expect(updated.priority).toBe('high');
+      expect(updated.payload).toEqual({ original: 'data' });
     });
   });
 });

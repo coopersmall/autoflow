@@ -1,3 +1,4 @@
+import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type {
   IQueueClient,
@@ -6,11 +7,10 @@ import type {
 } from '@backend/infrastructure/queue/domain/QueueClient';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 import type { ITasksRepo } from '@backend/tasks/domain/TasksRepo';
-import type { CorrelationId } from '@core/domain/CorrelationId';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import { ok, type Result } from 'neverthrow';
 
-export interface EnqueueTaskContext {
+export interface EnqueueTaskDeps {
   readonly client: IQueueClient;
   readonly tasksRepo: ITasksRepo;
   readonly logger: ILogger;
@@ -19,7 +19,6 @@ export interface EnqueueTaskContext {
 }
 
 export interface EnqueueTaskRequest {
-  readonly correlationId: CorrelationId;
   readonly task: TaskRecord;
 }
 
@@ -33,14 +32,16 @@ export interface EnqueueTaskRequest {
  * 4. Log success
  */
 export async function enqueueTask(
-  ctx: EnqueueTaskContext,
+  ctx: Context,
   request: EnqueueTaskRequest,
-): Promise<Result<QueueJob, ErrorWithMetadata>> {
-  const { client, tasksRepo, logger, taskToQueueJobInput } = ctx;
-  const { correlationId, task } = request;
+  deps: EnqueueTaskDeps,
+): Promise<Result<QueueJob, AppError>> {
+  const { client, tasksRepo, logger, taskToQueueJobInput } = deps;
+  const { task } = request;
+  const correlationId = ctx.correlationId;
 
   const jobInput = taskToQueueJobInput(task);
-  const enqueueResult = await client.enqueue(correlationId, jobInput);
+  const enqueueResult = await client.enqueue(ctx, jobInput);
 
   if (enqueueResult.isErr()) {
     logger.error('Failed to enqueue task', enqueueResult.error, {
@@ -53,7 +54,7 @@ export async function enqueueTask(
 
   const queueJob = enqueueResult.value;
 
-  const updateResult = await tasksRepo.update(task.id, {
+  const updateResult = await tasksRepo.update(ctx, task.id, {
     externalId: queueJob.id,
   });
 

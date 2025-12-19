@@ -5,7 +5,7 @@ import type { Item } from '@core/domain/Item';
 import type { Validator } from '@core/validation/validate';
 import { buildHttpErrorResponse } from '../../errors/buildHttpErrorResponse.ts';
 
-export type HandleUpdateContext<ID extends Id<string>, T extends Item<ID>> = {
+export type HandleUpdateDeps<ID extends Id<string>, T extends Item<ID>> = {
   readonly service: ISharedService<ID, T>;
   readonly validators: {
     readonly id: Validator<ID>;
@@ -16,21 +16,23 @@ export type HandleUpdateContext<ID extends Id<string>, T extends Item<ID>> = {
 export type HandleUpdateRequest = Record<string, never>;
 
 export async function handleUpdate<ID extends Id<string>, T extends Item<ID>>(
-  ctx: HandleUpdateContext<ID, T>,
+  deps: HandleUpdateDeps<ID, T>,
   _request: HandleUpdateRequest,
   requestContext: RequestContext,
 ): Promise<Response> {
-  const id = requestContext.getParam('id', ctx.validators.id);
+  const { ctx } = requestContext;
+
+  const id = requestContext.getParam('id', deps.validators.id);
   if (id.isErr()) {
     return buildHttpErrorResponse(id.error);
   }
 
-  const body = await requestContext.getBody(ctx.validators.update);
+  const body = await requestContext.getBody(deps.validators.update);
   if (body.isErr()) {
     return buildHttpErrorResponse(body.error);
   }
 
-  const result = await ctx.service.update(id.value, body.value);
+  const result = await deps.service.update(ctx, id.value, body.value);
   if (result.isErr()) {
     return buildHttpErrorResponse(result.error);
   }

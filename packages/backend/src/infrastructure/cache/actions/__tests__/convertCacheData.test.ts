@@ -4,7 +4,7 @@ import {
   deserializeCacheData,
   serializeCacheData,
 } from '@backend/infrastructure/cache/actions/convertCacheData';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { internalError, isAppError } from '@core/errors';
 import type { Validator } from '@core/validation/validate';
 import { err, ok } from 'neverthrow';
 
@@ -70,7 +70,7 @@ describe('serializeCacheData', () => {
 
     expect(result.isErr()).toBe(true);
     if (result.isErr()) {
-      expect(result.error).toBeInstanceOf(ErrorWithMetadata);
+      expect(isAppError(result.error)).toBe(true);
       expect(result.error.message).toBe('Cache serialization error');
       expect(result.error.code).toBe('InternalServer');
     }
@@ -96,9 +96,7 @@ describe('deserializeCacheData', () => {
       if (JSON.stringify(data) === JSON.stringify(expectedValue)) {
         return ok(expectedValue);
       }
-      return err(
-        new ErrorWithMetadata('Validation failed', 'InternalServer', {}),
-      );
+      return err(internalError('Validation failed', { metadata: {} }));
     };
   };
 
@@ -149,7 +147,7 @@ describe('deserializeCacheData', () => {
 
     expect(result.isErr()).toBe(true);
     if (result.isErr()) {
-      expect(result.error).toBeInstanceOf(ErrorWithMetadata);
+      expect(isAppError(result.error)).toBe(true);
       expect(result.error.message).toBe('Cache deserialization error');
       expect(result.error.code).toBe('InternalServer');
     }
@@ -158,9 +156,7 @@ describe('deserializeCacheData', () => {
   it('should return error when validation fails', () => {
     const data = '{"name":"John"}';
     const validator: Validator<{ name: string; age: number }> = () => {
-      return err(
-        new ErrorWithMetadata('Missing age field', 'InternalServer', {}),
-      );
+      return err(internalError('Missing age field', { metadata: {} }));
     };
 
     const result = deserializeCacheData(data, validator);
@@ -203,9 +199,7 @@ describe('convertCacheData', () => {
       if (JSON.stringify(data) === JSON.stringify(expectedValue)) {
         return ok(expectedValue);
       }
-      return err(
-        new ErrorWithMetadata('Validation failed', 'InternalServer', {}),
-      );
+      return err(internalError('Validation failed', { metadata: {} }));
     };
   };
 
@@ -248,9 +242,7 @@ describe('convertCacheData', () => {
   it('should return error when validation fails', () => {
     const data = '{"name":"John"}';
     const validator: Validator<{ name: string; age: number }> = () => {
-      return err(
-        new ErrorWithMetadata('Missing age field', 'InternalServer', {}),
-      );
+      return err(internalError('Missing age field', { metadata: {} }));
     };
 
     const result = convertCacheData(data, validator);

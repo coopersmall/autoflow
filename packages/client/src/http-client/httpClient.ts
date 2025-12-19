@@ -1,8 +1,5 @@
-import {
-  ErrorWithMetadata,
-  type HttpRequestError,
-  TimeoutError,
-} from '@autoflow/core';
+import type { AppError } from '@autoflow/core';
+import { internalError } from '@autoflow/core';
 import { err, ok, type Result } from 'neverthrow';
 import { sendRequest } from './sendRequest.ts';
 import { sendStreamRequest } from './sendStreamRequest.ts';
@@ -48,7 +45,7 @@ export class HttpClient {
       uri: string;
     },
     opts?: RequestOpts,
-  ): Promise<Result<unknown, HttpRequestError>> {
+  ): Promise<Result<unknown, AppError>> {
     const { timeoutMs } = opts || {};
     const { config, timeoutId } = this.makeConfig(
       { uri, method: 'GET' },
@@ -75,7 +72,7 @@ export class HttpClient {
       body: unknown;
     },
     opts: RequestOpts = {},
-  ): Promise<Result<unknown, HttpRequestError>> {
+  ): Promise<Result<unknown, AppError>> {
     const { timeoutMs } = opts;
     const { config, timeoutId } = this.makeConfig(
       { uri, method: 'POST' },
@@ -103,7 +100,7 @@ export class HttpClient {
       body: unknown;
     },
     opts: StreamRequestOpts = {},
-  ): Promise<Result<StreamResponse, HttpRequestError>> {
+  ): Promise<Result<StreamResponse, AppError>> {
     return this.streamRequest('POST', { uri, body }, opts);
   }
 
@@ -114,7 +111,7 @@ export class HttpClient {
       uri: string;
     },
     opts: StreamRequestOpts = {},
-  ): Promise<Result<StreamResponse, HttpRequestError>> {
+  ): Promise<Result<StreamResponse, AppError>> {
     return this.streamRequest('GET', { uri }, opts);
   }
 
@@ -122,7 +119,7 @@ export class HttpClient {
     method: 'GET' | 'POST',
     params: { uri: string; body?: unknown },
     opts: StreamRequestOpts = {},
-  ): Promise<Result<StreamResponse, HttpRequestError>> {
+  ): Promise<Result<StreamResponse, AppError>> {
     const {
       streamTimeoutMs = this.streamTimeoutMs,
       retryAttempts = 3,
@@ -202,7 +199,6 @@ export class HttpClient {
   } {
     const { timeoutMs = this.timeoutMs, options = {} } = opts;
 
-    const url = new URL(uri, this.baseUrl).toString();
     const cache = options.cache || 'no-cache';
     const body = options.body || undefined;
     const credentials = options.credentials || 'omit';
@@ -216,7 +212,6 @@ export class HttpClient {
     const { signal } = controller;
     const timeoutId = setTimeout(() => {
       controller.abort();
-      return err(new TimeoutError(timeoutMs, { url, options }));
     }, timeoutMs || this.timeoutMs);
 
     const config: RequestInit = {
@@ -293,17 +288,13 @@ function getBody(body: unknown): string {
   return JSON.stringify(body);
 }
 
-function getUrl(
-  baseUrl: string,
-  uri: string,
-): Result<string, ErrorWithMetadata> {
+function getUrl(baseUrl: string, uri: string): Result<string, AppError> {
   try {
     return ok(new URL(uri, baseUrl).toString());
   } catch (error) {
     return err(
-      new ErrorWithMetadata('Invalid URL', 'InternalServer', {
-        baseUrl,
-        uri,
+      internalError('Invalid URL', {
+        metadata: { baseUrl, uri },
         cause: error,
       }),
     );

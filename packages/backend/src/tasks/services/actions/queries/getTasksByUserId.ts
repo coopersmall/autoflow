@@ -1,7 +1,7 @@
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 import type { ITasksRepo } from '@backend/tasks/domain/TasksRepo';
 import type { UserId } from '@core/domain/user/user';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 
 export interface GetTasksByUserIdContext {
@@ -15,6 +15,6 @@ export interface GetTasksByUserIdRequest {
 export async function getTasksByUserId(
   ctx: GetTasksByUserIdContext,
   request: GetTasksByUserIdRequest,
-): Promise<Result<TaskRecord[], ErrorWithMetadata>> {
+): Promise<Result<TaskRecord[], AppError>> {
   return await ctx.tasksRepo.getByUserId(request.userId);
 }

@@ -1,18 +1,17 @@
+import type { Context } from '@backend/infrastructure/context/Context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { IQueueClient } from '@backend/infrastructure/queue/domain/QueueClient';
 import type { TaskId } from '@backend/tasks/domain/TaskId';
-import type { CorrelationId } from '@core/domain/CorrelationId';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import { ok, type Result } from 'neverthrow';
 
-export interface RemoveTaskContext {
+export interface RemoveTaskDeps {
   readonly client: IQueueClient;
   readonly logger: ILogger;
   readonly queueName: string;
 }
 
 export interface RemoveTaskRequest {
-  readonly correlationId: CorrelationId;
   readonly taskId: TaskId;
 }
 
@@ -24,17 +23,18 @@ export interface RemoveTaskRequest {
  * 2. Log success or failure
  */
 export async function removeTask(
-  ctx: RemoveTaskContext,
+  ctx: Context,
   request: RemoveTaskRequest,
-): Promise<Result<void, ErrorWithMetadata>> {
-  const { client, logger, queueName } = ctx;
-  const { correlationId, taskId } = request;
+  deps: RemoveTaskDeps,
+): Promise<Result<void, AppError>> {
+  const { client, logger, queueName } = deps;
+  const { taskId } = request;
 
-  const removeResult = await client.remove(correlationId, taskId);
+  const removeResult = await client.remove(ctx, taskId);
 
   if (removeResult.isErr()) {
     logger.error('Failed to remove task from queue', removeResult.error, {
-      correlationId,
+      correlationId: ctx.correlationId,
       taskId,
       queueName,
     });
@@ -42,7 +42,7 @@ export async function removeTask(
   }
 
   logger.info('Task removed from queue', {
-    correlationId,
+    correlationId: ctx.correlationId,
     taskId,
     queueName,
   });

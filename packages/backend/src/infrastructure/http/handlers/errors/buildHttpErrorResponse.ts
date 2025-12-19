@@ -1,7 +1,7 @@
 /**
  * HTTP error response builder for handler error handling.
  *
- * Converts ErrorWithMetadata instances into appropriate HTTP JSON responses
+ * Converts AppError instances into appropriate HTTP JSON responses
  * with correct status codes. Used by SharedHttpHandler and StandardHttpHandler
  * to provide consistent error responses across CRUD operations.
  *
@@ -10,7 +10,7 @@
  * - Unauthorized → 401: Authentication required or credentials invalid
  * - Forbidden → 403: Authenticated but insufficient permissions
  * - BadRequest → 400: Invalid operation or state (e.g., invalid task state transition)
- * - ValidationError → 400: Invalid request data (includes validation details)
+ * - AppError → 400: Invalid request data (includes validation details)
  * - All others → 500: Internal server error (includes error details)
  *
  * Response Format:
@@ -25,8 +25,8 @@
  * This provides centralized error-to-HTTP mapping for handler layer.
  * Similar to createResponseFromError but used specifically in CRUD handlers.
  */
-import { isValidationErrorData } from '@core/errors/Error';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+
+import type { AppError } from '@core/errors/AppError';
 
 /**
  * Builds an HTTP Response from an error with appropriate status code and body.
@@ -42,7 +42,7 @@ import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
  * }
  * ```
  */
-export function buildHttpErrorResponse(error: ErrorWithMetadata) {
+export function buildHttpErrorResponse(error: AppError) {
   switch (error.code) {
     case 'NotFound':
       return Response.json({ error: 'Item not found' }, { status: 404 });
@@ -51,17 +51,18 @@ export function buildHttpErrorResponse(error: ErrorWithMetadata) {
     case 'Forbidden':
       return Response.json({ error: 'Forbidden' }, { status: 403 });
     case 'BadRequest':
+      // Check if this is a validation error with Zod issues
+      if (error.metadata && 'issues' in error.metadata) {
+        return Response.json(
+          { error: 'Validation error', details: error.metadata },
+          { status: 400 },
+        );
+      }
       return Response.json(
         { error: error.message || 'Bad request' },
         { status: 400 },
       );
     default:
-      if (isValidationErrorData(error)) {
-        return Response.json(
-          { error: 'Validation error', details: error },
-          { status: 400 },
-        );
-      }
       return Response.json(
         { error: 'Internal server error', details: error },
         { status: 500 },

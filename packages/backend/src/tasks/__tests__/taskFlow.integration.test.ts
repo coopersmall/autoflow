@@ -11,6 +11,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'bun:test';
+import { createMockContext } from '@backend/infrastructure/context/__mocks__/Context.mock';
 import { FAST_RETRY_CONFIG } from '@backend/infrastructure/queue/domain/QueueConfig';
 import type { TaskContext } from '@backend/tasks/domain/TaskContext';
 import { defineTask } from '@backend/tasks/domain/TaskDefinition';
@@ -23,6 +24,7 @@ import { createTaskWorker } from '@backend/tasks/worker/TaskWorker';
 import { setupIntegrationTest } from '@backend/testing/integration/integrationTest';
 import { CorrelationId } from '@core/domain/CorrelationId';
 import { validate } from '@core/validation/validate';
+import * as fc from 'fast-check';
 import { err, ok, type Result } from 'neverthrow';
 import zod from 'zod';
 
@@ -98,6 +100,88 @@ describe('Task Flow Integration Tests', () => {
     failureCount = 0;
   });
 
+  describe('Property Tests', () => {
+    // Arbitraries for property-based testing
+    const validPayloadArb = fc.record({
+      message: fc.string({ minLength: 1, maxLength: 1000 }),
+      shouldFail: fc.option(fc.boolean(), { nil: undefined }),
+      delayMs: fc.option(fc.integer({ min: 0, max: 1000 }), { nil: undefined }),
+    });
+
+    const invalidPayloadArb = fc.oneof(
+      // Missing required 'message' field
+      fc.record({
+        wrongField: fc.string(),
+      }),
+      // message is not a string
+      fc.record({
+        message: fc.integer(),
+        shouldFail: fc.boolean(),
+      }),
+      // Completely invalid structure
+      fc.constant(null),
+      fc.constant(undefined),
+      fc.constant('not an object'),
+    );
+
+    it('should accept all valid payloads that match schema', async () => {
+      const config = getConfig();
+      const logger = getLogger();
+      const queueName = `test-queue-valid-${Date.now()}`;
+      const testTask = createTestTaskDefinition(queueName);
+      const scheduler = createTaskScheduler({ logger, appConfig: config });
+
+      await fc.assert(
+        fc.asyncProperty(validPayloadArb, async (payload) => {
+          const correlationId = CorrelationId();
+          const ctx = createMockContext({ correlationId });
+          const scheduleResult = await scheduler.schedule(
+            ctx,
+            testTask,
+            payload,
+          );
+
+          // All valid payloads should be accepted and scheduled
+          expect(scheduleResult.isOk()).toBe(true);
+          if (scheduleResult.isOk()) {
+            const task = scheduleResult.value;
+            expect(task.status).toMatch(/pending|delayed/);
+            expect(task.taskName).toBe(queueName);
+          }
+        }),
+        { numRuns: 30 },
+      );
+    });
+
+    it('should reject payloads that do not match schema', async () => {
+      const config = getConfig();
+      const logger = getLogger();
+      const queueName = `test-queue-invalid-${Date.now()}`;
+      const testTask = createTestTaskDefinition(queueName);
+      const scheduler = createTaskScheduler({ logger, appConfig: config });
+
+      await fc.assert(
+        fc.asyncProperty(invalidPayloadArb, async (invalidPayload) => {
+          const correlationId = CorrelationId();
+          const ctx = createMockContext({ correlationId });
+          const scheduleResult = await scheduler.schedule(
+            ctx,
+            testTask,
+            invalidPayload as unknown as TestPayload,
+          );
+
+          // All invalid payloads should be rejected
+          expect(scheduleResult.isErr()).toBe(true);
+          if (scheduleResult.isErr()) {
+            const error = scheduleResult.error;
+            expect(error.message).toContain('validation');
+          }
+        }),
+        { numRuns: 30 },
+      );
+    });
+  });
+
   describe('Schedule → Process → Complete', () => {
     it('should complete a task successfully', async () => {
       const config = getConfig();
@@ -120,11 +204,10 @@ describe('Task Flow Integration Tests', () => {
 
         // Schedule task
         const correlationId = CorrelationId();
-        const scheduleResult = await scheduler.schedule(
-          correlationId,
-          testTask,
-          { message: 'Hello, World!' },
-        );
+        const ctx = createMockContext({ correlationId });
+        const scheduleResult = await scheduler.schedule(ctx, testTask, {
+          message: 'Hello, World!',
+        });
 
         expect(scheduleResult.isOk()).toBe(true);
         const taskRecord = scheduleResult._unsafeUnwrap();
@@ -144,7 +227,7 @@ describe('Task Flow Integration Tests', () => {
 
         // Verify task status in database
         const repo = createTasksRepo({ appConfig: config });
-        const getResult = await repo.get(taskRecord.id);
+        const getResult = await repo.get(ctx, taskRecord.id);
         expect(getResult.isOk()).toBe(true);
         const updatedTask = getResult._unsafeUnwrap();
         expect(updatedTask.status).toBe('completed');
@@ -156,7 +239,7 @@ describe('Task Flow Integration Tests', () => {
           logger,
           appConfig: config,
         });
-        const queueCountsResult = await queue.getJobCounts(correlationId);
+        const queueCountsResult = await queue.getJobCounts(ctx);
         expect(queueCountsResult.isOk()).toBe(true);
         const counts = queueCountsResult._unsafeUnwrap();
         expect(counts.waiting).toBe(0);
@@ -186,8 +269,9 @@ describe('Task Flow Integration Tests', () => {
 
         // Schedule multiple tasks
         const correlationId = CorrelationId();
+        const ctx = createMockContext({ correlationId });
         const promises = Array.from({ length: 5 }, (_, i) =>
-          scheduler.schedule(correlationId, testTask, {
+          scheduler.schedule(ctx, testTask, {
             message: `Task ${i + 1}`,
           }),
         );
@@ -214,7 +298,7 @@ describe('Task Flow Integration Tests', () => {
         appConfig: config,
       });
 
-      const queueCountsResult = await queue.getJobCounts(CorrelationId());
+      const queueCountsResult = await queue.getJobCounts(createMockContext());
       expect(queueCountsResult.isOk()).toBe(true);
       const counts = queueCountsResult._unsafeUnwrap();
       expect(counts.waiting).toBe(0);
@@ -254,11 +338,11 @@ describe('Task Flow Integration Tests', () => {
 
         // Schedule a task that will always fail
         const correlationId = CorrelationId();
-        const scheduleResult = await scheduler.schedule(
-          correlationId,
-          testTask,
-          { message: 'Will fail', shouldFail: true },
-        );
+        const ctx = createMockContext({ correlationId });
+        const scheduleResult = await scheduler.schedule(ctx, testTask, {
+          message: 'Will fail',
+          shouldFail: true,
+        });
 
         expect(scheduleResult.isOk()).toBe(true);
         const taskRecord = scheduleResult._unsafeUnwrap();
@@ -276,7 +360,7 @@ describe('Task Flow Integration Tests', () => {
 
         // Verify task ended up in failed state
         const repo = createTasksRepo({ appConfig: config });
-        const getResult = await repo.get(taskRecord.id);
+        const getResult = await repo.get(ctx, taskRecord.id);
         expect(getResult.isOk()).toBe(true);
         const updatedTask = getResult._unsafeUnwrap();
         expect(updatedTask.status).toBe('failed');
@@ -299,7 +383,8 @@ describe('Task Flow Integration Tests', () => {
 
       // Schedule task but don't start worker
       const correlationId = CorrelationId();
-      const scheduleResult = await scheduler.schedule(correlationId, testTask, {
+      const ctx = createMockContext({ correlationId });
+      const scheduleResult = await scheduler.schedule(ctx, testTask, {
         message: 'Will be cancelled',
       });
 
@@ -308,7 +393,7 @@ describe('Task Flow Integration Tests', () => {
 
       // Cancel the task directly in the database
       const repo = createTasksRepo({ appConfig: config });
-      const cancelResult = await repo.update(taskRecord.id, {
+      const cancelResult = await repo.update(ctx, taskRecord.id, {
         status: 'cancelled',
       });
 
@@ -340,8 +425,9 @@ describe('Task Flow Integration Tests', () => {
 
         // Schedule task with 1 second delay
         const correlationId = CorrelationId();
+        const ctx = createMockContext({ correlationId });
         const scheduleResult = await scheduler.schedule(
-          correlationId,
+          ctx,
           testTask,
           { message: 'Delayed task' },
           { delayMs: 1000 },
@@ -368,7 +454,7 @@ describe('Task Flow Integration Tests', () => {
 
         // Verify task status in database
         const repo = createTasksRepo({ appConfig: config });
-        const getResult = await repo.get(taskRecord.id);
+        const getResult = await repo.get(ctx, taskRecord.id);
         expect(getResult.isOk()).toBe(true);
         const updatedTask = getResult._unsafeUnwrap();
         expect(updatedTask.status).toBe('completed');
@@ -380,7 +466,7 @@ describe('Task Flow Integration Tests', () => {
           appConfig: config,
         });
 
-        const queueCountsResult = await queue.getJobCounts(correlationId);
+        const queueCountsResult = await queue.getJobCounts(ctx);
         expect(queueCountsResult.isOk()).toBe(true);
         const counts = queueCountsResult._unsafeUnwrap();
         expect(counts.waiting).toBe(0);
@@ -404,9 +490,10 @@ describe('Task Flow Integration Tests', () => {
 
       // Schedule task with invalid payload (missing required 'message' field)
       const correlationId = CorrelationId();
+      const ctx = createMockContext({ correlationId });
       const invalidPayload = { invalidField: 'test' } as unknown as TestPayload;
       const scheduleResult = await scheduler.schedule(
-        correlationId,
+        ctx,
         testTask,
         invalidPayload,
       );

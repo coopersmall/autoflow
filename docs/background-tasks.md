@@ -9,17 +9,22 @@ The task system provides:
 - **Automatic retries** with configurable strategies
 - **Priority queues** for task ordering
 - **Result types** for error handling
-- **Correlation IDs** for tracing
+- **Distributed tracing** via Context propagation
+- **Request cancellation** via abort signals
 
 ## Quick Start
 
 ```typescript
+import { fromRequestContext } from '@backend/infrastructure/context';
+
 // 1. Define task
 const sendEmailTask = defineTask({
   queueName: 'emails:send',
   validator: (data) => validate(emailPayloadSchema, data),
-  handler: async (payload, ctx) => {
-    await sendEmail(payload);
+  handler: async (ctx, payload, taskContext) => {
+    // ctx = Context for service calls (correlationId, signal)
+    // taskContext = Task-specific info (logger, attempt, etc.)
+    await sendEmail(ctx, payload);
     return ok({ success: true, duration: 150 });
   },
   options: { priority: 'high', maxAttempts: 3 },
@@ -28,9 +33,9 @@ const sendEmailTask = defineTask({
 // 2. Register in tasks.config.ts
 export const tasks = [sendEmailTask];
 
-// 3. Schedule from services
-const scheduler = createTaskScheduler({ logger, appConfig });
-await scheduler.schedule(correlationId, sendEmailTask, {
+// 3. Schedule from HTTP handler
+const ctx = fromRequestContext(requestContext);  // From HTTP request
+await scheduler.schedule(ctx, sendEmailTask, {
   to: 'user@example.com',
   subject: 'Welcome!',
 });
@@ -61,14 +66,17 @@ export const sendWelcomeEmailTask = defineTask({
   
   validator: (data) => validate(welcomeEmailPayloadSchema, data),
   
-  handler: async (payload: WelcomeEmailPayload, ctx) => {
-    ctx.logger.info('Sending welcome email', {
+  handler: async (ctx, payload: WelcomeEmailPayload, taskContext) => {
+    // ctx = Context for service calls (has correlationId, signal)
+    // taskContext = Task-specific context (has logger, attempt, etc.)
+    
+    taskContext.logger.info('Sending welcome email', {
       correlationId: ctx.correlationId,
       email: payload.email,
     });
     
-    // Perform the task
-    await sendEmail({
+    // Pass ctx to service calls for distributed tracing
+    await emailService.send(ctx, {
       to: payload.email,
       subject: `Welcome, ${payload.name}!`,
       body: getWelcomeEmailTemplate(payload.name),
@@ -99,16 +107,63 @@ interface TaskOptions {
 }
 ```
 
-## Task Context
+## Context in Tasks
 
-Every task handler receives a `TaskContext`:
+Task handlers receive TWO context objects:
+
+### 1. Context (for service calls)
+
+```typescript
+interface Context {
+  correlationId: CorrelationId;  // For distributed tracing
+  signal: AbortSignal;           // For cancellation
+}
+```
+
+This is propagated from the HTTP request that scheduled the task, enabling end-to-end tracing.
+
+### 2. TaskContext (task-specific info)
 
 ```typescript
 interface TaskContext {
-  correlationId: CorrelationId;  // For tracing
+  correlationId: CorrelationId;  // Same as ctx.correlationId
+  taskId: TaskId;                // Unique task instance ID
   logger: ILogger;               // For logging
-  attempt: number;               // Current attempt number
-  maxAttempts: number;           // Max attempts allowed
+}
+```
+
+### Handler Signature
+
+```typescript
+handler: async (
+  ctx: Context,                  // 1st - Pass to service calls
+  payload: TPayload,             // 2nd - Validated task data
+  taskContext: TaskContext,      // 3rd - Task-specific info
+) => Promise<Result<TResult, ErrorWithMetadata>>
+```
+
+### Example Usage
+
+```typescript
+handler: async (ctx, payload, taskContext) => {
+  // Use taskContext.logger for logging
+  taskContext.logger.info('Processing task', {
+    correlationId: ctx.correlationId,
+    taskId: taskContext.taskId,
+  });
+  
+  // Pass ctx to all service calls for tracing
+  const userResult = await usersService.get(ctx, payload.userId);
+  if (userResult.isErr()) {
+    return err(userResult.error);
+  }
+  
+  // Check for cancellation before expensive operations
+  if (ctx.signal.aborted) {
+    return err(new ErrorWithMetadata('Task cancelled', 'Cancelled'));
+  }
+  
+  return ok({ success: true });
 }
 ```
 
@@ -118,11 +173,12 @@ interface TaskContext {
 
 ```typescript
 import { createTaskScheduler } from '@backend/tasks/scheduler/TaskScheduler';
+import type { Context } from '@backend/infrastructure/context';
 
 class UsersService extends SharedService<UserId, User> {
-  async create(data: PartialUser): Promise<Result<User, Error>> {
+  async create(ctx: Context, data: PartialUser): Promise<Result<User, Error>> {
     // Create user
-    const userResult = await this.repo.create(data);
+    const userResult = await this.repo.create(ctx, data);
     if (userResult.isErr()) {
       return err(userResult.error);
     }
@@ -131,12 +187,13 @@ class UsersService extends SharedService<UserId, User> {
     
     // Schedule welcome email task
     const scheduler = createTaskScheduler({
-      logger: this.context.logger,
-      appConfig: this.context.appConfig(),
+      logger: this.config.logger,
+      appConfig: this.config.appConfig,
     });
     
+    // Pass ctx to propagate correlationId to the task
     await scheduler.schedule(
-      CorrelationId(),
+      ctx,  // Context from HTTP request
       sendWelcomeEmailTask,
       {
         userId: user.id,
@@ -150,11 +207,13 @@ class UsersService extends SharedService<UserId, User> {
 }
 ```
 
+**Key Point**: Always pass the `Context` from the HTTP handler through to `scheduler.schedule()`. This ensures the task inherits the `correlationId` from the original request for distributed tracing.
+
 ### With Options
 
 ```typescript
 await scheduler.schedule(
-  correlationId,
+  ctx,  // Context (not just correlationId!)
   sendEmailTask,
   { email: 'user@example.com' },
   {
@@ -186,12 +245,15 @@ export const tasks: TaskDefinition<unknown>[] = [
 ### Return Errors
 
 ```typescript
-handler: async (payload, ctx) => {
+handler: async (ctx, payload, taskContext) => {
   try {
-    await riskyOperation(payload);
+    await riskyOperation(ctx, payload);
     return ok({ success: true, duration: 100 });
   } catch (error) {
-    ctx.logger.error('Task failed', error, { payload });
+    taskContext.logger.error('Task failed', error, {
+      correlationId: ctx.correlationId,
+      payload,
+    });
     return err(new TaskError('Operation failed', { payload }));
   }
 }

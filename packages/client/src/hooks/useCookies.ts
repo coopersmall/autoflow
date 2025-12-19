@@ -1,4 +1,4 @@
-import type { HttpRequestError, UserId } from '@autoflow/core';
+import type { AppError, UserId } from '@autoflow/core';
 import { isString } from 'lodash';
 import { err, ok, type Result } from 'neverthrow';
 import { useCallback } from 'react';
@@ -27,7 +27,7 @@ export function useAuthCookie() {
   const client = useLocalClient();
 
   const requestAuthCookie = useCallback(
-    async (userId: UserId): Promise<Result<string, HttpRequestError>> => {
+    async (userId: UserId): Promise<Result<string, AppError>> => {
       const response = await client.requestAuthCookie(userId);
       if (response.isErr()) {
         return err(response.error);

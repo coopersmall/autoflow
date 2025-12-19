@@ -1,6 +1,6 @@
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 import type { ITasksRepo } from '@backend/tasks/domain/TasksRepo';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 
 export interface GetTasksByTaskNameContext {
@@ -14,6 +14,6 @@ export interface GetTasksByTaskNameRequest {
 export async function getTasksByTaskName(
   ctx: GetTasksByTaskNameContext,
   request: GetTasksByTaskNameRequest,
-): Promise<Result<TaskRecord[], ErrorWithMetadata>> {
+): Promise<Result<TaskRecord[], AppError>> {
   return await ctx.tasksRepo.getByTaskName(request.taskName);
 }

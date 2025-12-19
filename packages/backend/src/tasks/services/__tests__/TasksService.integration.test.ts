@@ -11,6 +11,7 @@
  */
 
 import { beforeEach, describe, expect, it } from 'bun:test';
+import { createMockContext } from '@backend/infrastructure/context/__mocks__/Context.mock';
 import type { TaskContext } from '@backend/tasks/domain/TaskContext';
 import { defineTask } from '@backend/tasks/domain/TaskDefinition';
 import type { TaskError } from '@backend/tasks/domain/TaskError';
@@ -74,10 +75,15 @@ describe('TasksService Integration Tests', () => {
     const scheduler = createTaskScheduler({ logger, appConfig: config });
     const task = createTestTask(queueName);
 
-    const result = await scheduler.schedule(CorrelationId(), task, payload, {
-      userId: options?.userId ? UserId(options.userId) : undefined,
-      delayMs: options?.delayMs,
-    });
+    const result = await scheduler.schedule(
+      createMockContext(),
+      task,
+      payload,
+      {
+        userId: options?.userId ? UserId(options.userId) : undefined,
+        delayMs: options?.delayMs,
+      },
+    );
 
     return result._unsafeUnwrap();
   };
@@ -352,7 +358,10 @@ describe('TasksService Integration Tests', () => {
         await scheduleTask(queueName, { message: 'task 2' });
 
         const correlationId = CorrelationId();
-        const result = await service.getQueueStats(correlationId, queueName);
+        const result = await service.getQueueStats(
+          createMockContext({ correlationId }),
+          queueName,
+        );
 
         expect(result.isOk()).toBe(true);
         const stats = result._unsafeUnwrap();
@@ -377,7 +386,10 @@ describe('TasksService Integration Tests', () => {
 
         const queueName = `${testQueuePrefix}-empty-queue`;
         const correlationId = CorrelationId();
-        const result = await service.getQueueStats(correlationId, queueName);
+        const result = await service.getQueueStats(
+          createMockContext({ correlationId }),
+          queueName,
+        );
 
         expect(result.isOk()).toBe(true);
         const stats = result._unsafeUnwrap();
@@ -404,7 +416,10 @@ describe('TasksService Integration Tests', () => {
         });
 
         const correlationId = CorrelationId();
-        const result = await service.cancelTask(correlationId, taskRecord.id);
+        const result = await service.cancelTask(
+          createMockContext({ correlationId }),
+          taskRecord.id,
+        );
 
         expect(result.isOk()).toBe(true);
         const cancelledTask = result._unsafeUnwrap();
@@ -427,7 +442,10 @@ describe('TasksService Integration Tests', () => {
         expect(taskRecord.status).toBe('delayed');
 
         const correlationId = CorrelationId();
-        const result = await service.cancelTask(correlationId, taskRecord.id);
+        const result = await service.cancelTask(
+          createMockContext({ correlationId }),
+          taskRecord.id,
+        );
 
         expect(result.isOk()).toBe(true);
         const cancelledTask = result._unsafeUnwrap();
@@ -441,7 +459,10 @@ describe('TasksService Integration Tests', () => {
 
         const correlationId = CorrelationId();
         const fakeTaskId = TaskId('non-existent-task-id');
-        const result = await service.cancelTask(correlationId, fakeTaskId);
+        const result = await service.cancelTask(
+          createMockContext({ correlationId }),
+          fakeTaskId,
+        );
 
         expect(result.isErr()).toBe(true);
       });
@@ -458,13 +479,16 @@ describe('TasksService Integration Tests', () => {
         });
 
         // Manually mark as completed
-        await repo.update(taskRecord.id, {
+        await repo.update(createMockContext(), taskRecord.id, {
           status: 'completed',
           completedAt: new Date(),
         });
 
         const correlationId = CorrelationId();
-        const result = await service.cancelTask(correlationId, taskRecord.id);
+        const result = await service.cancelTask(
+          createMockContext({ correlationId }),
+          taskRecord.id,
+        );
 
         expect(result.isErr()).toBe(true);
         const error = result._unsafeUnwrapErr();
@@ -485,7 +509,7 @@ describe('TasksService Integration Tests', () => {
         });
 
         // Manually mark as failed
-        await repo.update(taskRecord.id, {
+        await repo.update(createMockContext(), taskRecord.id, {
           status: 'failed',
           failedAt: new Date(),
           error: {
@@ -496,7 +520,10 @@ describe('TasksService Integration Tests', () => {
         });
 
         const correlationId = CorrelationId();
-        const result = await service.retryTask(correlationId, taskRecord.id);
+        const result = await service.retryTask(
+          createMockContext({ correlationId }),
+          taskRecord.id,
+        );
 
         expect(result.isOk()).toBe(true);
         const retriedTask = result._unsafeUnwrap();
@@ -512,7 +539,10 @@ describe('TasksService Integration Tests', () => {
 
         const correlationId = CorrelationId();
         const fakeTaskId = TaskId('non-existent-task-id');
-        const result = await service.retryTask(correlationId, fakeTaskId);
+        const result = await service.retryTask(
+          createMockContext({ correlationId }),
+          fakeTaskId,
+        );
 
         expect(result.isErr()).toBe(true);
       });
@@ -528,7 +558,10 @@ describe('TasksService Integration Tests', () => {
         });
 
         const correlationId = CorrelationId();
-        const result = await service.retryTask(correlationId, taskRecord.id);
+        const result = await service.retryTask(
+          createMockContext({ correlationId }),
+          taskRecord.id,
+        );
 
         expect(result.isErr()).toBe(true);
         const error = result._unsafeUnwrapErr();
@@ -549,7 +582,7 @@ describe('TasksService Integration Tests', () => {
           message: 'get by id',
         });
 
-        const result = await service.get(taskRecord.id);
+        const result = await service.get(createMockContext(), taskRecord.id);
 
         expect(result.isOk()).toBe(true);
         const task = result._unsafeUnwrap();
@@ -564,7 +597,7 @@ describe('TasksService Integration Tests', () => {
         const service = createTasksService({ logger, appConfig: config });
 
         const fakeTaskId = TaskId('non-existent-task-id');
-        const result = await service.get(fakeTaskId);
+        const result = await service.get(createMockContext(), fakeTaskId);
 
         expect(result.isErr()).toBe(true);
       });

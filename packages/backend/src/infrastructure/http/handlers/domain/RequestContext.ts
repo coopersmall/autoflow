@@ -1,6 +1,7 @@
-import type { CorrelationId } from '@core/domain/CorrelationId';
+import type { Context } from '@backend/infrastructure/context';
 import type { UsersSession } from '@core/domain/session/UsersSession';
-import type { ValidationError } from '@core/errors/ValidationError';
+import type { AppError } from '@core/errors';
+
 import type { Validator } from '@core/validation/validate';
 import type { Result } from 'neverthrow';
 
@@ -10,6 +11,7 @@ import type { Result } from 'neverthrow';
  *
  * Provides access to:
  * - Correlation ID for request tracking
+ * - Service-layer Context for passing to services/repos/caches
  * - User session (if authenticated)
  * - Route parameters with validation
  * - Query string parameters with validation
@@ -18,10 +20,13 @@ import type { Result } from 'neverthrow';
  */
 export interface RequestContext {
   /**
-   * Unique identifier for tracking this request across logs and services.
-   * Used for distributed tracing and debugging.
+   * Service-layer context containing correlation ID and cancellation control.
+   * Pass this to all service, repo, and cache operations.
+   *
+   * @example
+   * const result = await service.get(requestContext.ctx, itemId);
    */
-  correlationId: CorrelationId;
+  ctx: Context;
 
   /**
    * Authenticated user session containing user ID and permissions.
@@ -44,14 +49,11 @@ export interface RequestContext {
    *
    * @example
    * const userId = context.getParam('id', (value) => {
-   *   if (!value) return err(new ValidationError('User ID required'));
+   *   if (!value) return err(new AppError('User ID required'));
    *   return ok(UserId(value));
    * });
    */
-  getParam: <T>(
-    name: string,
-    validator: Validator<T>,
-  ) => Result<T, ValidationError>;
+  getParam: <T>(name: string, validator: Validator<T>) => Result<T, AppError>;
 
   /**
    * Extracts and validates a query string parameter by name.
@@ -63,13 +65,13 @@ export interface RequestContext {
    * @example
    * const page = context.getSearchParam('page', (value) => {
    *   const num = parseInt(value ?? '1', 10);
-   *   return isNaN(num) ? err(new ValidationError('Invalid page')) : ok(num);
+   *   return isNaN(num) ? err(new AppError('Invalid page')) : ok(num);
    * });
    */
   getSearchParam: <T>(
     name: string,
     validator: Validator<T>,
-  ) => Result<T, ValidationError>;
+  ) => Result<T, AppError>;
 
   /**
    * Parses and validates the request body as JSON.
@@ -81,10 +83,10 @@ export interface RequestContext {
    * const body = await context.getBody((data) => {
    *   const schema = z.object({ name: z.string(), email: z.string().email() });
    *   const result = schema.safeParse(data);
-   *   return result.success ? ok(result.data) : err(new ValidationError('Invalid body'));
+   *   return result.success ? ok(result.data) : err(new AppError('Invalid body'));
    * });
    */
-  getBody: <T>(validator: Validator<T>) => Promise<Result<T, ValidationError>>;
+  getBody: <T>(validator: Validator<T>) => Promise<Result<T, AppError>>;
 
   /**
    * Gets a request header value by name.

@@ -16,7 +16,7 @@ import {
   processBulkUpdates,
   processJob,
 } from '@backend/tasks/worker/actions';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { type AppError, internalError } from '@core/errors';
 import { produce } from 'immer';
 import { err, ok, type Result } from 'neverthrow';
 
@@ -83,10 +83,7 @@ class TaskWorker<TPayload> {
   private readonly appConfig: IAppConfigurationService;
   private readonly task: TaskDefinition<TPayload>;
   private readonly repo: ITasksRepo;
-  private readonly getWorkerClient: () => Result<
-    IWorkerClient,
-    ErrorWithMetadata
-  >;
+  private readonly getWorkerClient: () => Result<IWorkerClient, AppError>;
   private updateQueue: PendingTaskUpdate[] = [];
   private isProcessingUpdates = false;
   private readonly maxUpdateBatchSize = 100;
@@ -147,7 +144,7 @@ class TaskWorker<TPayload> {
   /**
    * Start the worker to begin processing jobs.
    */
-  async start(): Promise<Result<void, ErrorWithMetadata>> {
+  async start(): Promise<Result<void, AppError>> {
     const clientResult = this.getWorkerClient();
     if (clientResult.isErr()) {
       this.logger.error(
@@ -190,9 +187,7 @@ class TaskWorker<TPayload> {
    * This method uses Result types internally for error handling.
    * Returns a Result with the task output or an error.
    */
-  private async processJob(
-    job: WorkerJob,
-  ): Promise<Result<unknown, ErrorWithMetadata>> {
+  private async processJob(job: WorkerJob): Promise<Result<unknown, AppError>> {
     return this.taskWorkerActions.processJob(
       {
         task: this.task,
@@ -217,13 +212,9 @@ class TaskWorker<TPayload> {
       // BullMQ expects throws for failures to trigger retries.
       // This is the ONLY place in the codebase where we throw - it's the
       // boundary between our Result-based code and BullMQ's throw-based API.
-      const error = new ErrorWithMetadata(
-        result.error.message,
-        'InternalServer',
-        {
-          cause: result.error,
-        },
-      );
+      const error = internalError(result.error.message, {
+        cause: result.error,
+      });
       // biome-ignore lint: BullMQ requires throwing to trigger retries - this is the API boundary
       throw error;
     }

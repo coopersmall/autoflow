@@ -1,3 +1,4 @@
+import { createContext } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { WorkerJob } from '@backend/infrastructure/queue/domain/WorkerClient';
 import type { TaskContext } from '@backend/tasks/domain/TaskContext';
@@ -5,10 +6,11 @@ import type { TaskDefinition } from '@backend/tasks/domain/TaskDefinition';
 import { TaskId } from '@backend/tasks/domain/TaskId';
 import type { ITasksRepo } from '@backend/tasks/domain/TasksRepo';
 import { CorrelationId } from '@core/domain/CorrelationId';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { type AppError, badRequest, internalError } from '@core/errors';
+import { isString } from 'lodash';
 import { err, ok, type Result } from 'neverthrow';
 
-export interface ProcessJobContext<TPayload> {
+export interface ProcessJobDeps<TPayload> {
   readonly task: TaskDefinition<TPayload>;
   readonly repo: ITasksRepo;
   readonly logger: ILogger;
@@ -22,23 +24,35 @@ export interface ProcessJobRequest {
  * Process a job from the queue.
  *
  * Orchestration flow:
- * 1. Validate payload using task's validator
- * 2. Update task status to 'active'
- * 3. Execute task handler
- * 4. Return result
+ * 1. Extract correlationId from job data (propagated from scheduler)
+ * 2. Validate payload using task's validator
+ * 3. Update task status to 'active'
+ * 4. Execute task handler
+ * 5. Return result
  */
 export async function processJob<TPayload>(
-  ctx: ProcessJobContext<TPayload>,
+  deps: ProcessJobDeps<TPayload>,
   request: ProcessJobRequest,
-): Promise<Result<unknown, ErrorWithMetadata>> {
-  const { task, repo, logger } = ctx;
+): Promise<Result<unknown, AppError>> {
+  const { task, repo, logger } = deps;
   const { job } = request;
 
   const taskId = TaskId(job.id);
-  const correlationId = CorrelationId();
 
-  // Build task context
-  const context: TaskContext = {
+  // Retrieve correlationId from job data (stored when scheduled)
+  // Fall back to generating new one for backwards compatibility
+  const correlationId = isString(job.data.correlationId)
+    ? CorrelationId(job.data.correlationId)
+    : CorrelationId();
+
+  // Create abort controller for this job
+  const abortController = new AbortController();
+
+  // Build Context for service calls
+  const ctx = createContext(correlationId, abortController);
+
+  // Build TaskContext for the handler (keeps existing interface)
+  const taskContext: TaskContext = {
     correlationId,
     taskId,
     logger,
@@ -47,16 +61,14 @@ export async function processJob<TPayload>(
   // Validate payload using the task's validator
   const payloadValidation = task.validator(job.data);
   if (payloadValidation.isErr()) {
-    const error = new ErrorWithMetadata(
-      'Task payload validation failed',
-      'BadRequest',
-      {
+    const error = badRequest('Task payload validation failed', {
+      metadata: {
         correlationId,
         taskId,
         queueName: task.queueName,
         validationError: payloadValidation.error.message,
       },
-    );
+    });
     logger.error('Task payload validation failed', error, {
       correlationId,
       taskId,
@@ -68,7 +80,7 @@ export async function processJob<TPayload>(
   const validPayload = payloadValidation.value;
 
   // Update task status to 'active' in database
-  const updateResult = await repo.update(taskId, {
+  const updateResult = await repo.update(ctx, taskId, {
     status: 'active',
     startedAt: new Date(),
   });
@@ -82,20 +94,18 @@ export async function processJob<TPayload>(
     // Continue processing - don't fail the job for a status update issue
   }
 
-  // Execute the task handler
-  const result = await task.handler(validPayload, context);
+  // Execute the task handler (TaskContext only, not Context)
+  const result = await task.handler(validPayload, taskContext);
 
   if (result.isErr()) {
-    const error = new ErrorWithMetadata(
-      'Task execution failed',
-      'InternalServer',
-      {
+    const error = internalError('Task execution failed', {
+      metadata: {
         correlationId,
         taskId,
         queueName: task.queueName,
         taskError: result.error,
       },
-    );
+    });
     return err(error);
   }
 

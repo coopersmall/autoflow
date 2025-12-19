@@ -1,13 +1,14 @@
 import type { IStandardCache } from '@backend/infrastructure/cache/StandardCache';
+import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { IStandardRepo } from '@backend/infrastructure/repos/StandardRepo';
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
 import type { UserId } from '@core/domain/user/user';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import { ok, type Result } from 'neverthrow';
 
-export interface GetItemContext<
+export interface GetItemDeps<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > {
@@ -30,18 +31,20 @@ export async function getItem<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 >(
-  ctx: GetItemContext<ID, T>,
+  ctx: Context,
   request: GetItemRequest<ID>,
-): Promise<Result<T, ErrorWithMetadata>> {
-  const { cache, repo, logger, serviceName } = ctx;
+  deps: GetItemDeps<ID, T>,
+): Promise<Result<T, AppError>> {
+  const { cache, repo, logger, serviceName } = deps;
   const { id, userId } = request;
 
   if (cache) {
-    const cached = await cache.get(id, userId, (id, userId) =>
-      repo.get(id, userId),
+    const cached = await cache.get(ctx, id, userId, (ctx, id, userId) =>
+      repo.get(ctx, id, userId),
     );
     if (cached.isErr()) {
       logger.error('Failed to get from cache', cached.error, {
+        correlationId: ctx.correlationId,
         id,
         userId,
         service: serviceName,
@@ -51,5 +54,5 @@ export async function getItem<
     }
   }
 
-  return repo.get(id, userId);
+  return repo.get(ctx, id, userId);
 }

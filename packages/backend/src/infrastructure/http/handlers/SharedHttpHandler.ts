@@ -71,7 +71,7 @@ export type ISharedHTTPHandler<
  * Context required to create a SharedHTTPHandler.
  * Provides validators, logger, configuration, and service access.
  */
-interface ISharedHTTPHandlerContext<ID extends Id<string>, T extends Item<ID>> {
+interface ISharedHTTPHandlerConfig<ID extends Id<string>, T extends Item<ID>> {
   /**
    * Validators for type-safe data validation.
    * - id: Validates ID strings/numbers
@@ -127,7 +127,7 @@ export class SharedHTTPHandler<ID extends Id<string>, T extends Item<ID>> {
    * @param sharedHttpHandlerCtx - Context with validators, logger, config, service, routeFactory
    */
   constructor(
-    private readonly sharedHttpHandlerCtx: ISharedHTTPHandlerContext<ID, T>,
+    private readonly sharedHttpHandlerCtx: ISharedHTTPHandlerConfig<ID, T>,
     private readonly actions: SharedHTTPHandlerActions = {
       handleGet,
       handleAll,

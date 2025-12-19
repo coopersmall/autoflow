@@ -1,4 +1,5 @@
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { QueueStats } from '@backend/infrastructure/queue/domain/QueueStats';
 import { SharedService } from '@backend/infrastructure/services/SharedService';
@@ -21,18 +22,17 @@ import { getTasksByStatus } from '@backend/tasks/services/actions/queries/getTas
 import { getTasksByTaskName } from '@backend/tasks/services/actions/queries/getTasksByTaskName';
 import { getTasksByUserId } from '@backend/tasks/services/actions/queries/getTasksByUserId';
 import { listTasks } from '@backend/tasks/services/actions/queries/listTasks';
-import type { CorrelationId } from '@core/domain/CorrelationId';
 import type { UserId } from '@core/domain/user/user';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 
 export { createTasksService };
 
-function createTasksService(ctx: TasksServiceContext): ITasksService {
-  return Object.freeze(new TasksService(ctx));
+function createTasksService(config: TasksServiceConfig): ITasksService {
+  return Object.freeze(new TasksService(config));
 }
 
-interface TasksServiceContext {
+interface TasksServiceConfig {
   logger: ILogger;
   appConfig: IAppConfigurationService;
 }
@@ -59,7 +59,7 @@ class TasksService
   private readonly taskQueue: (queueName: string) => ITaskQueue;
 
   constructor(
-    private readonly context: TasksServiceContext,
+    private readonly tasksConfig: TasksServiceConfig,
     private readonly actions: TasksServiceActions = {
       getTasksByStatus,
       getTasksByTaskName,
@@ -74,29 +74,29 @@ class TasksService
       createTaskQueue,
     },
   ) {
-    const appConfig = context.appConfig;
+    const appConfig = tasksConfig.appConfig;
     super('tasks', {
-      ...context,
+      ...tasksConfig,
       repo: () => this.dependencies.createTasksRepo({ appConfig }),
       newId: TaskIdConstructor,
     });
     this.taskQueue = (queueName: string) =>
       this.dependencies.createTaskQueue({
         queueName,
-        logger: context.logger,
+        logger: tasksConfig.logger,
         appConfig,
       });
   }
 
   private get tasksRepo(): ITasksRepo {
     return this.dependencies.createTasksRepo({
-      appConfig: this.context.appConfig,
+      appConfig: this.tasksConfig.appConfig,
     });
   }
 
   async getByStatus(
     status: TaskStatus,
-  ): Promise<Result<TaskRecord[], ErrorWithMetadata>> {
+  ): Promise<Result<TaskRecord[], AppError>> {
     return this.actions.getTasksByStatus(
       { tasksRepo: this.tasksRepo },
       { status },
@@ -105,16 +105,14 @@ class TasksService
 
   async getByTaskName(
     taskName: string,
-  ): Promise<Result<TaskRecord[], ErrorWithMetadata>> {
+  ): Promise<Result<TaskRecord[], AppError>> {
     return this.actions.getTasksByTaskName(
       { tasksRepo: this.tasksRepo },
       { taskName },
     );
   }
 
-  async getByUserId(
-    userId: UserId,
-  ): Promise<Result<TaskRecord[], ErrorWithMetadata>> {
+  async getByUserId(userId: UserId): Promise<Result<TaskRecord[], AppError>> {
     return this.actions.getTasksByUserId(
       { tasksRepo: this.tasksRepo },
       { userId },
@@ -123,55 +121,51 @@ class TasksService
 
   async listTasks(
     filters?: ListTasksFilters,
-  ): Promise<Result<TaskRecord[], ErrorWithMetadata>> {
+  ): Promise<Result<TaskRecord[], AppError>> {
     return this.actions.listTasks({ tasksRepo: this.tasksRepo }, { filters });
   }
 
   async getQueueStats(
-    correlationId: CorrelationId,
+    ctx: Context,
     queueName: string,
-  ): Promise<Result<QueueStats, ErrorWithMetadata>> {
+  ): Promise<Result<QueueStats, AppError>> {
     return this.actions.getQueueStats(
+      ctx,
       {
-        taskQueue: this.taskQueue,
+        queueName,
       },
       {
-        correlationId,
-        queueName,
+        taskQueue: this.taskQueue,
       },
     );
   }
 
   async retryTask(
-    correlationId: CorrelationId,
+    ctx: Context,
     taskId: TaskId,
-  ): Promise<Result<TaskRecord, ErrorWithMetadata>> {
+  ): Promise<Result<TaskRecord, AppError>> {
     return this.actions.retryTask(
+      ctx,
+      { taskId },
       {
         tasksRepo: this.tasksRepo,
         taskQueue: this.taskQueue,
-        logger: this.context.logger,
-      },
-      {
-        correlationId,
-        taskId,
+        logger: this.tasksConfig.logger,
       },
     );
   }
 
   async cancelTask(
-    correlationId: CorrelationId,
+    ctx: Context,
     taskId: TaskId,
-  ): Promise<Result<TaskRecord, ErrorWithMetadata>> {
+  ): Promise<Result<TaskRecord, AppError>> {
     return this.actions.cancelTask(
+      ctx,
+      { taskId },
       {
         tasksRepo: this.tasksRepo,
         taskQueue: this.taskQueue,
-        logger: this.context.logger,
-      },
-      {
-        correlationId,
-        taskId,
+        logger: this.tasksConfig.logger,
       },
     );
   }

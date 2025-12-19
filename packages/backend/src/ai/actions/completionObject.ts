@@ -1,4 +1,4 @@
-import type { AIServiceContext } from '@backend/ai/AIService';
+import type { AIServiceConfig } from '@backend/ai/AIService';
 import type { AiProviderIntegration } from '@core/domain/integrations/ai/providers/AiProviderIntegration';
 import type { ExtractMethods } from '@core/types';
 import {
@@ -20,7 +20,7 @@ export interface CompletionObjectRequest<SCHEMA extends Schema> {
 export type CompletionObjectResult<RESULT> = GenerateObjectResult<RESULT>;
 
 export async function completionObject<SCHEMA extends Schema, RESULT>(
-  _ctx: ExtractMethods<AIServiceContext>,
+  _ctx: ExtractMethods<AIServiceConfig>,
   {
     provider,
     model,

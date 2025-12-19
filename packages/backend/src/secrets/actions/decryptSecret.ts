@@ -1,35 +1,31 @@
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { Context } from '@backend/infrastructure/context';
 import type { IEncryptionService } from '@backend/infrastructure/encryption/domain/EncryptionService';
-import type { CorrelationId } from '@core/domain/CorrelationId';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
 import { getKeys } from './getKeys.ts';
 
 export interface DecryptSecretRequest {
-  correlationId: CorrelationId;
   encryptedValue: string;
   salt: string;
 }
 
-export interface DecryptSecretContext {
+export interface DecryptSecretDeps {
   appConfig: IAppConfigurationService;
   encryption: IEncryptionService;
 }
 
 export async function decryptSecret(
-  ctx: DecryptSecretContext,
-  { correlationId, encryptedValue, salt }: DecryptSecretRequest,
+  ctx: Context,
+  { encryptedValue, salt }: DecryptSecretRequest,
+  deps: DecryptSecretDeps,
   actions = { getKeys },
-): Promise<Result<string, ErrorWithMetadata>> {
-  const keysResult = actions.getKeys(
-    { appConfig: ctx.appConfig },
-    { correlationId },
-  );
+): Promise<Result<string, AppError>> {
+  const keysResult = actions.getKeys(ctx, { appConfig: deps.appConfig });
   if (keysResult.isErr()) return err(keysResult.error);
 
   const { privateKey } = keysResult.value;
-  const decryptResult = await ctx.encryption.decryptRSA({
-    correlationId,
+  const decryptResult = await deps.encryption.decryptRSA(ctx, {
     data: Buffer.from(encryptedValue, 'base64'),
     privateKey: Buffer.from(privateKey, 'utf8'),
   });

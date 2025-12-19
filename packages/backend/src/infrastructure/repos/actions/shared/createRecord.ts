@@ -1,17 +1,19 @@
+import type { Context } from '@backend/infrastructure/context';
 import { convertQueryResultsToData } from '@backend/infrastructure/repos/actions/convertQueryResultsToData';
 import type { IRelationalDatabaseAdapter } from '@backend/infrastructure/repos/domain/DatabaseAdapter';
 import type { DBError } from '@backend/infrastructure/repos/errors/DBError';
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
-import type { ValidationError } from '@core/errors/ValidationError';
+import type { AppError } from '@core/errors';
+
 import { err, ok, type Result } from 'neverthrow';
 
-export interface CreateRecordContext<
+export interface CreateRecordDeps<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > {
   readonly adapter: IRelationalDatabaseAdapter;
-  readonly validator: (data: unknown) => Result<T, ValidationError>;
+  readonly validator: (data: unknown) => Result<T, AppError>;
 }
 
 export interface CreateRecordRequest<
@@ -29,10 +31,11 @@ export async function createRecord<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 >(
-  ctx: CreateRecordContext<ID, T>,
+  ctx: Context,
   request: CreateRecordRequest<ID, T>,
+  deps: CreateRecordDeps<ID, T>,
 ): Promise<Result<T, DBError>> {
-  const { adapter, validator } = ctx;
+  const { adapter, validator } = deps;
   const { id, data } = request;
 
   const result = await adapter.create({

@@ -33,13 +33,14 @@
 
 import type { IAuthService } from '@backend/auth/domain/AuthService';
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import { createContext } from '@backend/infrastructure/context';
 import { extractAuthHeader } from '@backend/infrastructure/http/handlers/actions/extractAuthHeader';
 import { extractCorrelationId } from '@backend/infrastructure/http/handlers/actions/extractCorrelationId';
 import type { IHttpMiddleware } from '@backend/infrastructure/http/handlers/domain/HttpMiddleware';
 import type { Request } from '@backend/infrastructure/http/handlers/domain/Request';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { Permission } from '@core/domain/permissions/permissions';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { type AppError, internalError, unauthorized } from '@core/errors';
 import { err, ok, type Result } from 'neverthrow';
 
 /**
@@ -87,11 +88,8 @@ export function createBearerTokenAuthenticationMiddleware(
   },
 ): IHttpMiddleware {
   return {
-    handle: async (
-      request: Request,
-    ): Promise<Result<Request, ErrorWithMetadata>> => {
-      const correlationId =
-        request.context?.correlationId ?? actions.extractCorrelationId(request);
+    handle: async (request: Request): Promise<Result<Request, AppError>> => {
+      const correlationId = request.ctx.correlationId;
 
       ctx.logger.debug('Bearer token authentication middleware executing', {
         correlationId,
@@ -105,13 +103,9 @@ export function createBearerTokenAuthenticationMiddleware(
           correlationId,
         });
         return err(
-          new ErrorWithMetadata(
-            'No Authorization header found',
-            'Unauthorized',
-            {
-              correlationId,
-            },
-          ),
+          unauthorized('No Authorization header found', {
+            metadata: { correlationId },
+          }),
         );
       }
 
@@ -123,11 +117,10 @@ export function createBearerTokenAuthenticationMiddleware(
           },
         );
         return err(
-          new ErrorWithMetadata(
+          unauthorized(
             'Invalid Authorization header format. Expected: Bearer <token>',
-            'Unauthorized',
             {
-              correlationId,
+              metadata: { correlationId },
             },
           ),
         );
@@ -143,26 +136,18 @@ export function createBearerTokenAuthenticationMiddleware(
           },
         );
         return err(
-          new ErrorWithMetadata(
-            'No token provided in Authorization header',
-            'Unauthorized',
-            {
-              correlationId,
-            },
-          ),
+          unauthorized('No token provided in Authorization header', {
+            metadata: { correlationId },
+          }),
         );
       }
 
       const publicKey = ctx.appConfig.jwtPublicKey;
 
       if (!publicKey) {
-        const error = new ErrorWithMetadata(
-          'JWT public key not configured',
-          'InternalServer',
-          {
-            correlationId,
-          },
-        );
+        const error = internalError('JWT public key not configured', {
+          metadata: { correlationId },
+        });
         ctx.logger.error('JWT public key not configured', error, {
           correlationId,
         });
@@ -173,11 +158,13 @@ export function createBearerTokenAuthenticationMiddleware(
         correlationId,
       });
 
-      const authResult = await ctx.auth.authenticate({
+      const controller = new AbortController();
+      request.signal.addEventListener('abort', () => controller.abort());
+      const authContext = createContext(correlationId, controller);
+      const authResult = await ctx.auth.authenticate(authContext, {
         type: 'jwt',
         token,
         publicKey,
-        correlationId,
         requiredPermissions: config.requiredPermissions,
       });
 
@@ -194,12 +181,9 @@ export function createBearerTokenAuthenticationMiddleware(
         userId: authResult.value.userId,
       });
 
-      // biome-ignore lint: Direct context assignment is intentional here to preserve request immutability
-      request.context = {
-        ...request.context,
-        correlationId,
+      Object.assign(request, {
         userSession: authResult.value,
-      };
+      });
 
       return ok(request);
     },

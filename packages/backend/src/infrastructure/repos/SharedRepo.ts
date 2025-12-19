@@ -15,6 +15,7 @@
  */
 
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { Context } from '@backend/infrastructure/context';
 import {
   createRecord,
   deleteRecord,
@@ -28,8 +29,8 @@ import type { DBError } from '@backend/infrastructure/repos/errors/DBError';
 import { createCachedGetter } from '@backend/infrastructure/utils/createCachedGetter';
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
-import type { ValidationError } from '@core/errors/ValidationError';
+import type { AppError } from '@core/errors/AppError';
+
 import type { ExtractMethods } from '@core/types';
 import { err, ok, type Result } from 'neverthrow';
 import { createRelationalDatabaseAdapter } from './adapters/RelationalDatabaseAdapter.ts';
@@ -78,7 +79,7 @@ export class SharedRepo<
   constructor(
     private readonly tableName: string,
     private readonly appConfig: IAppConfigurationService,
-    private readonly validator: (data: unknown) => Result<T, ValidationError>,
+    private readonly validator: (data: unknown) => Result<T, AppError>,
     dependencies: SharedRepoDependencies = {
       createRelationalDatabaseAdapter,
     },
@@ -102,55 +103,64 @@ export class SharedRepo<
 
   /**
    * Retrieves a single record by ID from global data.
+   * @param ctx - Request context for tracing and cancellation
    * @param id - Unique identifier of the record
-   * @returns Record if found, NotFoundError if doesn't exist, or database/validation error
+   * @returns Record if found, AppError if doesn't exist, or database/validation error
    */
-  async get(id: ID): Promise<Result<T, DBError>> {
+  async get(ctx: Context, id: ID): Promise<Result<T, DBError>> {
     const adapterResult = this.getAdapter();
     if (adapterResult.isErr()) {
       return err(adapterResult.error);
     }
 
     return this.sharedRepoActions.getRecord(
+      ctx,
+      { id },
       {
         adapter: adapterResult.value,
         validator: this.validator,
       },
-      { id },
     );
   }
 
   /**
    * Retrieves all records from global data with optional limit.
+   * @param ctx - Request context for tracing and cancellation
    * @param opts - Query options
    * @param opts.limit - Optional maximum number of records to return
    * @returns Array of records (empty if none found) or database/validation error
    */
-  async all(opts?: {
-    limit?: number;
-  }): Promise<Result<T[], ErrorWithMetadata>> {
+  async all(
+    ctx: Context,
+    opts?: {
+      limit?: number;
+    },
+  ): Promise<Result<T[], AppError>> {
     const adapterResult = this.getAdapter();
     if (adapterResult.isErr()) {
       return err(adapterResult.error);
     }
 
     return this.sharedRepoActions.getAllRecords(
+      ctx,
+      { limit: opts?.limit },
       {
         adapter: adapterResult.value,
         validator: this.validator,
       },
-      { limit: opts?.limit },
     );
   }
 
   /**
    * Creates a new global record.
    * Automatically sets createdAt timestamp.
+   * @param ctx - Request context for tracing and cancellation
    * @param id - Unique identifier for the new record
    * @param data - Domain entity data without id, createdAt, or updatedAt
    * @returns Created record or database/validation error
    */
   async create(
+    ctx: Context,
     id: ID,
     data: Omit<T, 'id' | 'createdAt' | 'updatedAt'>,
   ): Promise<Result<T, DBError>> {
@@ -160,53 +170,62 @@ export class SharedRepo<
     }
 
     return this.sharedRepoActions.createRecord(
+      ctx,
+      { id, data },
       {
         adapter: adapterResult.value,
         validator: this.validator,
       },
-      { id, data },
     );
   }
 
   /**
    * Updates an existing global record.
    * Automatically updates updatedAt timestamp. Supports partial updates.
+   * @param ctx - Request context for tracing and cancellation
    * @param id - Unique identifier of the record to update
    * @param data - Partial domain entity data to update
    * @returns Updated record or database/validation error
    */
-  async update(id: ID, data: Partial<T>): Promise<Result<T, DBError>> {
+  async update(
+    ctx: Context,
+    id: ID,
+    data: Partial<T>,
+  ): Promise<Result<T, DBError>> {
     const adapterResult = this.getAdapter();
     if (adapterResult.isErr()) {
       return err(adapterResult.error);
     }
 
     return this.sharedRepoActions.updateRecord(
+      ctx,
+      { id, data },
       {
         adapter: adapterResult.value,
         validator: this.validator,
       },
-      { id, data },
     );
   }
 
   /**
    * Deletes a global record and returns it.
+   * @param ctx - Request context for tracing and cancellation
    * @param id - Unique identifier of the record to delete
    * @returns Deleted record or database/validation error
    */
-  async delete(id: ID): Promise<Result<T, DBError>> {
+  async delete(ctx: Context, id: ID): Promise<Result<T, DBError>> {
     const adapterResult = this.getAdapter();
     if (adapterResult.isErr()) {
       return err(adapterResult.error);
     }
 
     return this.sharedRepoActions.deleteRecord(
+      ctx,
+      { id },
       {
         adapter: adapterResult.value,
         validator: this.validator,
       },
-      { id },
     );
   }
 

@@ -1,16 +1,16 @@
 import type { IDatabaseClient } from '@backend/infrastructure/repos/domain/DatabaseClient';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { type AppError, internalError } from '@core/errors';
 import type { Validator } from '@core/validation/validate';
 import { err, type Result } from 'neverthrow';
 
-export interface GetTasksByTaskNameContext {
+export interface GetTasksByTaskNameDeps {
   readonly db: IDatabaseClient;
   readonly validator: Validator<TaskRecord>;
   readonly executeQuery: (
     query: () => Promise<unknown>,
     validator: Validator<TaskRecord>,
-  ) => Promise<Result<TaskRecord[], ErrorWithMetadata>>;
+  ) => Promise<Result<TaskRecord[], AppError>>;
 }
 
 export interface GetTasksByTaskNameRequest {
@@ -22,10 +22,10 @@ export interface GetTasksByTaskNameRequest {
  * Get tasks by task name with optional limit.
  */
 export async function getTasksByTaskName(
-  ctx: GetTasksByTaskNameContext,
+  deps: GetTasksByTaskNameDeps,
   request: GetTasksByTaskNameRequest,
-): Promise<Result<TaskRecord[], ErrorWithMetadata>> {
-  const { db, validator, executeQuery } = ctx;
+): Promise<Result<TaskRecord[], AppError>> {
+  const { db, validator, executeQuery } = deps;
   const { taskName, limit = 100 } = request;
 
   try {
@@ -38,14 +38,10 @@ export async function getTasksByTaskName(
     return await executeQuery(async () => query, validator);
   } catch (error) {
     return err(
-      new ErrorWithMetadata(
-        'Failed to get tasks by task name',
-        'InternalServer',
-        {
-          taskName,
-          error: error instanceof Error ? error.message : String(error),
-        },
-      ),
+      internalError('Failed to get tasks by task name', {
+        cause: error,
+        metadata: { taskName },
+      }),
     );
   }
 }

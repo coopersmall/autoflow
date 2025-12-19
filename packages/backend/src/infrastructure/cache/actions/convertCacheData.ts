@@ -8,7 +8,7 @@ import {
   createCacheDeserializationError,
   createCacheSerializationError,
 } from '@backend/infrastructure/cache/errors/CacheError';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Validator } from '@core/validation/validate';
 import { err, ok, type Result } from 'neverthrow';
 
@@ -22,7 +22,7 @@ import { err, ok, type Result } from 'neverthrow';
 export function serializeCacheData<T>(
   value: T,
   metadata?: Record<string, unknown>,
-): Result<string, ErrorWithMetadata> {
+): Result<string, AppError> {
   try {
     const serialized = JSON.stringify(value);
     return ok(serialized);
@@ -43,7 +43,7 @@ export function deserializeCacheData<T>(
   data: string,
   validator: Validator<T>,
   metadata?: Record<string, unknown>,
-): Result<T, ErrorWithMetadata> {
+): Result<T, AppError> {
   try {
     const parsed: unknown = JSON.parse(data, (_key, value: unknown) => {
       if (
@@ -77,7 +77,7 @@ export function convertCacheData<T>(
   data: string | null,
   validator: Validator<T>,
   metadata?: Record<string, unknown>,
-): Result<T | null, ErrorWithMetadata> {
+): Result<T | null, AppError> {
   if (data === null) {
     return ok(null);
   }

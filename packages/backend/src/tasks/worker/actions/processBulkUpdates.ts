@@ -3,7 +3,7 @@ import type { TaskId } from '@backend/tasks/domain/TaskId';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 import type { ITasksRepo } from '@backend/tasks/domain/TasksRepo';
 
-export interface ProcessBulkUpdatesContext {
+export interface ProcessBulkUpdatesDeps {
   readonly repo: ITasksRepo;
   readonly logger: ILogger;
   readonly queueName: string;
@@ -28,10 +28,10 @@ export interface ProcessBulkUpdatesRequest {
  * Calls onSuccess callbacks for successful updates.
  */
 export async function processBulkUpdates(
-  ctx: ProcessBulkUpdatesContext,
+  deps: ProcessBulkUpdatesDeps,
   request: ProcessBulkUpdatesRequest,
 ): Promise<void> {
-  const { repo, logger, queueName, maxUpdateBatchSize } = ctx;
+  const { repo, logger, queueName, maxUpdateBatchSize } = deps;
   let { updateQueue } = request;
   const { onComplete } = request;
 

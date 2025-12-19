@@ -3,6 +3,7 @@ import { setupHttpIntegrationTest } from '@backend/testing/integration/httpInteg
 import { createAPIUserHandlers } from '@backend/users/handlers/http/UsersHttpHandler';
 import { UserId } from '@core/domain/user/user';
 import { validUser } from '@core/domain/user/validation/validUser';
+import * as fc from 'fast-check';
 
 describe('UsersHttpHandler Integration Tests', () => {
   const {
@@ -28,6 +29,75 @@ describe('UsersHttpHandler Integration Tests', () => {
     ];
 
     await getHttpServer().start(handlers);
+  });
+
+  describe('Property Tests', () => {
+    // Arbitraries for property-based testing
+    const invalidBodyArb = fc.oneof(
+      // Missing required field
+      fc.record({ invalid: fc.string() }),
+      // Wrong type for schemaVersion
+      fc.record({ schemaVersion: fc.string() }),
+      fc.record({ schemaVersion: fc.float() }),
+      // Invalid types
+      fc.constant(null),
+      fc.constant('not an object'),
+      fc.constant(123),
+      fc.constant([1, 2, 3]),
+      fc.constant(true),
+      // Empty object
+      fc.constant({}),
+    );
+
+    it('should reject all invalid request bodies with 400 for POST /api/users', async () => {
+      const client = getHttpClient();
+      const auth = getTestAuth();
+      const headers = await auth.createAdminHeaders();
+
+      await fc.assert(
+        fc.asyncProperty(invalidBodyArb, async (body) => {
+          const response = await client.post('/api/users', body, { headers });
+
+          // All invalid payloads should be rejected with 400
+          expect(response.status).toBe(400);
+        }),
+        { numRuns: 30 },
+      );
+    });
+
+    it('should reject all invalid request bodies with 400 for PUT /api/users/:id', async () => {
+      const client = getHttpClient();
+      const auth = getTestAuth();
+      const headers = await auth.createAdminHeaders();
+
+      // Create a valid user first to update
+      const createResponse = await client.post(
+        '/api/users',
+        { schemaVersion: 1 },
+        { headers },
+      );
+      const createResult = await client.parseJson(createResponse, validUser);
+      const createdUser = createResult._unsafeUnwrap();
+
+      // For PUT, empty object is valid (no fields to update), so filter it out
+      const invalidBodyForPutArb = invalidBodyArb.filter((body) => {
+        return JSON.stringify(body) !== '{}';
+      });
+
+      await fc.assert(
+        fc.asyncProperty(invalidBodyForPutArb, async (body) => {
+          const response = await client.put(
+            `/api/users/${createdUser.id}`,
+            body,
+            { headers },
+          );
+
+          // All invalid payloads should be rejected with 400
+          expect(response.status).toBe(400);
+        }),
+        { numRuns: 30 },
+      );
+    });
   });
 
   describe('POST /api/users', () => {

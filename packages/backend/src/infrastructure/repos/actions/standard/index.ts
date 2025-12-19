@@ -1,25 +1,25 @@
 export {
-  type CreateRecordContext,
+  type CreateRecordDeps,
   type CreateRecordRequest,
   createRecord,
 } from './createRecord.ts';
 export {
-  type DeleteRecordContext,
+  type DeleteRecordDeps,
   type DeleteRecordRequest,
   deleteRecord,
 } from './deleteRecord.ts';
 export {
-  type GetAllRecordsContext,
+  type GetAllRecordsDeps,
   type GetAllRecordsRequest,
   getAllRecords,
 } from './getAllRecords.ts';
 export {
-  type GetRecordContext,
+  type GetRecordDeps,
   type GetRecordRequest,
   getRecord,
 } from './getRecord.ts';
 export {
-  type UpdateRecordContext,
+  type UpdateRecordDeps,
   type UpdateRecordRequest,
   updateRecord,
 } from './updateRecord.ts';

@@ -1,4 +1,5 @@
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { QueueConfig } from '@backend/infrastructure/queue/domain/QueueConfig';
 import type { TaskDefinition } from '@backend/tasks/domain/TaskDefinition';
@@ -8,9 +9,8 @@ import type { ITasksRepo } from '@backend/tasks/domain/TasksRepo';
 import { createTaskQueue } from '@backend/tasks/queue/TaskQueue';
 import { createTasksRepo } from '@backend/tasks/repos/TasksRepo';
 import { scheduleTask } from '@backend/tasks/scheduler/actions';
-import type { CorrelationId } from '@core/domain/CorrelationId';
 import type { UserId } from '@core/domain/user/user';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 
 export { createTaskScheduler };
@@ -33,18 +33,18 @@ interface ITaskScheduler {
   /**
    * Schedule a task for execution.
    *
-   * @param correlationId - Correlation ID for tracing
+   * @param ctx - Request context with correlationId for tracing
    * @param task - Task definition containing queueName, validator, handler, options
    * @param payload - Task payload (type-safe based on TaskDefinition)
    * @param options - Optional scheduling options
    * @returns Result with TaskRecord or error
    */
   schedule<TPayload extends Record<string, unknown> = Record<string, unknown>>(
-    correlationId: CorrelationId,
+    ctx: Context,
     task: TaskDefinition<TPayload>,
     payload: TPayload,
     options?: ScheduleOptions,
-  ): Promise<Result<TaskRecord, ErrorWithMetadata>>;
+  ): Promise<Result<TaskRecord, AppError>>;
 }
 
 /**
@@ -65,7 +65,7 @@ interface TaskSchedulerConfig {
  *
  * // Schedule a task - payload type is inferred from task definition
  * await scheduler.schedule(
- *   correlationId,
+ *   ctx,
  *   sendWelcomeEmailTask,
  *   { email: 'user@example.com', name: 'John' },
  * );
@@ -93,14 +93,14 @@ function createTaskScheduler(
  *
  * // Type-safe: payload must match { email: string; name: string }
  * await scheduler.schedule(
- *   correlationId,
+ *   ctx,
  *   sendWelcomeEmailTask,
  *   { email: 'user@example.com', name: 'John' },
  * );
  *
  * // Schedule with delay
  * await scheduler.schedule(
- *   correlationId,
+ *   ctx,
  *   sendWelcomeEmailTask,
  *   { email: 'user@example.com', name: 'John' },
  *   { delayMs: 60000 },  // 1 minute delay
@@ -142,22 +142,22 @@ class TaskScheduler implements ITaskScheduler {
   async schedule<
     TPayload extends Record<string, unknown> = Record<string, unknown>,
   >(
-    correlationId: CorrelationId,
+    ctx: Context,
     task: TaskDefinition<TPayload>,
     payload: TPayload,
     options?: ScheduleOptions,
-  ): Promise<Result<TaskRecord, ErrorWithMetadata>> {
+  ): Promise<Result<TaskRecord, AppError>> {
     return this.taskSchedulerActions.scheduleTask(
+      ctx,
+      {
+        task,
+        payload,
+        options,
+      },
       {
         tasksRepo: this.tasksRepo,
         logger: this.logger,
         getQueue: this.getQueue.bind(this),
-      },
-      {
-        correlationId,
-        task,
-        payload,
-        options,
       },
     );
   }

@@ -1,6 +1,6 @@
+import type { Context } from '@backend/infrastructure/context/Context.ts';
 import type { Request } from '@backend/infrastructure/http/handlers/domain/Request';
 import type { RequestContext } from '@backend/infrastructure/http/handlers/domain/RequestContext';
-import type { CorrelationId } from '@core/domain/CorrelationId';
 import type { Validator } from '@core/validation/validate';
 import { extractRequestBody } from './extractRequestBody.ts';
 import { extractRequestHeader } from './extractRequestHeader.ts';
@@ -8,7 +8,7 @@ import { extractRequestParam } from './extractRequestParam.ts';
 import { extractSearchParam } from './extractSearchParam.ts';
 
 export interface BuildRequestContextRequest {
-  correlationId: CorrelationId;
+  ctx: Context;
   request: Request;
 }
 
@@ -34,7 +34,7 @@ export interface BuildRequestContextRequest {
  * @returns Complete RequestContext with all helper methods bound
  */
 export function buildRequestContext(
-  { correlationId, request }: BuildRequestContextRequest,
+  { ctx, request }: BuildRequestContextRequest,
   actions = {
     extractRequestParam,
     extractSearchParam,
@@ -43,10 +43,9 @@ export function buildRequestContext(
   },
 ): RequestContext {
   const url = new URL(request.url);
-
   return {
-    correlationId,
-    session: request.context?.userSession,
+    ctx,
+    session: request.userSession,
     getParam: <T>(name: string, validator: Validator<T>) =>
       actions.extractRequestParam<T>({ request, name, validator }),
     getSearchParam: <T>(name: string, validator: Validator<T>) =>

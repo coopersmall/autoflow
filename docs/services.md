@@ -2,6 +2,24 @@
 
 This guide explains how to create new services in Autoflow, following our established patterns for repos, caches, actions, and service registration.
 
+## Context Pattern
+
+All service operations accept a `Context` as the first parameter. Context provides:
+- **Distributed tracing** via `correlationId` - track requests across services
+- **Operation cancellation** via `signal` - abort long-running operations
+
+```typescript
+import type { Context } from '@backend/infrastructure/context';
+
+// Service method signature
+async get(ctx: Context, id: WidgetId): Promise<Result<Widget, Error>>
+```
+
+The Context flows through all layers:
+```
+HTTP Handler → Service → Action → Repo/Cache
+```
+
 ## Quick Start
 
 Creating a new service involves:
@@ -28,9 +46,9 @@ Use for data not owned by specific users:
 
 ```typescript
 class UsersService extends SharedService<UserId, User> {
-  async get(id: UserId): Promise<Result<User, Error>>
-  async all(): Promise<Result<User[], Error>>
-  async create(data: PartialUser): Promise<Result<User, Error>>
+  async get(ctx: Context, id: UserId): Promise<Result<User, Error>>
+  async all(ctx: Context): Promise<Result<User[], Error>>
+  async create(ctx: Context, data: PartialUser): Promise<Result<User, Error>>
 }
 ```
 
@@ -42,9 +60,9 @@ Use for data owned by individual users:
 
 ```typescript
 class SecretsService extends StandardService<SecretId, Secret> {
-  async get(userId: UserId, id: SecretId): Promise<Result<Secret, Error>>
-  async all(userId: UserId): Promise<Result<Secret[], Error>>
-  async create(userId: UserId, data: PartialSecret): Promise<Result<Secret, Error>>
+  async get(ctx: Context, id: SecretId, userId: UserId): Promise<Result<Secret, Error>>
+  async all(ctx: Context, userId: UserId): Promise<Result<Secret[], Error>>
+  async create(ctx: Context, data: PartialSecret, userId: UserId): Promise<Result<Secret, Error>>
 }
 ```
 
@@ -130,18 +148,21 @@ packages/backend/src/widgets/
 ```typescript
 // packages/backend/src/widgets/domain/WidgetsService.ts
 
+import type { Context } from '@backend/infrastructure/context';
 import type { Widget, WidgetId } from '@core/domain/widget/widget';
 import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
 import type { Result } from 'neverthrow';
 
 export interface IWidgetsService {
-  get(id: WidgetId): Promise<Result<Widget, ErrorWithMetadata>>;
-  all(): Promise<Result<Widget[], ErrorWithMetadata>>;
-  create(data: PartialWidget): Promise<Result<Widget, ErrorWithMetadata>>;
-  update(id: WidgetId, data: UpdateWidget): Promise<Result<Widget, ErrorWithMetadata>>;
-  delete(id: WidgetId): Promise<Result<Widget, ErrorWithMetadata>>;
+  get(ctx: Context, id: WidgetId): Promise<Result<Widget, ErrorWithMetadata>>;
+  all(ctx: Context): Promise<Result<Widget[], ErrorWithMetadata>>;
+  create(ctx: Context, data: PartialWidget): Promise<Result<Widget, ErrorWithMetadata>>;
+  update(ctx: Context, id: WidgetId, data: UpdateWidget): Promise<Result<Widget, ErrorWithMetadata>>;
+  delete(ctx: Context, id: WidgetId): Promise<Result<Widget, ErrorWithMetadata>>;
 }
 ```
+
+**Note**: Context is always the first parameter for distributed tracing and cancellation support.
 
 ### Step 4: Create Repository
 
@@ -207,11 +228,11 @@ import { createWidgetsRepo } from './repos/WidgetsRepo';
 export { createWidgetsService };
 export type { IWidgetsService };
 
-function createWidgetsService(ctx: WidgetsServiceContext): IWidgetsService {
-  return Object.freeze(new WidgetsService(ctx));
+function createWidgetsService(config: WidgetsServiceConfig): IWidgetsService {
+  return Object.freeze(new WidgetsService(config));
 }
 
-interface WidgetsServiceContext {
+interface WidgetsServiceConfig {
   readonly appConfig: IAppConfigurationService;
   readonly logger: ILogger;
 }
@@ -226,25 +247,28 @@ class WidgetsService
   implements IWidgetsService
 {
   constructor(
-    private readonly context: WidgetsServiceContext,
+    private readonly config: WidgetsServiceConfig,
     private readonly dependencies: WidgetsServiceDependencies = {
       createWidgetsRepo,
       createWidgetsCache,
     },
   ) {
     super('widgets', {
-      ...context,
+      ...config,
       repo: () => this.dependencies.createWidgetsRepo({ 
-        appConfig: context.appConfig 
+        appConfig: config.appConfig 
       }),
       cache: () => this.dependencies.createWidgetsCache({
-        logger: context.logger,
-        appConfig: context.appConfig,
+        logger: config.logger,
+        appConfig: config.appConfig,
       }),
       newId: WidgetId,
     });
   }
 }
+```
+
+**Naming Convention**: Use `*Config` for constructor parameters, not `*Context`. The `Context` type is reserved for the request-scoped context parameter.
 ```
 
 ### Step 7: Create Mock
@@ -312,16 +336,27 @@ export function createHandlers(deps: HandlerDeps): IHttpHandler[] {
 
 ## Adding Business Logic (Actions)
 
-Actions are pure functions for business logic:
+Actions are pure functions for business logic. They follow the pattern:
+
+```typescript
+function actionName(
+  ctx: Context,           // 1st - Request context (correlationId, signal)
+  request: RequestType,   // 2nd - Request data
+  deps: DepsType,         // 3rd - Dependencies (last)
+): Promise<Result<T, E>>
+```
+
+Example:
 
 ```typescript
 // packages/backend/src/widgets/actions/processWidget.ts
 
+import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { Widget } from '@core/domain/widget/widget';
 import { ok, type Result } from 'neverthrow';
 
-export interface ProcessWidgetContext {
+export interface ProcessWidgetDeps {
   readonly logger: ILogger;
 }
 
@@ -331,15 +366,23 @@ export interface ProcessWidgetRequest {
 }
 
 export function processWidget(
-  ctx: ProcessWidgetContext,
+  ctx: Context,
   request: ProcessWidgetRequest,
+  deps: ProcessWidgetDeps,
 ): Result<number, never> {
   const result = request.widget.value * request.multiplier;
   
-  ctx.logger.debug('Processed widget', {
+  // Use ctx.correlationId for tracing
+  deps.logger.debug('Processed widget', {
+    correlationId: ctx.correlationId,
     widgetId: request.widget.id,
     result,
   });
+  
+  // Check for cancellation in long operations
+  if (ctx.signal.aborted) {
+    return err(new ErrorWithMetadata('Operation cancelled', 'Cancelled'));
+  }
   
   return ok(result);
 }
@@ -349,19 +392,26 @@ Use in service:
 
 ```typescript
 class WidgetsService extends SharedService<WidgetId, Widget> {
-  async process(id: WidgetId, multiplier: number): Promise<Result<number, Error>> {
-    const widgetResult = await this.get(id);
+  async process(ctx: Context, id: WidgetId, multiplier: number): Promise<Result<number, Error>> {
+    const widgetResult = await this.get(ctx, id);
     if (widgetResult.isErr()) {
       return err(widgetResult.error);
     }
     
     return processWidget(
-      { logger: this.context.logger },
+      ctx,  // Pass context through
       { widget: widgetResult.value, multiplier },
+      { logger: this.config.logger },
     );
   }
 }
 ```
+
+**Key Points**:
+- Context is **always first parameter**
+- Use `*Deps` for dependencies (not `*Context`)
+- Pass `ctx` through all async operations
+- Check `ctx.signal.aborted` before expensive operations
 
 ## Testing Services
 

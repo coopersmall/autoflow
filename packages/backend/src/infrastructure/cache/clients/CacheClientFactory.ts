@@ -18,7 +18,7 @@ import type {
 } from '@backend/infrastructure/cache/domain/Cache';
 import { createCacheError } from '@backend/infrastructure/cache/errors/CacheError';
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
 
 /**
@@ -48,9 +48,7 @@ class CacheClientFactory implements ICacheClientFactory {
    * Currently supports Redis only.
    * @returns Cache client or configuration error
    */
-  getCacheClient(
-    type: CacheClientType,
-  ): Result<ICacheClient, ErrorWithMetadata> {
+  getCacheClient(type: CacheClientType): Result<ICacheClient, AppError> {
     switch (type) {
       case 'redis':
         return this.getRedisClient();
@@ -63,7 +61,7 @@ class CacheClientFactory implements ICacheClientFactory {
     }
   }
 
-  private getRedisClient(): Result<ICacheClient, ErrorWithMetadata> {
+  private getRedisClient(): Result<ICacheClient, AppError> {
     const redisUrl = this.appConfig.redisUrl;
 
     if (!redisUrl) {

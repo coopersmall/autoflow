@@ -1,7 +1,7 @@
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { CorrelationId } from '@core/domain/CorrelationId';
 import { type JWTClaim, SIGNATURE_ALGORITHM } from '@core/domain/jwt/JWTClaim';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { type AppError, internalError } from '@core/errors';
 import { importPKCS8, SignJWT } from 'jose';
 import { err, ok, type Result } from 'neverthrow';
 
@@ -17,16 +17,15 @@ export async function encodeToken(
   },
   { correlationId, claim, privateKey: rawKey }: EncodeTokenRequest,
   actions = { importPKCS8 },
-): Promise<Result<string, ErrorWithMetadata>> {
+): Promise<Result<string, AppError>> {
   let privateKey: CryptoKey | Uint8Array;
   try {
     privateKey = await actions.importPKCS8(rawKey, SIGNATURE_ALGORITHM);
   } catch (cause) {
-    const error = new ErrorWithMetadata(
-      'Failed to import private key',
-      'InternalServer',
-      { correlationId, claim, cause },
-    );
+    const error = internalError('Failed to import private key', {
+      cause: cause instanceof Error ? cause : undefined,
+      metadata: { correlationId, claim },
+    });
     ctx.logger.error('Failed to import JWT private key', error, {
       correlationId,
     });
@@ -44,12 +43,13 @@ export async function encodeToken(
     ctx.logger.debug('Encoded JWT token', { correlationId });
     return ok(signature);
   } catch (cause) {
-    const error = new ErrorWithMetadata(
-      'Failed to encode JWT token',
-      'InternalServer',
-      { correlationId, claim, cause },
-    );
-    ctx.logger.error('Failed to sign JWT token', error, { correlationId });
+    const error = internalError('Failed to encode JWT token', {
+      cause: cause instanceof Error ? cause : undefined,
+      metadata: { correlationId, claim },
+    });
+    ctx.logger.error('Failed to sign JWT token', error, {
+      correlationId,
+    });
     return err(error);
   }
 }

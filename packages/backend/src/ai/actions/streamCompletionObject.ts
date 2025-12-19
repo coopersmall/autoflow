@@ -1,4 +1,4 @@
-import type { AIServiceContext } from '@backend/ai/AIService';
+import type { AIServiceConfig } from '@backend/ai/AIService';
 import type { AiProviderIntegration } from '@core/domain/integrations/ai/providers/AiProviderIntegration';
 import type { ExtractMethods } from '@core/types';
 import { type ModelMessage, type StreamObjectResult, streamObject } from 'ai';
@@ -17,7 +17,7 @@ export type StreamCompletionObjectResult<PARTIAL, RESULT, STREAM_ELEMENT> =
   StreamObjectResult<PARTIAL, RESULT, STREAM_ELEMENT>;
 
 export function streamCompletionObject<SCHEMA extends Schema>(
-  _ctx: ExtractMethods<AIServiceContext>,
+  _ctx: ExtractMethods<AIServiceConfig>,
   {
     provider,
     model,

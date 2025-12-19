@@ -1,9 +1,9 @@
 import { validateRawDatabaseQuery } from '@backend/infrastructure/repos/domain/RawDatabaseQuery';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { type AppError, internalError } from '@core/errors';
 import type { Validator } from '@core/validation/validate';
 import { err, ok, type Result } from 'neverthrow';
 
-export type ExecuteTaskQueryContext = Record<string, never>;
+export type ExecuteTaskQueryDeps = Record<string, never>;
 
 export interface ExecuteTaskQueryRequest<T> {
   readonly query: () => Promise<unknown>;
@@ -14,9 +14,9 @@ export interface ExecuteTaskQueryRequest<T> {
  * Generic query executor that validates and transforms database results.
  */
 export async function executeTaskQuery<T>(
-  _ctx: ExecuteTaskQueryContext,
+  _deps: ExecuteTaskQueryDeps,
   request: ExecuteTaskQueryRequest<T>,
-): Promise<Result<T[], ErrorWithMetadata>> {
+): Promise<Result<T[], AppError>> {
   const { query, validator } = request;
 
   try {
@@ -45,8 +45,9 @@ export async function executeTaskQuery<T>(
     return ok(records);
   } catch (error) {
     return err(
-      new ErrorWithMetadata('Failed to execute query', 'InternalServer', {
-        error: error instanceof Error ? error.message : String(error),
+      internalError('Failed to execute query', {
+        cause: error instanceof Error ? error : undefined,
+        metadata: {},
       }),
     );
   }

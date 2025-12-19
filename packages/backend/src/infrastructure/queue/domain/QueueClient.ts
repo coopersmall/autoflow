@@ -1,5 +1,5 @@
-import type { CorrelationId } from '@core/domain/CorrelationId';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { Context } from '@backend/infrastructure/context';
+import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 import type { QueueStats } from './QueueStats.ts';
 
@@ -47,45 +47,40 @@ export interface QueueJobInput {
 export interface IQueueClient {
   /**
    * Add a job to the queue
-   * @param correlationId - Request correlation ID for tracing
+   * @param ctx - Request context for tracing and cancellation
    * @param job - Job input data to enqueue
    * @returns Result with generic QueueJob or error
    */
   enqueue(
-    correlationId: CorrelationId,
+    ctx: Context,
     job: QueueJobInput,
-  ): Promise<Result<QueueJob, ErrorWithMetadata>>;
+  ): Promise<Result<QueueJob, AppError>>;
 
   /**
    * Remove a job from the queue by job ID
-   * @param correlationId - Request correlation ID for tracing
+   * @param ctx - Request context for tracing and cancellation
    * @param jobId - ID of job to remove
    * @returns Result with void or error
    */
-  remove(
-    correlationId: CorrelationId,
-    jobId: string,
-  ): Promise<Result<void, ErrorWithMetadata>>;
+  remove(ctx: Context, jobId: string): Promise<Result<void, AppError>>;
 
   /**
    * Get a job by ID
-   * @param correlationId - Request correlation ID for tracing
+   * @param ctx - Request context for tracing and cancellation
    * @param jobId - Queue job ID
    * @returns Result with QueueJob or null if not found
    */
   getJob(
-    correlationId: CorrelationId,
+    ctx: Context,
     jobId: string,
-  ): Promise<Result<QueueJob | null, ErrorWithMetadata>>;
+  ): Promise<Result<QueueJob | null, AppError>>;
 
   /**
    * Get queue statistics (job counts by status)
-   * @param correlationId - Request correlation ID for tracing
+   * @param ctx - Request context for tracing and cancellation
    * @returns Result with queue statistics
    */
-  getStats(
-    correlationId: CorrelationId,
-  ): Promise<Result<QueueStats, ErrorWithMetadata>>;
+  getStats(ctx: Context): Promise<Result<QueueStats, AppError>>;
 
   /**
    * Close the queue connection

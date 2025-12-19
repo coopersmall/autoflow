@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test';
 import { convertQueryResultsToData } from '@backend/infrastructure/repos/actions/convertQueryResultsToData';
 import type { RawDatabaseQuery } from '@backend/infrastructure/repos/domain/RawDatabaseQuery';
-import { ValidationError } from '@core/errors/ValidationError';
+
 import { validate } from '@core/validation/validate';
 import zod from 'zod';
 
@@ -181,7 +181,6 @@ describe('convertQueryResultsToData', () => {
       expect(result.isOk()).toBe(false);
 
       const error = result._unsafeUnwrapErr();
-      expect(error).toBeInstanceOf(ValidationError);
       expect(error.message).toBe('Validation failed');
     });
 
@@ -207,7 +206,6 @@ describe('convertQueryResultsToData', () => {
       expect(result.isOk()).toBe(false);
 
       const error = result._unsafeUnwrapErr();
-      expect(error).toBeInstanceOf(ValidationError);
       expect(error.message).toBe('Validation failed');
     });
 
@@ -232,7 +230,6 @@ describe('convertQueryResultsToData', () => {
       expect(result.isOk()).toBe(false);
 
       const error = result._unsafeUnwrapErr();
-      expect(error).toBeInstanceOf(ValidationError);
       expect(error.message).toBe('Validation failed');
     });
   });
@@ -260,7 +257,6 @@ describe('convertQueryResultsToData', () => {
       expect(result.isOk()).toBe(false);
 
       const error = result._unsafeUnwrapErr();
-      expect(error).toBeInstanceOf(ValidationError);
       expect(error.message).toBe('Validation failed');
     });
 
@@ -305,7 +301,6 @@ describe('convertQueryResultsToData', () => {
       expect(result.isOk()).toBe(false);
 
       const error = result._unsafeUnwrapErr();
-      expect(error).toBeInstanceOf(ValidationError);
       expect(error.message).toBe('Validation failed');
     });
 
@@ -329,7 +324,6 @@ describe('convertQueryResultsToData', () => {
       expect(result.isOk()).toBe(false);
 
       const error = result._unsafeUnwrapErr();
-      expect(error).toBeInstanceOf(ValidationError);
       expect(error.message).toBe('Validation failed');
     });
   });
@@ -452,7 +446,7 @@ describe('convertQueryResultsToData', () => {
       expect(result.isOk()).toBe(false);
 
       const error = result._unsafeUnwrapErr();
-      expect(error).toBeInstanceOf(ValidationError);
+      expect(error.code).toBe('BadRequest');
     });
 
     it('should handle data with deeply nested objects', () => {
@@ -545,7 +539,6 @@ describe('convertQueryResultsToData', () => {
       expect(result.isOk()).toBe(false);
 
       const error = result._unsafeUnwrapErr();
-      expect(error).toBeInstanceOf(ValidationError);
       expect(error.message).toBe('Validation failed');
     });
   });

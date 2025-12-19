@@ -1,38 +1,46 @@
+import { validate } from '@autoflow/core';
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
-import type { CorrelationId } from '@core/domain/CorrelationId';
 import {
   DEFAULT_EXPIRATION_TIME,
   type JWTClaim,
 } from '@core/domain/jwt/JWTClaim';
 import type { Permission } from '@core/domain/permissions/permissions';
-import { permissions as allPermissions } from '@core/domain/permissions/permissions';
+import {
+  permissions as allPermissions,
+  permissionSchema,
+} from '@core/domain/permissions/permissions';
 import type { UserId } from '@core/domain/user/user';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
-import { ok, type Result } from 'neverthrow';
+import type { AppError } from '@core/errors/AppError';
+import { err, ok, type Result } from 'neverthrow';
 
 export interface CreateClaimRequest {
-  correlationId?: CorrelationId;
   userId: UserId;
   permissions: Permission[];
   expirationTime?: number;
 }
 
-export interface CreateClaimContext {
+export interface CreateClaimDeps {
   logger: ILogger;
   appConfig: IAppConfigurationService;
 }
 
 export function createClaim(
-  ctx: CreateClaimContext,
+  ctx: Context,
   {
-    correlationId,
     userId,
     permissions,
     expirationTime = DEFAULT_EXPIRATION_TIME,
   }: CreateClaimRequest,
-): Result<JWTClaim, ErrorWithMetadata> {
-  const appConfig = ctx.appConfig;
+  deps: CreateClaimDeps,
+): Result<JWTClaim, AppError> {
+  const validation = validate(permissionSchema.array(), permissions);
+  if (validation.isErr()) {
+    return err(validation.error);
+  }
+
+  const appConfig = deps.appConfig;
   const local = appConfig.isLocal();
   const sub = userId;
   const aud = local ? [...allPermissions] : permissions;
@@ -44,8 +52,8 @@ export function createClaim(
   // - In all other modes (test, production, etc): always expire using expirationTime
   const exp = local ? undefined : iat + expirationTime;
 
-  ctx.logger.debug('Created JWT claim', {
-    correlationId,
+  deps.logger.debug('Created JWT claim', {
+    correlationId: ctx.correlationId,
     userId,
     permissions: aud,
     expiresAt: exp,

@@ -17,7 +17,7 @@
  * - Can enrich request.context with session, correlation ID, etc.
  * - Errors short-circuit the pipeline and return HTTP error responses
  */
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors';
 import type { Result } from 'neverthrow';
 import type { Request } from './Request.ts';
 
@@ -34,7 +34,7 @@ import type { Request } from './Request.ts';
  *   handle: async (request) => {
  *     const session = await authenticate(request);
  *     if (!session) {
- *       return err(new ErrorWithMetadata('Unauthorized', 'Unauthorized'));
+ *       return err(unauthorized('Unauthorized'));
  *     }
  *     request.context.userSession = session;
  *     return ok(request);
@@ -49,5 +49,5 @@ export interface IHttpMiddleware {
    * @param request - HTTP request to process (may be enriched by previous middleware)
    * @returns Result with enriched request or error for rejection
    */
-  handle: (request: Request) => Promise<Result<Request, ErrorWithMetadata>>;
+  handle: (request: Request) => Promise<Result<Request, AppError>>;
 }

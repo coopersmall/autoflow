@@ -8,8 +8,8 @@
  * All methods return RawDatabaseQuery results (not validated domain entities).
  * The repository layer is responsible for validation and conversion to domain types.
  */
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
-import type { ValidationError } from '@core/errors/ValidationError';
+import type { AppError } from '@core/errors/AppError';
+
 import type { Result } from 'neverthrow';
 import type { IDatabaseClient } from './DatabaseClient.ts';
 import type { RawDatabaseQuery } from './RawDatabaseQuery.ts';
@@ -30,7 +30,7 @@ export interface IRelationalDatabaseAdapter {
    */
   findUnique(args: {
     where: { id: string; userId?: string };
-  }): Promise<Result<RawDatabaseQuery, ValidationError>>;
+  }): Promise<Result<RawDatabaseQuery, AppError>>;
 
   /**
    * Finds multiple records with optional user filtering and limit.
@@ -43,7 +43,7 @@ export interface IRelationalDatabaseAdapter {
   findMany(args?: {
     where?: { userId?: string };
     limit?: number;
-  }): Promise<Result<RawDatabaseQuery, ValidationError>>;
+  }): Promise<Result<RawDatabaseQuery, AppError>>;
 
   /**
    * Creates a new record with optional user association.
@@ -59,7 +59,7 @@ export interface IRelationalDatabaseAdapter {
     createdAt: Date;
     userId?: string;
     data: unknown;
-  }): Promise<Result<RawDatabaseQuery, ValidationError>>;
+  }): Promise<Result<RawDatabaseQuery, AppError>>;
 
   /**
    * Updates an existing record with optional user filtering.
@@ -78,7 +78,7 @@ export interface IRelationalDatabaseAdapter {
       userId?: string;
     };
     data: unknown;
-  }): Promise<Result<RawDatabaseQuery, ValidationError>>;
+  }): Promise<Result<RawDatabaseQuery, AppError>>;
 
   /**
    * Deletes a record with optional user filtering.
@@ -90,11 +90,11 @@ export interface IRelationalDatabaseAdapter {
    */
   delete(args: {
     where: { id: string; userId?: string };
-  }): Promise<Result<RawDatabaseQuery, ValidationError>>;
+  }): Promise<Result<RawDatabaseQuery, AppError>>;
 
   /**
    * Provides direct database connection for custom queries.
    * @returns Database connection or configuration error
    */
-  getClient(): Result<IDatabaseClient, ErrorWithMetadata>;
+  getClient(): Result<IDatabaseClient, AppError>;
 }

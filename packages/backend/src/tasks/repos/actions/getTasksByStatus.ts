@@ -1,17 +1,17 @@
 import type { IDatabaseClient } from '@backend/infrastructure/repos/domain/DatabaseClient';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 import type { TaskStatus } from '@backend/tasks/domain/TaskStatus';
-import { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import { type AppError, internalError } from '@core/errors';
 import type { Validator } from '@core/validation/validate';
 import { err, type Result } from 'neverthrow';
 
-export interface GetTasksByStatusContext {
+export interface GetTasksByStatusDeps {
   readonly db: IDatabaseClient;
   readonly validator: Validator<TaskRecord>;
   readonly executeQuery: (
     query: () => Promise<unknown>,
     validator: Validator<TaskRecord>,
-  ) => Promise<Result<TaskRecord[], ErrorWithMetadata>>;
+  ) => Promise<Result<TaskRecord[], AppError>>;
 }
 
 export interface GetTasksByStatusRequest {
@@ -23,10 +23,10 @@ export interface GetTasksByStatusRequest {
  * Get tasks by status with optional limit.
  */
 export async function getTasksByStatus(
-  ctx: GetTasksByStatusContext,
+  deps: GetTasksByStatusDeps,
   request: GetTasksByStatusRequest,
-): Promise<Result<TaskRecord[], ErrorWithMetadata>> {
-  const { db, validator, executeQuery } = ctx;
+): Promise<Result<TaskRecord[], AppError>> {
+  const { db, validator, executeQuery } = deps;
   const { status, limit = 100 } = request;
 
   try {
@@ -39,9 +39,9 @@ export async function getTasksByStatus(
     return await executeQuery(async () => query, validator);
   } catch (error) {
     return err(
-      new ErrorWithMetadata('Failed to get tasks by status', 'InternalServer', {
-        status,
-        error: error instanceof Error ? error.message : String(error),
+      internalError('Failed to get tasks by status', {
+        cause: error instanceof Error ? error : undefined,
+        metadata: { status },
       }),
     );
   }

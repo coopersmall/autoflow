@@ -1,4 +1,5 @@
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { Context } from '@backend/infrastructure/context';
 import { createEncryptionService } from '@backend/infrastructure/encryption';
 import type { IEncryptionService } from '@backend/infrastructure/encryption/domain/EncryptionService';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
@@ -15,16 +16,16 @@ import {
   SecretId,
   type SecretWithValue,
 } from '@core/domain/secrets/Secret';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 
 export function createSecretsService(
-  ctx: SecretsServiceContext,
+  config: SecretsServiceConfig,
 ): ISecretsService {
-  return Object.freeze(new SecretsService(ctx));
+  return Object.freeze(new SecretsService(config));
 }
 
-interface SecretsServiceContext {
+interface SecretsServiceConfig {
   logger: ILogger;
   appConfig: IAppConfigurationService;
 }
@@ -52,7 +53,7 @@ class SecretsService
   private readonly encryption: IEncryptionService;
 
   constructor(
-    private readonly context: SecretsServiceContext,
+    private readonly secretsConfig: SecretsServiceConfig,
     private readonly actions: SecretsServiceActions = {
       storeSecret,
       revealSecret,
@@ -63,64 +64,60 @@ class SecretsService
       createSecretsCache,
     },
   ) {
-    const appConfig = context.appConfig;
+    const appConfig = secretsConfig.appConfig;
 
     super('secrets', {
-      ...context,
+      ...secretsConfig,
       repo: () => dependencies.createSecretsRepo({ appConfig }),
       cache: () =>
         dependencies.createSecretsCache({
-          logger: context.logger,
+          logger: secretsConfig.logger,
           appConfig,
         }),
       newId: SecretId,
     });
 
     this.encryption = dependencies.createEncryptionService({
-      logger: context.logger,
+      logger: secretsConfig.logger,
     });
   }
 
   /**
    * Stores a secret with RSA encryption using generated salt.
+   * @param ctx - Request context for tracing and cancellation
    * @param request - Storage request object
-   * @param request.correlationId - Unique identifier for tracking this operation across logs
    * @param request.userId - ID of the user storing the secret for authorization
    * @param request.value - Plain text secret value to be encrypted and stored
    * @param request.data - Secret metadata including name, type, and other properties
    * @returns Promise resolving to stored secret metadata (without plain text value) or error details
    */
   async store(
+    ctx: Context,
     request: StoreSecretRequest,
-  ): Promise<Result<Secret, ErrorWithMetadata>> {
-    return this.actions.storeSecret(
-      {
-        appConfig: this.context.appConfig,
-        encryption: this.encryption,
-        secrets: this,
-      },
-      request,
-    );
+  ): Promise<Result<Secret, AppError>> {
+    return this.actions.storeSecret(ctx, request, {
+      appConfig: this.secretsConfig.appConfig,
+      encryption: this.encryption,
+      secrets: this,
+    });
   }
 
   /**
    * Retrieves and decrypts a stored secret by ID.
+   * @param ctx - Request context for tracing and cancellation
    * @param request - Revelation request object
-   * @param request.correlationId - Unique identifier for tracking this operation across logs
    * @param request.userId - ID of the user requesting the secret for authorization
    * @param request.id - Unique identifier of the secret to retrieve and decrypt
    * @returns Promise resolving to secret metadata with decrypted value or error details
    */
   async reveal(
+    ctx: Context,
     request: RevealSecretRequest,
-  ): Promise<Result<SecretWithValue, ErrorWithMetadata>> {
-    return this.actions.revealSecret(
-      {
-        appConfig: this.context.appConfig,
-        encryption: this.encryption,
-        secrets: this,
-      },
-      request,
-    );
+  ): Promise<Result<SecretWithValue, AppError>> {
+    return this.actions.revealSecret(ctx, request, {
+      appConfig: this.secretsConfig.appConfig,
+      encryption: this.encryption,
+      secrets: this,
+    });
   }
 }

@@ -1,4 +1,4 @@
-import type { AIServiceContext } from '@backend/ai/AIService';
+import type { AIServiceConfig } from '@backend/ai/AIService';
 import type { AiProviderIntegration } from '@core/domain/integrations/ai/providers/AiProviderIntegration';
 import type { ExtractMethods } from '@core/types';
 import {
@@ -25,7 +25,7 @@ export type CompletionResult<
 > = GenerateTextResult<TOOLS, TOOL_RESULT>;
 
 export async function completion<TOOLS extends ToolSet, TOOL_RESULT>(
-  _ctx: ExtractMethods<AIServiceContext>,
+  _deps: ExtractMethods<AIServiceConfig>,
   {
     provider,
     model,

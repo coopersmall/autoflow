@@ -1,4 +1,4 @@
-import type { ISecretsService } from './domain/SecretsService.ts';
-import { createSecretsService } from './services/SecretsService.ts';
-
-export { type ISecretsService, createSecretsService };
+// Domain Exports
+export type { ISecretsService } from './domain/SecretsService.ts';
+// Service Exports
+export { createSecretsService } from './services/SecretsService.ts';

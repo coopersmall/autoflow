@@ -17,7 +17,7 @@ import type {
   IHttpServerClientFactory,
 } from '@backend/infrastructure/http/server/domain/HttpServerClient';
 import { createHttpServerError } from '@backend/infrastructure/http/server/errors/HttpServerError';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
 
 /**
@@ -41,7 +41,7 @@ class HttpServerClientFactory implements IHttpServerClientFactory {
    */
   getServerClient(
     type: HttpServerClientType,
-  ): Result<IHttpServerClient, ErrorWithMetadata> {
+  ): Result<IHttpServerClient, AppError> {
     switch (type) {
       case 'bun':
         return this.getBunClient();
@@ -58,7 +58,7 @@ class HttpServerClientFactory implements IHttpServerClientFactory {
    * Creates a Bun HTTP server client.
    * @returns Bun server client or error
    */
-  private getBunClient(): Result<IHttpServerClient, ErrorWithMetadata> {
+  private getBunClient(): Result<IHttpServerClient, AppError> {
     try {
       const client = createBunHttpServerClient();
       return ok(client);

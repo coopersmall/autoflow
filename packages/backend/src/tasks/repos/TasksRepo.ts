@@ -17,7 +17,7 @@ import {
   listTasks,
 } from '@backend/tasks/repos/actions';
 import type { UserId } from '@core/domain/user/user';
-import type { ErrorWithMetadata } from '@core/errors/ErrorWithMetadata';
+import type { AppError } from '@core/errors/AppError';
 import type { Validator } from '@core/validation/validate';
 import { err, type Result } from 'neverthrow';
 
@@ -56,7 +56,7 @@ class TasksRepo extends SharedRepo<TaskId, TaskRecord> implements ITasksRepo {
   async getByStatus(
     status: TaskStatus,
     limit = 100,
-  ): Promise<Result<TaskRecord[], ErrorWithMetadata>> {
+  ): Promise<Result<TaskRecord[], AppError>> {
     const clientResult = this.getClient();
     if (clientResult.isErr()) {
       return err(clientResult.error);
@@ -75,7 +75,7 @@ class TasksRepo extends SharedRepo<TaskId, TaskRecord> implements ITasksRepo {
   async getByTaskName(
     taskName: string,
     limit = 100,
-  ): Promise<Result<TaskRecord[], ErrorWithMetadata>> {
+  ): Promise<Result<TaskRecord[], AppError>> {
     const clientResult = this.getClient();
     if (clientResult.isErr()) {
       return err(clientResult.error);
@@ -94,7 +94,7 @@ class TasksRepo extends SharedRepo<TaskId, TaskRecord> implements ITasksRepo {
   async getByUserId(
     userId: UserId,
     limit = 100,
-  ): Promise<Result<TaskRecord[], ErrorWithMetadata>> {
+  ): Promise<Result<TaskRecord[], AppError>> {
     const clientResult = this.getClient();
     if (clientResult.isErr()) {
       return err(clientResult.error);
@@ -112,7 +112,7 @@ class TasksRepo extends SharedRepo<TaskId, TaskRecord> implements ITasksRepo {
 
   async listTasks(
     filters?: ListTasksFilters,
-  ): Promise<Result<TaskRecord[], ErrorWithMetadata>> {
+  ): Promise<Result<TaskRecord[], AppError>> {
     const clientResult = this.getClient();
     if (clientResult.isErr()) {
       return err(clientResult.error);
@@ -137,7 +137,7 @@ class TasksRepo extends SharedRepo<TaskId, TaskRecord> implements ITasksRepo {
    */
   async bulkUpdate(
     updates: Array<{ id: TaskId; data: Partial<TaskRecord> }>,
-  ): Promise<Result<number, ErrorWithMetadata>> {
+  ): Promise<Result<number, AppError>> {
     const clientResult = this.getClient();
     if (clientResult.isErr()) {
       return err(clientResult.error);
@@ -154,7 +154,7 @@ class TasksRepo extends SharedRepo<TaskId, TaskRecord> implements ITasksRepo {
   private async executeQuery<T>(
     query: () => Promise<unknown>,
     validator: Validator<T>,
-  ): Promise<Result<T[], ErrorWithMetadata>> {
+  ): Promise<Result<T[], AppError>> {
     return this.tasksRepoActions.executeTaskQuery({}, { query, validator });
   }
 }

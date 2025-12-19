@@ -5,7 +5,8 @@
  * before validation and conversion to domain entities. This is the boundary between
  * snake_case database convention and camelCase domain convention.
  */
-import type { ValidationError } from '@core/errors/ValidationError';
+
+import type { AppError } from '@core/errors';
 import { validate } from '@core/validation/validate';
 import type { Result } from 'neverthrow';
 import zod from 'zod';
@@ -43,6 +44,6 @@ export type RawDatabaseQuery = zod.infer<typeof rawDatabaseQuerySchema>;
  */
 export function validateRawDatabaseQuery(
   data: unknown,
-): Result<RawDatabaseQuery, ValidationError> {
+): Result<RawDatabaseQuery, AppError> {
   return validate(rawDatabaseQuerySchema, data);
 }
