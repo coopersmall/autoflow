@@ -1,3 +1,5 @@
+// Embedding types
+export * from './embeddings';
 // Final response types
 export * from './final';
 // Shared types

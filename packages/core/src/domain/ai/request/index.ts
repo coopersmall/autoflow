@@ -2,6 +2,8 @@
 export * from './completions';
 // Content parts (multimodal)
 export * from './content';
+// Embeddings request types
+export * from './embeddings';
 // Response format types
 export * from './format';
 // Message types

@@ -1,3 +1,4 @@
+import type { CorrelationId } from '@core/domain/CorrelationId';
 import zod from 'zod';
 
 /**
@@ -24,6 +25,7 @@ export interface AppError extends Error {
 }
 
 export interface ErrorOptions {
+  correlationId?: CorrelationId;
   cause?: unknown;
   metadata?: Record<string, unknown>;
 }

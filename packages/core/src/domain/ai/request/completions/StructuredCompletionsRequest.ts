@@ -1,5 +1,5 @@
 import type zod from 'zod';
-import { responseFormatSchema } from '../format/ResponseFormat';
+import { responseFormatJsonSchemaSchema } from '../format';
 import { baseCompletionsRequestSchema } from './BaseCompletionsRequest';
 
 export type StructuredCompletionsRequest = zod.infer<
@@ -8,7 +8,7 @@ export type StructuredCompletionsRequest = zod.infer<
 
 export const structuredCompletionsRequestSchema = baseCompletionsRequestSchema
   .extend({
-    responseFormat: responseFormatSchema.describe(
+    responseFormat: responseFormatJsonSchemaSchema.describe(
       'The response format specification for structured output.',
     ),
   })
