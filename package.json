@@ -8,10 +8,12 @@
       "apps/*"
     ],
     "catalog": {
+      "ajv": "^8.17.1",
       "zod": "^3.24.2",
       "neverthrow": "^8.2.0",
       "nanoid": "^5.1.5",
       "lodash": "^4.17.21",
+      "@types/json-schema": "^7.0.15",
       "@types/lodash": "^4.17.20"
     },
     "catalogs": {
