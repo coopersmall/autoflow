@@ -1,6 +1,6 @@
 import { Flex } from '@radix-ui/themes';
-import { LayoutContext } from '@web/components/context/LayoutContext.tsx';
-import { Panel } from '@web/components/ui/Panel.tsx';
+import { LayoutContext } from '@web/components/context/LayoutContext';
+import { Panel } from '@web/components/ui/Panel';
 import { useCallback, useContext } from 'react';
 import type { RndResizeCallback, RndResizeStartCallback } from 'react-rnd';
 import styled from 'styled-components';

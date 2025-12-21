@@ -2,24 +2,24 @@ export {
   type CreateRecordDeps,
   type CreateRecordRequest,
   createRecord,
-} from './createRecord.ts';
+} from './createRecord';
 export {
   type DeleteRecordDeps,
   type DeleteRecordRequest,
   deleteRecord,
-} from './deleteRecord.ts';
+} from './deleteRecord';
 export {
   type GetAllRecordsDeps,
   type GetAllRecordsRequest,
   getAllRecords,
-} from './getAllRecords.ts';
+} from './getAllRecords';
 export {
   type GetRecordDeps,
   type GetRecordRequest,
   getRecord,
-} from './getRecord.ts';
+} from './getRecord';
 export {
   type UpdateRecordDeps,
   type UpdateRecordRequest,
   updateRecord,
-} from './updateRecord.ts';
+} from './updateRecord';

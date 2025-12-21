@@ -1,7 +1,7 @@
 import type { DefaultApi } from '@polygon.io/client-js';
 import { err, ok, type Result } from 'neverthrow';
-import { isDateInHolidays, isWeekend } from '../utils/dateUtils.ts';
-import { getMarketHolidays } from './getMarketHolidays.ts';
+import { isDateInHolidays, isWeekend } from '../utils/dateUtils';
+import { getMarketHolidays } from './getMarketHolidays';
 
 export type GetNextTradingDayContext = {
   readonly client: DefaultApi;

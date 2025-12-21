@@ -1,4 +1,4 @@
-import { createItemSchema } from '@core/domain/Item.ts';
+import { createItemSchema } from '@core/domain/Item';
 import zod from 'zod';
 
 const apiTokenDataSchema = zod.object({

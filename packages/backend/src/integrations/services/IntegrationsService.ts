@@ -5,9 +5,9 @@ import {
   type Integration,
   IntegrationId,
 } from '@core/domain/integrations/Integration';
-import { createIntegrationsCache } from '../cache/IntegrationsCache.ts';
-import type { IIntegrationsService } from '../domain/IntegrationsService.ts';
-import { createIntegrationsRepo } from '../repos/IntegrationsRepo.ts';
+import { createIntegrationsCache } from '../cache/IntegrationsCache';
+import type { IIntegrationsService } from '../domain/IntegrationsService';
+import { createIntegrationsRepo } from '../repos/IntegrationsRepo';
 
 export { createIntegrationsService };
 

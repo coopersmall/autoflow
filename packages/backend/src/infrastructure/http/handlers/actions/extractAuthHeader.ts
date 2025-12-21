@@ -1,4 +1,4 @@
-import { getHeader } from './getHeader.ts';
+import { getHeader } from './getHeader';
 
 const AUTHORIZATION_HEADER = 'Authorization' as const;
 

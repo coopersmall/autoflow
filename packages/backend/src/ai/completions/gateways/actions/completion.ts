@@ -4,12 +4,12 @@ import {
   type StandardCompletionsRequest,
   type TextResponse,
 } from '@autoflow/core';
-import type { Context } from '@backend/infrastructure/context/Context.ts';
+import type { Context } from '@backend/infrastructure/context/Context';
 import type { LanguageModelV2 } from '@openrouter/ai-sdk-provider';
 import { generateText } from 'ai';
 import { err, ok, type Result } from 'neverthrow';
-import type { CompletionsProvider } from '../../providers/CompletionsProviders.ts';
-import { convertCompletionRequest } from './utils/convertCompletionRequest.ts';
+import type { CompletionsProvider } from '../../providers/CompletionsProviders';
+import { convertCompletionRequest } from './utils/convertCompletionRequest';
 
 export interface CompletionRequest {
   provider: CompletionsProvider;

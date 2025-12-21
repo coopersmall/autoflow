@@ -2,7 +2,7 @@ import type { RequestContext } from '@backend/infrastructure/http/handlers/domai
 import type { ISharedService } from '@backend/infrastructure/services/SharedService';
 import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
-import { buildHttpErrorResponse } from '../../errors/buildHttpErrorResponse.ts';
+import { buildHttpErrorResponse } from '../../errors/buildHttpErrorResponse';
 
 export type HandleAllDeps<ID extends Id<string>, T extends Item<ID>> = {
   readonly service: ISharedService<ID, T>;

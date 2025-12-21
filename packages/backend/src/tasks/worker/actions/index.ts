@@ -2,20 +2,20 @@ export {
   type HandleTaskCompletionDeps,
   type HandleTaskCompletionRequest,
   handleTaskCompletion,
-} from './handleTaskCompletion.ts';
+} from './handleTaskCompletion';
 export {
   type HandleTaskFailureDeps,
   type HandleTaskFailureRequest,
   handleTaskFailure,
-} from './handleTaskFailure.ts';
+} from './handleTaskFailure';
 export {
   type PendingTaskUpdate,
   type ProcessBulkUpdatesDeps,
   type ProcessBulkUpdatesRequest,
   processBulkUpdates,
-} from './processBulkUpdates.ts';
+} from './processBulkUpdates';
 export {
   type ProcessJobDeps,
   type ProcessJobRequest,
   processJob,
-} from './processJob.ts';
+} from './processJob';

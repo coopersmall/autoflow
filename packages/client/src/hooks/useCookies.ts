@@ -4,7 +4,7 @@ import { err, ok, type Result } from 'neverthrow';
 import { useCallback } from 'react';
 import { useCookies as useReactCookies } from 'react-cookie';
 import { None, type Option, Some } from 'ts-option';
-import { useLocalClient } from './useLocalClient.ts';
+import { useLocalClient } from './useLocalClient';
 
 export function useAuthCookie() {
   const [cookies, setCookie, removeCookie] = useReactCookies();

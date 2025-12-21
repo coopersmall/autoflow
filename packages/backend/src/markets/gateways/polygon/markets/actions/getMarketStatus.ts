@@ -5,7 +5,7 @@ import {
   normalizeCurrencyStatus,
   normalizeIndicesStatus,
   normalizeMarketStatus,
-} from '../utils/normalizers.ts';
+} from '../utils/normalizers';
 
 export type GetMarketStatusContext = {
   readonly client: DefaultApi;

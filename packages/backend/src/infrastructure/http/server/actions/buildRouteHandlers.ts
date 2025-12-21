@@ -1,6 +1,6 @@
 import type { IHttpHandler } from '@backend/infrastructure/http/domain/HttpHandler';
 import type { RouteHandlers } from '@backend/infrastructure/http/server/domain/HttpRouteHandlers';
-import { buildRoute } from './buildRoute.ts';
+import { buildRoute } from './buildRoute';
 
 export type BuildRouteHandlersContext = Record<string, never>;
 

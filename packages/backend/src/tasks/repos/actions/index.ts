@@ -2,29 +2,29 @@ export {
   type BulkUpdateTasksDeps,
   type BulkUpdateTasksRequest,
   bulkUpdateTasks,
-} from './bulkUpdateTasks.ts';
+} from './bulkUpdateTasks';
 export {
   type ExecuteTaskQueryDeps,
   type ExecuteTaskQueryRequest,
   executeTaskQuery,
-} from './executeTaskQuery.ts';
+} from './executeTaskQuery';
 export {
   type GetTasksByStatusDeps,
   type GetTasksByStatusRequest,
   getTasksByStatus,
-} from './getTasksByStatus.ts';
+} from './getTasksByStatus';
 export {
   type GetTasksByTaskNameDeps,
   type GetTasksByTaskNameRequest,
   getTasksByTaskName,
-} from './getTasksByTaskName.ts';
+} from './getTasksByTaskName';
 export {
   type GetTasksByUserIdDeps,
   type GetTasksByUserIdRequest,
   getTasksByUserId,
-} from './getTasksByUserId.ts';
+} from './getTasksByUserId';
 export {
   type ListTasksDeps,
   type ListTasksRequest,
   listTasks,
-} from './listTasks.ts';
+} from './listTasks';

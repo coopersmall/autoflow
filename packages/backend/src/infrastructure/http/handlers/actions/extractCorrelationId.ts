@@ -1,5 +1,5 @@
 import { CorrelationId } from '@core/domain/CorrelationId';
-import { getHeader } from './getHeader.ts';
+import { getHeader } from './getHeader';
 
 export const CORRELATION_ID_HEADER = 'X-Correlation-Id' as const;
 

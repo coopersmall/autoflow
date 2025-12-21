@@ -7,7 +7,7 @@ import type {
 import type { RouteMiddlewareConfig } from '@backend/infrastructure/http/handlers/middleware/domain/MiddlewareConfig';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { ExtractMethods } from '@core/types';
-import { createRoute } from './actions/createRoute.ts';
+import { createRoute } from './actions/createRoute';
 
 export type IHttpHandlerFactoryService = ExtractMethods<HttpRouteFactory>;
 

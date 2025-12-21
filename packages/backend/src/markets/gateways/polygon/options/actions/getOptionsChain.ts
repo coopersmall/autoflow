@@ -8,7 +8,7 @@ import { err, ok, type Result } from 'neverthrow';
 import {
   mapGetOptionContractType,
   mapListChainContractType,
-} from '../utils/mappers.ts';
+} from '../utils/mappers';
 
 export type GetOptionsChainContext = {
   readonly client: DefaultApi;

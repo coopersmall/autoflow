@@ -10,7 +10,7 @@
  * - Feature-specific handlers (auth, webhooks, etc.)
  * - Resource handlers (users, documents, etc.)
  */
-import type { IHttpRoute } from './HttpRoute.ts';
+import type { IHttpRoute } from './HttpRoute';
 
 /**
  * HTTP handler interface for providing route definitions.

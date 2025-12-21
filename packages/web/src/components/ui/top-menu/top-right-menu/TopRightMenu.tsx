@@ -1,5 +1,5 @@
-import { TopRightMenuContent } from './content/TopRightMenuContent.tsx';
-import { TopRightMenuPanel } from './pannel/TopRightMenuPanel.tsx';
+import { TopRightMenuContent } from './content/TopRightMenuContent';
+import { TopRightMenuPanel } from './pannel/TopRightMenuPanel';
 
 export function TopRightMenu({
   buttons,

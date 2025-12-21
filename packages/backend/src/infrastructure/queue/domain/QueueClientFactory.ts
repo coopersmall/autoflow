@@ -1,7 +1,7 @@
 import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
-import type { IQueueClient } from './QueueClient.ts';
-import type { QueueProvider } from './WorkerClient.ts';
+import type { IQueueClient } from './QueueClient';
+import type { QueueProvider } from './WorkerClient';
 
 /**
  * Supported queue client types.

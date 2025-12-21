@@ -1,6 +1,6 @@
 import { ChatBubbleIcon } from '@radix-ui/react-icons';
-import { LayoutContext } from '@web/components/context/LayoutContext.tsx';
-import IconButton from '@web/components/ui/IconButton.tsx';
+import { LayoutContext } from '@web/components/context/LayoutContext';
+import IconButton from '@web/components/ui/IconButton';
 import { useCallback, useContext } from 'react';
 
 interface ChatButtonProps {

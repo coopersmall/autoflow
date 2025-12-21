@@ -1,7 +1,7 @@
 import type { Context } from '@backend/infrastructure/context';
 import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
-import type { QueueStats } from './QueueStats.ts';
+import type { QueueStats } from './QueueStats';
 
 /**
  * Generic job representation (decoupled from BullMQ)

@@ -8,9 +8,9 @@ import {
 } from '@core/domain/session/UsersSession';
 import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
-import { extractPermissions } from './claims/extractPermissions.ts';
-import { extractUserId } from './claims/extractUserId.ts';
-import { validateClaim } from './claims/validateClaim.ts';
+import { extractPermissions } from './claims/extractPermissions';
+import { extractUserId } from './claims/extractUserId';
+import { validateClaim } from './claims/validateClaim';
 
 export interface AuthenticateFromJWTRequest {
   token: string;

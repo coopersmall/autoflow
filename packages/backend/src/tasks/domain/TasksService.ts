@@ -4,10 +4,10 @@ import type { ISharedService } from '@backend/infrastructure/services/SharedServ
 import type { UserId } from '@core/domain/user/user';
 import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
-import type { TaskId } from './TaskId.ts';
-import type { TaskRecord } from './TaskRecord.ts';
-import type { TaskStatus } from './TaskStatus.ts';
-import type { ListTasksFilters } from './TasksRepo.ts';
+import type { TaskId } from './TaskId';
+import type { TaskRecord } from './TaskRecord';
+import type { TaskStatus } from './TaskStatus';
+import type { ListTasksFilters } from './TasksRepo';
 
 export type ITasksService = Readonly<
   ISharedService<TaskId, TaskRecord> & {

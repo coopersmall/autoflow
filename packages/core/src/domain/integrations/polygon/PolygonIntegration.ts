@@ -1,5 +1,5 @@
-import { baseIntegrationSchema } from '@core/domain/integrations/BaseIntegration.ts';
-import { secretIdSchema } from '@core/domain/secrets/Secret.ts';
+import { baseIntegrationSchema } from '@core/domain/integrations/BaseIntegration';
+import { secretIdSchema } from '@core/domain/secrets/Secret';
 import zod from 'zod';
 
 export type PolygonIntegration = Readonly<

@@ -1,4 +1,4 @@
-import type { TaskPriority } from './TaskPriority.ts';
+import type { TaskPriority } from './TaskPriority';
 
 /**
  * Configuration options for task execution behavior.

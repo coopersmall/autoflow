@@ -1,6 +1,6 @@
 import type { DefaultApi } from '@polygon.io/client-js';
 import { err, ok, type Result } from 'neverthrow';
-import { getMarketStatus } from './getMarketStatus.ts';
+import { getMarketStatus } from './getMarketStatus';
 
 export type IsMarketOpenContext = {
   readonly client: DefaultApi;

@@ -1,7 +1,7 @@
 'use client';
 
-import { LayoutProvider } from '@web/components/context/LayoutContext.tsx';
-import Home from '@web/components/pages/Home.tsx';
+import { LayoutProvider } from '@web/components/context/LayoutContext';
+import Home from '@web/components/pages/Home';
 import { CookiesProvider } from 'react-cookie';
 import './App.css';
 

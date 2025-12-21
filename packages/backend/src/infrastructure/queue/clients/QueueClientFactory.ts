@@ -2,16 +2,13 @@ import type { IAppConfigurationService } from '@backend/infrastructure/configura
 import { type AppError, internalError } from '@core/errors';
 import { unreachable } from '@core/unreachable';
 import { err, ok, type Result } from 'neverthrow';
-import type { IQueueClient } from '../domain/QueueClient.ts';
+import type { IQueueClient } from '../domain/QueueClient';
 import type {
   IQueueClientFactory,
   QueueClientType,
-} from '../domain/QueueClientFactory.ts';
-import {
-  DEFAULT_QUEUE_CONFIG,
-  type QueueConfig,
-} from '../domain/QueueConfig.ts';
-import { createBullMQQueueClient } from './bullmq/BullMQQueueClient.ts';
+} from '../domain/QueueClientFactory';
+import { DEFAULT_QUEUE_CONFIG, type QueueConfig } from '../domain/QueueConfig';
+import { createBullMQQueueClient } from './bullmq/BullMQQueueClient';
 
 /**
  * Dependencies for QueueClientFactory (for testing)

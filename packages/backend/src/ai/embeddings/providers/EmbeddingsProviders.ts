@@ -3,8 +3,8 @@ import {
   openAIProviderSchema,
 } from '@core/domain/ai/providers/AIProviders';
 import zod from 'zod';
-import { googleEmbeddingsProviderOptionsSchema } from './google/GoogleEmbeddingsProviderOptions.ts';
-import { openAIEmbeddingsProviderOptionsSchema } from './openai/OpenAIEmbeddingsProviderOptions.ts';
+import { googleEmbeddingsProviderOptionsSchema } from './google/GoogleEmbeddingsProviderOptions';
+import { openAIEmbeddingsProviderOptionsSchema } from './openai/OpenAIEmbeddingsProviderOptions';
 
 export type OpenAIEmbeddingsProvider = Readonly<
   zod.infer<typeof openAIEmbeddingsProviderSchema>

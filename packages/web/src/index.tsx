@@ -1,12 +1,12 @@
 // Main App export
-export { App } from './components/App.tsx';
+export { App } from './components/App';
 // Context
 export {
   LayoutContext,
   LayoutProvider,
-} from './components/context/LayoutContext.tsx';
+} from './components/context/LayoutContext';
 // Layout components
-export { DefaultLayout } from './components/layout/DefaultLayout.tsx';
+export { DefaultLayout } from './components/layout/DefaultLayout';
 
 // Pages
-export { default as Home } from './components/pages/Home.tsx';
+export { default as Home } from './components/pages/Home';

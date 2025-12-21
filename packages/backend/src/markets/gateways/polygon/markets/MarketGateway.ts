@@ -13,7 +13,7 @@ import {
   isHoliday,
   isMarketOpen,
   listExchanges,
-} from './actions/index.ts';
+} from './actions/index';
 
 export { createMarketGateway };
 export type { IMarketGateway };

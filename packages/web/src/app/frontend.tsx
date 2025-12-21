@@ -5,7 +5,7 @@
  * It is included in `src/index.html`.
  */
 
-import { App } from '@web/components/App.tsx';
+import { App } from '@web/components/App';
 import { StrictMode } from 'react';
 import type { Root } from 'react-dom/client';
 import { createRoot } from 'react-dom/client';

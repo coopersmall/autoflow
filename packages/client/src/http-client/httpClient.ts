@@ -1,8 +1,8 @@
 import type { AppError } from '@autoflow/core';
 import { internalError } from '@autoflow/core';
 import { err, ok, type Result } from 'neverthrow';
-import { sendRequest } from './sendRequest.ts';
-import { sendStreamRequest } from './sendStreamRequest.ts';
+import { sendRequest } from './sendRequest';
+import { sendStreamRequest } from './sendStreamRequest';
 
 interface RequestOpts {
   credentials?: RequestCredentials;

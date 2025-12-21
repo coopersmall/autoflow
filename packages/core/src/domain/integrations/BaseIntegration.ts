@@ -1,6 +1,6 @@
-import { newId } from '@core/domain/Id.ts';
-import { createItemSchema } from '@core/domain/Item.ts';
-import { type UserId, userIdSchema } from '@core/domain/user/user.ts';
+import { newId } from '@core/domain/Id';
+import { createItemSchema } from '@core/domain/Item';
+import { type UserId, userIdSchema } from '@core/domain/user/user';
 import zod from 'zod';
 
 export type IntegrationId = zod.infer<typeof integrationIdSchema>;

@@ -4,12 +4,12 @@ import {
   type EmbeddingRequest,
   type EmbeddingResponse,
 } from '@autoflow/core';
-import type { Context } from '@backend/infrastructure/context/Context.ts';
+import type { Context } from '@backend/infrastructure/context/Context';
 import type { EmbeddingModel } from 'ai';
 import { embed as aiSdkEmbed } from 'ai';
 import { err, ok, type Result } from 'neverthrow';
-import type { EmbeddingsProvider } from '../../providers/EmbeddingsProviders.ts';
-import { convertProviderOptions } from './utils/convertProviderOptions.ts';
+import type { EmbeddingsProvider } from '../../providers/EmbeddingsProviders';
+import { convertProviderOptions } from './utils/convertProviderOptions';
 
 export async function embed(
   ctx: Context,

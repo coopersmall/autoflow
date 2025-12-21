@@ -5,11 +5,11 @@ import type { IHttpRouteFactory } from '@backend/infrastructure/http/handlers/do
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { ITasksService } from '@backend/tasks/domain/TasksService';
 import { createTasksService } from '@backend/tasks/services/TasksService';
-import { cancelTaskHandler } from './routes/cancelTask.ts';
-import { getQueueStatsHandler } from './routes/getQueueStats.ts';
-import { getTaskByIdHandler } from './routes/getTaskById.ts';
-import { listTasksHandler } from './routes/listTasks.ts';
-import { retryTaskHandler } from './routes/retryTask.ts';
+import { cancelTaskHandler } from './routes/cancelTask';
+import { getQueueStatsHandler } from './routes/getQueueStats';
+import { getTaskByIdHandler } from './routes/getTaskById';
+import { listTasksHandler } from './routes/listTasks';
+import { retryTaskHandler } from './routes/retryTask';
 
 export function createTasksHttpHandler(
   context: TasksHttpHandlerContext,

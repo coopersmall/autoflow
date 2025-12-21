@@ -2,30 +2,30 @@ import type { IAppConfigurationService } from '@backend/infrastructure/configura
 import {
   createMarketGateway,
   type IMarketGateway,
-} from './markets/MarketGateway.ts';
+} from './markets/MarketGateway';
 import {
   createOptionsGateway,
   type IOptionsGateway,
-} from './options/OptionsGateway.ts';
-import { getPolygonClient } from './shared/client.ts';
+} from './options/OptionsGateway';
+import { getPolygonClient } from './shared/client';
 import {
   createStocksGateway,
   type IStocksGateway,
-} from './stocks/StocksGateway.ts';
+} from './stocks/StocksGateway';
 
 // Export gateway types and factories
 export {
   createMarketGateway,
   type IMarketGateway,
-} from './markets/MarketGateway.ts';
+} from './markets/MarketGateway';
 export {
   createOptionsGateway,
   type IOptionsGateway,
-} from './options/OptionsGateway.ts';
+} from './options/OptionsGateway';
 export {
   createStocksGateway,
   type IStocksGateway,
-} from './stocks/StocksGateway.ts';
+} from './stocks/StocksGateway';
 
 export interface PolygonGateway {
   stocks: IStocksGateway;

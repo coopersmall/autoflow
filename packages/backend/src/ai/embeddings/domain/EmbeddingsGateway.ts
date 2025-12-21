@@ -5,9 +5,9 @@ import type {
   EmbeddingsRequest,
   EmbeddingsResponse,
 } from '@autoflow/core';
-import type { Context } from '@backend/infrastructure/context/Context.ts';
+import type { Context } from '@backend/infrastructure/context/Context';
 import type { Result } from 'neverthrow';
-import type { EmbeddingsProvider } from '../providers/EmbeddingsProviders.ts';
+import type { EmbeddingsProvider } from '../providers/EmbeddingsProviders';
 
 export type IEmbeddingsGateway = Readonly<{
   embed(

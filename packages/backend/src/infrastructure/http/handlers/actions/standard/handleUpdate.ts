@@ -4,7 +4,7 @@ import type { Id } from '@core/domain/Id';
 import type { Item } from '@core/domain/Item';
 import { validUserId } from '@core/domain/user/validation/validUser';
 import type { Validator } from '@core/validation/validate';
-import { buildHttpErrorResponse } from '../../errors/buildHttpErrorResponse.ts';
+import { buildHttpErrorResponse } from '../../errors/buildHttpErrorResponse';
 
 export type HandleUpdateDeps<ID extends Id<string>, T extends Item<ID>> = {
   readonly service: StandardService<ID, T>;

@@ -11,7 +11,7 @@ import {
   getOptionsChain,
   getOptionsContract,
   listOptionsContracts,
-} from './actions/index.ts';
+} from './actions/index';
 
 export { createOptionsGateway };
 export type { IOptionsGateway };

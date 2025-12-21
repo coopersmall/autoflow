@@ -5,13 +5,13 @@ import type {
   EmbeddingsRequest,
   EmbeddingsResponse,
 } from '@autoflow/core';
-import type { Context } from '@backend/infrastructure/context/Context.ts';
+import type { Context } from '@backend/infrastructure/context/Context';
 import type { Result } from 'neverthrow';
-import type { IEmbeddingsGateway } from '../domain/EmbeddingsGateway.ts';
-import type { EmbeddingsProvider } from '../providers/EmbeddingsProviders.ts';
-import { createEmbeddingsModel } from './actions/createEmbeddingsModel.ts';
-import { embed } from './actions/embed.ts';
-import { embedMany } from './actions/embedMany.ts';
+import type { IEmbeddingsGateway } from '../domain/EmbeddingsGateway';
+import type { EmbeddingsProvider } from '../providers/EmbeddingsProviders';
+import { createEmbeddingsModel } from './actions/createEmbeddingsModel';
+import { embed } from './actions/embed';
+import { embedMany } from './actions/embedMany';
 
 export function createAISDKEmbeddingsGateway(): IEmbeddingsGateway {
   return Object.freeze(new AISDKEmbeddingsGateway());

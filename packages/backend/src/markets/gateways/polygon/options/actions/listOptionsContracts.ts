@@ -1,7 +1,7 @@
 import type { OptionsContract } from '@core/domain/options/Options';
 import type { DefaultApi } from '@polygon.io/client-js';
 import { err, ok, type Result } from 'neverthrow';
-import { mapListOptionContractType } from '../utils/mappers.ts';
+import { mapListOptionContractType } from '../utils/mappers';
 
 export type ListOptionsContractsContext = {
   readonly client: DefaultApi;
