@@ -834,7 +834,7 @@ describe('SharedVectorStore Integration Tests', () => {
       await fc.assert(
         fc.asyncProperty(
           docCountArb,
-          fc.double({ min: 0.1, max: 0.9 }), // threshold
+          fc.double({ min: 0.1, max: 0.9, noNaN: true }), // threshold
           async (count, threshold) => {
             const store = createStore();
             const queryEmbedding = [1, 0, 0, 0];
