@@ -10,7 +10,7 @@ services:
       POSTGRES_PASSWORD: password
 
   cache:
-    image: redis:6.2
+    image: redis:8.4
     hostname: redis
     ports:
       - '6379:6379'
