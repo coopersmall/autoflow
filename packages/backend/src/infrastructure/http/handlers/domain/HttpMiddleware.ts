@@ -19,7 +19,7 @@
  */
 import type { AppError } from '@core/errors';
 import type { Result } from 'neverthrow';
-import type { Request } from './Request.ts';
+import type { Request } from './Request';
 
 /**
  * HTTP middleware interface for request processing.

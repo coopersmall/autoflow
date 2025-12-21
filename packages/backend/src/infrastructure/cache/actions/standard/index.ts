@@ -2,14 +2,14 @@ export {
   type DeleteCachedDeps,
   type DeleteCachedRequest,
   deleteCached,
-} from './deleteCached.ts';
+} from './deleteCached';
 export {
   type GetCachedDeps,
   type GetCachedRequest,
   getCached,
-} from './getCached.ts';
+} from './getCached';
 export {
   type SetCachedDeps,
   type SetCachedRequest,
   setCached,
-} from './setCached.ts';
+} from './setCached';

@@ -1,3 +1,3 @@
-export * from './buildRoute.ts';
-export * from './buildRouteHandlers.ts';
-export * from './startServer.ts';
+export * from './buildRoute';
+export * from './buildRouteHandlers';
+export * from './startServer';

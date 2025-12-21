@@ -11,9 +11,9 @@ import {
   type OpenRouterProviderConfig,
   openAiProviderSchema,
   openRouterProviderSchema,
-} from '@core/domain/integrations/ai/providers/AiProviderIntegration.ts';
-import type { AppError } from '@core/errors/AppError.ts';
-import { validate } from '@core/validation/validate.ts';
+} from '@core/domain/integrations/ai/providers/AiProviderIntegration';
+import type { AppError } from '@core/errors/AppError';
+import { validate } from '@core/validation/validate';
 import type { Result } from 'neverthrow';
 
 export function validAiProviderIntegration(

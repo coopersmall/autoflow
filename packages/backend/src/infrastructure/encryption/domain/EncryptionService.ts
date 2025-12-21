@@ -2,7 +2,7 @@ import type { Context } from '@backend/infrastructure/context';
 import type { JWTClaim } from '@core/domain/jwt/JWTClaim';
 import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
-import type { RSAKeyPair } from '../actions/rsa/generateKeyPair.ts';
+import type { RSAKeyPair } from '../actions/rsa/generateKeyPair';
 
 export type IEncryptionService = Readonly<EncryptionService>;
 

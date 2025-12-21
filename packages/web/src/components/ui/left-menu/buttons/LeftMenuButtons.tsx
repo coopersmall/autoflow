@@ -5,8 +5,8 @@ import {
   PersonIcon,
 } from '@radix-ui/react-icons';
 import { Flex } from '@radix-ui/themes';
-import { LayoutContext } from '@web/components/context/LayoutContext.tsx';
-import { IconButton } from '@web/components/ui/IconButton.tsx';
+import { LayoutContext } from '@web/components/context/LayoutContext';
+import { IconButton } from '@web/components/ui/IconButton';
 import { useContext } from 'react';
 import styled from 'styled-components';
 

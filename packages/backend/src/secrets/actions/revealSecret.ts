@@ -9,7 +9,7 @@ import {
 } from '@core/domain/secrets/Secret';
 import { type AppError, badRequest } from '@core/errors';
 import { err, ok, type Result } from 'neverthrow';
-import { decryptSecret } from './decryptSecret.ts';
+import { decryptSecret } from './decryptSecret';
 
 export interface RevealSecretDeps {
   appConfig: IAppConfigurationService;

@@ -7,9 +7,9 @@ import type {
   IQueueClient,
   QueueJob,
   QueueJobInput,
-} from '../../domain/QueueClient.ts';
-import type { QueueConfig } from '../../domain/QueueConfig.ts';
-import type { QueueStats } from '../../domain/QueueStats.ts';
+} from '../../domain/QueueClient';
+import type { QueueConfig } from '../../domain/QueueConfig';
+import type { QueueStats } from '../../domain/QueueStats';
 
 /**
  * Factory type for creating BullMQ Queue instances.

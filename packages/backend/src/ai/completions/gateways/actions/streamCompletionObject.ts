@@ -4,13 +4,13 @@ import {
   type ObjectStreamPart,
   type StructuredCompletionsRequest,
 } from '@autoflow/core';
-import type { Context } from '@backend/infrastructure/context/Context.ts';
+import type { Context } from '@backend/infrastructure/context/Context';
 import type { LanguageModelV2 } from '@openrouter/ai-sdk-provider';
 import { jsonSchema, streamObject } from 'ai';
 import { err, ok, type Result } from 'neverthrow';
-import type { CompletionsProvider } from '../../providers/CompletionsProviders.ts';
-import { convertMessages } from './utils/convertMessages.ts';
-import { convertProviderOptions } from './utils/convertProviderOptions.ts';
+import type { CompletionsProvider } from '../../providers/CompletionsProviders';
+import { convertMessages } from './utils/convertMessages';
+import { convertProviderOptions } from './utils/convertProviderOptions';
 
 export async function* streamCompletionObject(
   ctx: Context,

@@ -1,7 +1,7 @@
 import type { MarketHoliday } from '@core/domain/markets/Markets';
 import type { DefaultApi } from '@polygon.io/client-js';
 import { err, ok, type Result } from 'neverthrow';
-import { determineHolidayStatus } from '../utils/normalizers.ts';
+import { determineHolidayStatus } from '../utils/normalizers';
 
 export type GetMarketHolidaysContext = {
   readonly client: DefaultApi;

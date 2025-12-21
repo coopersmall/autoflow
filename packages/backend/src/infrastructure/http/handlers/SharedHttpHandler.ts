@@ -55,8 +55,8 @@ import {
   handleDelete,
   handleGet,
   handleUpdate,
-} from './actions/shared/index.ts';
-import type { IHttpRouteFactory } from './domain/HttpRouteFactory.ts';
+} from './actions/shared/index';
+import type { IHttpRouteFactory } from './domain/HttpRouteFactory';
 
 /**
  * Type alias for SharedHTTPHandler interface extraction.

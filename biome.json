@@ -72,11 +72,6 @@
         "noUnusedPrivateClassMembers": "off",
         "noUnusedVariables": "warn",
         "useIsNan": "error",
-        "useImportExtensions": {
-          "options": {
-            "forceJsExtensions": true
-          }
-        },
         "useValidForDirection": "error",
         "useValidTypeof": "error",
         "useYield": "error"

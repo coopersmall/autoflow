@@ -54,9 +54,9 @@ import type { AppError } from '@core/errors/AppError';
 import type { ExtractMethods } from '@core/types';
 import type { Validator } from '@core/validation/validate';
 import { err, ok, type Result } from 'neverthrow';
-import { createCacheAdapter } from './adapters/CacheAdapter.ts';
-import { createCacheClientFactory } from './clients/CacheClientFactory.ts';
-import type { ICacheAdapter } from './domain/CacheAdapter.ts';
+import { createCacheAdapter } from './adapters/CacheAdapter';
+import { createCacheClientFactory } from './clients/CacheClientFactory';
+import type { ICacheAdapter } from './domain/CacheAdapter';
 
 export type IStandardCache<
   ID extends Id<string> = Id<string>,

@@ -6,12 +6,12 @@ import type {
   StreamPart,
   StructuredCompletionsRequest,
 } from '@autoflow/core';
-import type { Context } from '@backend/infrastructure/context/Context.ts';
+import type { Context } from '@backend/infrastructure/context/Context';
 import type { TextResponse } from '@core/domain/ai/response/completions/result/TextResponse';
 import type { Result } from 'neverthrow';
-import type { ICompletionsGateway } from './domain/CompletionsGateway.ts';
-import { createAISDKCompletionsGateway } from './gateways/AISDKCompletionsGateway.ts';
-import type { CompletionsProvider } from './providers/CompletionsProviders.ts';
+import type { ICompletionsGateway } from './domain/CompletionsGateway';
+import { createAISDKCompletionsGateway } from './gateways/AISDKCompletionsGateway';
+import type { CompletionsProvider } from './providers/CompletionsProviders';
 
 export function createCompletionsService(): ICompletionsGateway {
   return Object.freeze(new CompletionsService());

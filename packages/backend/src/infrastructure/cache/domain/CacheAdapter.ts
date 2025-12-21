@@ -8,7 +8,7 @@
 import type { AppError } from '@core/errors/AppError';
 import type { Validator } from '@core/validation/validate';
 import type { Result } from 'neverthrow';
-import type { ICacheClient } from './Cache.ts';
+import type { ICacheClient } from './Cache';
 
 /**
  * Configuration for cache operations.

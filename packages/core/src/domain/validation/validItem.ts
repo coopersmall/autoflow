@@ -1,10 +1,10 @@
-import type { Id } from '@core/domain/Id.ts';
-import type { Item } from '@core/domain/Item.ts';
-import type { AppError } from '@core/errors/AppError.ts';
-import { validate } from '@core/validation/validate.ts';
+import type { Id } from '@core/domain/Id';
+import type { Item } from '@core/domain/Item';
+import type { AppError } from '@core/errors/AppError';
+import { validate } from '@core/validation/validate';
 import { err, ok, type Result } from 'neverthrow';
 import zod from 'zod';
-import { idSchema } from './validId.ts';
+import { idSchema } from './validId';
 
 export const itemSchema = zod.strictObject({
   id: idSchema,

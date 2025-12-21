@@ -3,8 +3,8 @@ import type { QueueJob } from '@backend/infrastructure/queue/domain/QueueClient'
 import type { QueueStats } from '@backend/infrastructure/queue/domain/QueueStats';
 import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
-import type { TaskId } from './TaskId.ts';
-import type { TaskRecord } from './TaskRecord.ts';
+import type { TaskId } from './TaskId';
+import type { TaskRecord } from './TaskRecord';
 
 /**
  * Interface for task queue operations.

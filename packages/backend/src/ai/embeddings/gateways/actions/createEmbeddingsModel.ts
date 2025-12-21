@@ -6,7 +6,7 @@ import type {
   EmbeddingsProvider,
   GoogleEmbeddingsProvider,
   OpenAIEmbeddingsProvider,
-} from '../../providers/EmbeddingsProviders.ts';
+} from '../../providers/EmbeddingsProviders';
 
 export function createEmbeddingsModel(
   provider: EmbeddingsProvider,

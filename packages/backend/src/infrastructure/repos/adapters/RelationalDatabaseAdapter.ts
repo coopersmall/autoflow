@@ -34,7 +34,7 @@ import type { AppError } from '@core/errors/AppError';
 
 import type { Result } from 'neverthrow';
 import { err } from 'neverthrow';
-import { createDatabaseClientFactory } from '../clients/DatabaseClientFactory.ts';
+import { createDatabaseClientFactory } from '../clients/DatabaseClientFactory';
 
 /**
  * Factory function for creating RelationalDatabaseAdapter instances.

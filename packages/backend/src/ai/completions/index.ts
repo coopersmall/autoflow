@@ -1,8 +1,8 @@
 // Service
-export { createCompletionsService } from './CompletionsService.ts';
+export { createCompletionsService } from './CompletionsService';
 
 // Gateway
-export type { ICompletionsGateway } from './domain/CompletionsGateway.ts';
+export type { ICompletionsGateway } from './domain/CompletionsGateway';
 
 // Anthropic builtin tools
 export type {
@@ -10,17 +10,17 @@ export type {
   AnthropicBuiltinTools,
   AnthropicMemoryToolOptions,
   AnthropicTextEditorToolOptions,
-} from './providers/anthropic/AnthropicBuiltinTools.ts';
+} from './providers/anthropic/AnthropicBuiltinTools';
 export {
   anthropicBashToolOptionsSchema,
   anthropicBuiltinToolsSchema,
   anthropicMemoryToolOptionsSchema,
   anthropicTextEditorToolOptionsSchema,
-} from './providers/anthropic/AnthropicBuiltinTools.ts';
+} from './providers/anthropic/AnthropicBuiltinTools';
 
 // Anthropic provider options
-export type { AnthropicProviderOptions } from './providers/anthropic/AnthropicProviderOptions.ts';
-export { anthropicProviderOptionsSchema } from './providers/anthropic/AnthropicProviderOptions.ts';
+export type { AnthropicProviderOptions } from './providers/anthropic/AnthropicProviderOptions';
+export { anthropicProviderOptionsSchema } from './providers/anthropic/AnthropicProviderOptions';
 
 // Provider types
 export type {
@@ -28,24 +28,24 @@ export type {
   CompletionsProvider,
   GoogleCompletionsProvider,
   OpenAICompletionsProvider,
-} from './providers/CompletionsProviders.ts';
-export { completionsProviderSchema } from './providers/CompletionsProviders.ts';
+} from './providers/CompletionsProviders';
+export { completionsProviderSchema } from './providers/CompletionsProviders';
 
 // Google builtin tools
 export type {
   GoogleBuiltinTools,
   GoogleCodeExecutionToolOptions,
   GoogleSearchToolOptions,
-} from './providers/google/GoogleBuiltinTools.ts';
+} from './providers/google/GoogleBuiltinTools';
 export {
   googleBuiltinToolsSchema,
   googleCodeExecutionToolOptionsSchema,
   googleSearchToolOptionsSchema,
-} from './providers/google/GoogleBuiltinTools.ts';
+} from './providers/google/GoogleBuiltinTools';
 
 // Google provider options
-export type { GoogleProviderOptions } from './providers/google/GoogleProviderOptions.ts';
-export { googleProviderOptionsSchema } from './providers/google/GoogleProviderOptions.ts';
+export type { GoogleProviderOptions } from './providers/google/GoogleProviderOptions';
+export { googleProviderOptionsSchema } from './providers/google/GoogleProviderOptions';
 
 // OpenAI builtin tools
 export type {
@@ -55,7 +55,7 @@ export type {
   OpenAIImageGenerationToolOptions,
   OpenAILocalShellToolOptions,
   OpenAIWebSearchToolOptions,
-} from './providers/openai/OpenAIBuiltinTools.ts';
+} from './providers/openai/OpenAIBuiltinTools';
 export {
   openAIBuiltinToolsSchema,
   openAICodeInterpreterToolOptionsSchema,
@@ -63,8 +63,8 @@ export {
   openAIImageGenerationToolOptionsSchema,
   openAILocalShellToolOptionsSchema,
   openAIWebSearchToolOptionsSchema,
-} from './providers/openai/OpenAIBuiltinTools.ts';
+} from './providers/openai/OpenAIBuiltinTools';
 
 // OpenAI provider options
-export type { OpenAIProviderOptions } from './providers/openai/OpenAIProviderOptions.ts';
-export { openAIProviderOptionsSchema } from './providers/openai/OpenAIProviderOptions.ts';
+export type { OpenAIProviderOptions } from './providers/openai/OpenAIProviderOptions';
+export { openAIProviderOptionsSchema } from './providers/openai/OpenAIProviderOptions';

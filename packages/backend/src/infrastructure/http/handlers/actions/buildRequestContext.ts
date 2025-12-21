@@ -1,11 +1,11 @@
-import type { Context } from '@backend/infrastructure/context/Context.ts';
+import type { Context } from '@backend/infrastructure/context/Context';
 import type { Request } from '@backend/infrastructure/http/handlers/domain/Request';
 import type { RequestContext } from '@backend/infrastructure/http/handlers/domain/RequestContext';
 import type { Validator } from '@core/validation/validate';
-import { extractRequestBody } from './extractRequestBody.ts';
-import { extractRequestHeader } from './extractRequestHeader.ts';
-import { extractRequestParam } from './extractRequestParam.ts';
-import { extractSearchParam } from './extractSearchParam.ts';
+import { extractRequestBody } from './extractRequestBody';
+import { extractRequestHeader } from './extractRequestHeader';
+import { extractRequestParam } from './extractRequestParam';
+import { extractSearchParam } from './extractSearchParam';
 
 export interface BuildRequestContextRequest {
   ctx: Context;

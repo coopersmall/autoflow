@@ -11,7 +11,7 @@ import {
   getLastStocksTrade,
   getStockDetails,
   getStockQuotes,
-} from './actions/index.ts';
+} from './actions/index';
 
 export { createStocksGateway };
 export type { IStocksGateway };

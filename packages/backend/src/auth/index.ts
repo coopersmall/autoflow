@@ -1,5 +1,5 @@
-import type { IAuthService } from './domain/AuthService.ts';
-import { createAuthMiddlewareFactories } from './middleware/createAuthMiddlewareFactories.ts';
-import { createAuthService } from './services/AuthService.ts';
+import type { IAuthService } from './domain/AuthService';
+import { createAuthMiddlewareFactories } from './middleware/createAuthMiddlewareFactories';
+import { createAuthService } from './services/AuthService';
 
 export { type IAuthService, createAuthService, createAuthMiddlewareFactories };

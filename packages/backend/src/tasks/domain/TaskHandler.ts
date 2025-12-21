@@ -1,7 +1,7 @@
 import type { TaskError } from '@backend/tasks/domain/TaskError';
 import type { TaskResult } from '@backend/tasks/domain/TaskResult';
 import type { Result } from 'neverthrow';
-import type { TaskContext } from './TaskContext.ts';
+import type { TaskContext } from './TaskContext';
 
 /**
  * Task handler function signature

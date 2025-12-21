@@ -5,11 +5,11 @@ import type {
   EmbeddingsRequest,
   EmbeddingsResponse,
 } from '@autoflow/core';
-import type { Context } from '@backend/infrastructure/context/Context.ts';
+import type { Context } from '@backend/infrastructure/context/Context';
 import type { Result } from 'neverthrow';
-import type { IEmbeddingsGateway } from './domain/EmbeddingsGateway.ts';
-import { createAISDKEmbeddingsGateway } from './gateways/AISDKEmbeddingsGateway.ts';
-import type { EmbeddingsProvider } from './providers/EmbeddingsProviders.ts';
+import type { IEmbeddingsGateway } from './domain/EmbeddingsGateway';
+import { createAISDKEmbeddingsGateway } from './gateways/AISDKEmbeddingsGateway';
+import type { EmbeddingsProvider } from './providers/EmbeddingsProviders';
 
 export function createEmbeddingsService(): IEmbeddingsGateway {
   return Object.freeze(new EmbeddingsService());

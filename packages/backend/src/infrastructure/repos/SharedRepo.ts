@@ -33,7 +33,7 @@ import type { AppError } from '@core/errors/AppError';
 
 import type { ExtractMethods } from '@core/types';
 import { err, ok, type Result } from 'neverthrow';
-import { createRelationalDatabaseAdapter } from './adapters/RelationalDatabaseAdapter.ts';
+import { createRelationalDatabaseAdapter } from './adapters/RelationalDatabaseAdapter';
 
 /**
  * Extracted public methods of SharedRepo for dependency injection and testing.

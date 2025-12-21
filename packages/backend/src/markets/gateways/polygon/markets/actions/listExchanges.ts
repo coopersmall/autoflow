@@ -6,7 +6,7 @@ import {
   mapAssetClassBack,
   mapLocale,
   mapLocaleBack,
-} from '../utils/mappers.ts';
+} from '../utils/mappers';
 
 export type ListExchangesContext = {
   readonly client: DefaultApi;

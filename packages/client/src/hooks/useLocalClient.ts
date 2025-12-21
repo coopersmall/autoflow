@@ -8,8 +8,8 @@ import { HttpClient } from '@client/http-client/httpClient';
 import { err, ok, type Result } from 'neverthrow';
 import { useMemo } from 'react';
 import zod from 'zod';
-import type { ParseStreamChunksOptions } from './client/parseStreamChunks.ts';
-import { stream } from './client/stream.ts';
+import type { ParseStreamChunksOptions } from './client/parseStreamChunks';
+import { stream } from './client/stream';
 
 const DEFAULT_LOCAL_CLIENT_TIMEOUT = 30000; // Default timeout of 30 seconds for local client
 const DEFAULT_STREAM_TIMEOUT = 300000; // Default stream timeout of 5 minutes

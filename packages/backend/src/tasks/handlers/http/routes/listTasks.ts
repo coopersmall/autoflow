@@ -7,7 +7,7 @@ import {
   validOptionalTaskNameParam,
   validOptionalTaskStatusParam,
   validOptionalUserIdParam,
-} from './validation/validListTaskParams.ts';
+} from './validation/validListTaskParams';
 
 /**
  * Context required for the listTasks handler

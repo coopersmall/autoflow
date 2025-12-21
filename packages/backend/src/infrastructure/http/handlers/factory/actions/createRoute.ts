@@ -26,9 +26,9 @@ import type { RouteMiddlewareConfig } from '@backend/infrastructure/http/handler
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import { internalError, isAppError } from '@core/errors';
 import type { BunRequest } from 'bun';
-import { createRequestWithContext } from '../../domain/Request.ts';
-import { createResponseFromError } from './createResponseFromError.ts';
-import { runMiddleware } from './runMiddleware.ts';
+import { createRequestWithContext } from '../../domain/Request';
+import { createResponseFromError } from './createResponseFromError';
+import { runMiddleware } from './runMiddleware';
 
 interface CreateRouteContext {
   logger: ILogger;

@@ -61,8 +61,8 @@ import {
   handleDelete,
   handleGet,
   handleUpdate,
-} from './actions/standard/index.ts';
-import type { IHttpRouteFactory } from './domain/HttpRouteFactory.ts';
+} from './actions/standard/index';
+import type { IHttpRouteFactory } from './domain/HttpRouteFactory';
 
 /**
  * Type alias for StandardHTTPHandler interface extraction.

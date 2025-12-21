@@ -5,7 +5,7 @@ import {
   unauthorized,
 } from '@autoflow/core';
 import { err, ok, type Result } from 'neverthrow';
-import type { StreamResponse } from './httpClient.ts';
+import type { StreamResponse } from './httpClient';
 
 export async function sendStreamRequest(
   url: string,

@@ -5,7 +5,7 @@ import type { Permission } from '@core/domain/permissions/permissions';
 import type { UsersSession } from '@core/domain/session/UsersSession';
 import { type AppError, internalError } from '@core/errors';
 import { err, type Result } from 'neverthrow';
-import { authenticateFromJWT } from './authenticateFromJWT.ts';
+import { authenticateFromJWT } from './authenticateFromJWT';
 
 export interface JWTAuthenticationRequest {
   type: 'jwt';

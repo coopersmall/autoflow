@@ -2,15 +2,12 @@ import type { IAppConfigurationService } from '@backend/infrastructure/configura
 import { type AppError, internalError } from '@core/errors';
 import { unreachable } from '@core/unreachable';
 import { err, ok, type Result } from 'neverthrow';
-import type {
-  IWorkerClient,
-  WorkerJobHandler,
-} from '../domain/WorkerClient.ts';
+import type { IWorkerClient, WorkerJobHandler } from '../domain/WorkerClient';
 import type {
   IWorkerClientFactory,
   WorkerClientType,
-} from '../domain/WorkerClientFactory.ts';
-import { createBullMQWorkerClient } from './bullmq/BullMQWorkerClient.ts';
+} from '../domain/WorkerClientFactory';
+import { createBullMQWorkerClient } from './bullmq/BullMQWorkerClient';
 
 /**
  * Dependencies for WorkerClientFactory (for testing)

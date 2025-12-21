@@ -1,2 +1,2 @@
-export { type ISharedCache, SharedCache } from './SharedCache.ts';
-export { type IStandardCache, StandardCache } from './StandardCache.ts';
+export { type ISharedCache, SharedCache } from './SharedCache';
+export { type IStandardCache, StandardCache } from './StandardCache';

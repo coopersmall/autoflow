@@ -1,11 +1,11 @@
 import type { StandardCompletionsRequest } from '@autoflow/core';
 import type { JSONValue, ModelMessage, ToolSet } from 'ai';
-import type { CompletionsProvider } from '../../../providers/CompletionsProviders.ts';
-import { convertBuiltinTools } from './convertBuiltinTools.ts';
-import { convertMessages } from './convertMessages.ts';
-import { convertProviderOptions } from './convertProviderOptions.ts';
-import { convertTools } from './convertTools.ts';
-import { mergeToolSets } from './mergeToolSets.ts';
+import type { CompletionsProvider } from '../../../providers/CompletionsProviders';
+import { convertBuiltinTools } from './convertBuiltinTools';
+import { convertMessages } from './convertMessages';
+import { convertProviderOptions } from './convertProviderOptions';
+import { convertTools } from './convertTools';
+import { mergeToolSets } from './mergeToolSets';
 
 type CompletionRequest = Omit<
   StandardCompletionsRequest,

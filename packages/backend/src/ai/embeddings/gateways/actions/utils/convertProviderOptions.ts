@@ -1,5 +1,5 @@
 import type { JSONValue } from 'ai';
-import type { EmbeddingsProvider } from '../../../providers/EmbeddingsProviders.ts';
+import type { EmbeddingsProvider } from '../../../providers/EmbeddingsProviders';
 
 export function convertProviderOptions(
   provider: EmbeddingsProvider,

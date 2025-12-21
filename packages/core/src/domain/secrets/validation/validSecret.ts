@@ -5,9 +5,9 @@ import {
   secretIdSchema,
   secretSchema,
   storedSecretSchema,
-} from '@core/domain/secrets/Secret.ts';
-import type { AppError } from '@core/errors/AppError.ts';
-import { validate } from '@core/validation/validate.ts';
+} from '@core/domain/secrets/Secret';
+import type { AppError } from '@core/errors/AppError';
+import { validate } from '@core/validation/validate';
 import type { Result } from 'neverthrow';
 
 export function validSecret(input: unknown): Result<Secret, AppError> {

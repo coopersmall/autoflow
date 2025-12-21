@@ -3,7 +3,7 @@ import type { Context } from '@backend/infrastructure/context';
 import type { IEncryptionService } from '@backend/infrastructure/encryption/domain/EncryptionService';
 import type { AppError } from '@core/errors/AppError';
 import { err, type Result } from 'neverthrow';
-import { getKeys } from './getKeys.ts';
+import { getKeys } from './getKeys';
 
 export interface EncryptSecretRequest {
   value: string;

@@ -11,8 +11,8 @@
 import type { AppError } from '@core/errors/AppError';
 
 import type { Result } from 'neverthrow';
-import type { IDatabaseClient } from './DatabaseClient.ts';
-import type { RawDatabaseQuery } from './RawDatabaseQuery.ts';
+import type { IDatabaseClient } from './DatabaseClient';
+import type { RawDatabaseQuery } from './RawDatabaseQuery';
 
 /**
  * Database adapter interface for CRUD operations on relational databases.

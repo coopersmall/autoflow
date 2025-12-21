@@ -1,5 +1,5 @@
-import type { AppError } from '@core/errors/AppError.ts';
-import { validate } from '@core/validation/validate.ts';
+import type { AppError } from '@core/errors/AppError';
+import { validate } from '@core/validation/validate';
 import type { Result } from 'neverthrow';
 import zod from 'zod';
 

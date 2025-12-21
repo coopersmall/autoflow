@@ -1,17 +1,17 @@
 // Gateway
-export type { IEmbeddingsGateway } from './domain/EmbeddingsGateway.ts';
-export { createEmbeddingsService } from './EmbeddingsService.ts';
+export type { IEmbeddingsGateway } from './domain/EmbeddingsGateway';
+export { createEmbeddingsService } from './EmbeddingsService';
 
 // Provider types
 export type {
   EmbeddingsProvider,
   GoogleEmbeddingsProvider,
   OpenAIEmbeddingsProvider,
-} from './providers/EmbeddingsProviders.ts';
-export { embeddingsProviderSchema } from './providers/EmbeddingsProviders.ts';
-export type { GoogleEmbeddingsProviderOptions } from './providers/google/GoogleEmbeddingsProviderOptions.ts';
-export { googleEmbeddingsProviderOptionsSchema } from './providers/google/GoogleEmbeddingsProviderOptions.ts';
+} from './providers/EmbeddingsProviders';
+export { embeddingsProviderSchema } from './providers/EmbeddingsProviders';
+export type { GoogleEmbeddingsProviderOptions } from './providers/google/GoogleEmbeddingsProviderOptions';
+export { googleEmbeddingsProviderOptionsSchema } from './providers/google/GoogleEmbeddingsProviderOptions';
 
 // Provider options
-export type { OpenAIEmbeddingsProviderOptions } from './providers/openai/OpenAIEmbeddingsProviderOptions.ts';
-export { openAIEmbeddingsProviderOptionsSchema } from './providers/openai/OpenAIEmbeddingsProviderOptions.ts';
+export type { OpenAIEmbeddingsProviderOptions } from './providers/openai/OpenAIEmbeddingsProviderOptions';
+export { openAIEmbeddingsProviderOptionsSchema } from './providers/openai/OpenAIEmbeddingsProviderOptions';
