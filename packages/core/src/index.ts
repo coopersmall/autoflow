@@ -4,6 +4,7 @@
 export * from './domain/ai/providers/AIProviders';
 export * from './domain/ai/request';
 export * from './domain/ai/response';
+export * from './domain/ai/validation';
 // Domain - Auth
 export * from './domain/auth/APIToken';
 export * from './domain/CorrelationId';

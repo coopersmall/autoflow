@@ -1,14 +1,14 @@
 // Completions request types
 export * from './completions';
 // Content parts (multimodal)
-export * from './content';
+export * from './completions/content';
+// Response format types
+export * from './completions/format';
+// Message types
+export * from './completions/messages';
+// Shared parameters
+export * from './completions/shared';
+// Tool types
+export * from './completions/tools';
 // Embeddings request types
 export * from './embeddings';
-// Response format types
-export * from './format';
-// Message types
-export * from './messages';
-// Shared parameters
-export * from './shared';
-// Tool types
-export * from './tools';

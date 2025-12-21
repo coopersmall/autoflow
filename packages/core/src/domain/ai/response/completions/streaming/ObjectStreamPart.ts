@@ -10,11 +10,7 @@ export type ObjectPart<T = unknown> = zod.infer<typeof objectPartSchema> & {
 export type ObjectTextDeltaPart = zod.infer<typeof objectTextDeltaPartSchema>;
 export type ObjectErrorPart = zod.infer<typeof objectErrorPartSchema>;
 export type ObjectFinishPart = zod.infer<typeof objectFinishPartSchema>;
-export type ObjectStreamPart<T = unknown> =
-  | ObjectPart<T>
-  | ObjectTextDeltaPart
-  | ObjectErrorPart
-  | ObjectFinishPart;
+export type ObjectStreamPart = zod.infer<typeof objectStreamPartSchema>;
 
 export const objectPartSchema = zod.strictObject({
   type: zod.literal('object'),

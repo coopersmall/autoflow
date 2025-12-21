@@ -1,6 +1,6 @@
 import type zod from 'zod';
-import { responseFormatJsonSchemaSchema } from '../format';
 import { baseCompletionsRequestSchema } from './BaseCompletionsRequest';
+import { responseFormatJsonSchemaSchema } from './format';
 
 export type StructuredCompletionsRequest = zod.infer<
   typeof structuredCompletionsRequestSchema

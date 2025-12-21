@@ -70,8 +70,8 @@ export function APITester() {
             continue;
           }
           const content = validated.value;
-          if (content.type === 'text') {
-            const textContent = content.content;
+          if (content.type === 'text-delta') {
+            const textContent = content.text;
             fullContent += textContent;
             setResponseText((prev) => prev + textContent);
           }

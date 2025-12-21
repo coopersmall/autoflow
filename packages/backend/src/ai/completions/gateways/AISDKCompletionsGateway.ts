@@ -7,7 +7,7 @@ import type {
   StructuredCompletionsRequest,
 } from '@autoflow/core';
 import type { Context } from '@backend/infrastructure/context/Context.ts';
-import type { TextResponse } from '@core/domain/ai/response/final/TextResponse';
+import type { TextResponse } from '@core/domain/ai/response/completions/result/TextResponse';
 import type { Result } from 'neverthrow';
 import type { ICompletionsGateway } from '../domain/CompletionsGateway.ts';
 import type { CompletionsProvider } from '../providers/CompletionsProviders.ts';

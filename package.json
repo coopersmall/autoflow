@@ -69,7 +69,7 @@
     "lint:fix": "biome check --write .",
     "format": "biome format --write .",
     "check": "biome check --write .",
-    "tsc": "tsgo --noEmit",
+    "tsc": "tsc --noEmit",
     "db:push": "bun --filter '@autoflow/backend' db:push",
     "db:generate": "bun --filter '@autoflow/backend' db:generate",
     "db:migrate": "bun --filter '@autoflow/backend' db:migrate"

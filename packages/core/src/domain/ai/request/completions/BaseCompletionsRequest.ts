@@ -1,17 +1,17 @@
 import zod from 'zod';
-import { messageSchema } from '../messages/Message';
+import { messageSchema } from './messages/Message';
 import {
   maxOutputTokensSchema,
   seedSchema,
   stopSequencesSchema,
-} from '../shared/GenerationLimits';
+} from './shared/GenerationLimits';
 import {
   frequencyPenaltySchema,
   presencePenaltySchema,
   topKSchema,
   topPSchema,
-} from '../shared/SamplingParameters';
-import { temperatureSchema } from '../shared/Temperature';
+} from './shared/SamplingParameters';
+import { temperatureSchema } from './shared/Temperature';
 
 export type BaseCompletionsRequest = zod.infer<
   typeof baseCompletionsRequestSchema

@@ -1,7 +1,7 @@
 import zod from 'zod';
-import { toolSchema } from '../tools/Tool';
-import { toolChoiceSchema } from '../tools/ToolChoice';
 import { baseCompletionsRequestSchema } from './BaseCompletionsRequest';
+import { toolSchema } from './tools/Tool';
+import { toolChoiceSchema } from './tools/ToolChoice';
 
 export type StandardCompletionsRequest = zod.infer<
   typeof standardCompletionsRequestSchema
