@@ -104,7 +104,6 @@ export function record<V>(
           errors.push(valueResult.error);
           return acc;
         }
-        // biome-ignore lint: Assignment to acc is intentional here
         acc[key] = valueResult.value;
         return acc;
       },

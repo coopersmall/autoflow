@@ -3,8 +3,7 @@
   "plugins": [
     "./scripts/biome/no-throw.grit",
     "./scripts/biome/no-process-env.grit",
-    "./scripts/biome/no-type-assertion.grit",
-    "./scripts/biome/no-direct-mutation.grit"
+    "./scripts/biome/no-type-assertion.grit"
   ],
   "vcs": {
     "enabled": true,
