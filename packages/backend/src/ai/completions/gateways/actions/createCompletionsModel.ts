@@ -8,7 +8,7 @@ import type {
   CompletionsProvider,
   GoogleCompletionsProvider,
   OpenAICompletionsProvider,
-} from '../../providers/CompletionsProviders.ts';
+} from '../../providers/CompletionsProviders';
 
 export function createCompletionsModel(
   request: CompletionsProvider,
@@ -21,7 +21,7 @@ export function createCompletionsModel(
     case 'anthropic':
       return createAnthropicProvider(request);
     default:
-      unreachable(request.provider);
+      unreachable(request);
   }
 }
 

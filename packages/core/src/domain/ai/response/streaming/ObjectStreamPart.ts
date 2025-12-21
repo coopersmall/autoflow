@@ -4,10 +4,17 @@ import { providerMetadataSchema } from '../shared/ProviderMetadata';
 import { responseMetadataSchema } from '../shared/ResponseMetadata';
 import { usageSchema } from '../shared/Usage';
 
+export type ObjectPart<T = unknown> = zod.infer<typeof objectPartSchema> & {
+  object: T;
+};
 export type ObjectTextDeltaPart = zod.infer<typeof objectTextDeltaPartSchema>;
 export type ObjectErrorPart = zod.infer<typeof objectErrorPartSchema>;
 export type ObjectFinishPart = zod.infer<typeof objectFinishPartSchema>;
-export type ObjectStreamPart = zod.infer<typeof objectStreamPartSchema>;
+export type ObjectStreamPart<T = unknown> =
+  | ObjectPart<T>
+  | ObjectTextDeltaPart
+  | ObjectErrorPart
+  | ObjectFinishPart;
 
 export const objectPartSchema = zod.strictObject({
   type: zod.literal('object'),

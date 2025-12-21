@@ -7,6 +7,6 @@ export const requestToolCallPartSchema = zod
     type: zod.literal('tool-call'),
     toolCallId: zod.string().describe('The tool call identifier.'),
     toolName: zod.string().describe('The name of the tool.'),
-    input: zod.unknown().describe('The input/arguments for the tool.'),
+    input: zod.string().describe('The input/arguments for the tool.'),
   })
   .describe('Tool call content part in an assistant message.');

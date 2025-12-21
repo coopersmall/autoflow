@@ -6,9 +6,9 @@ export type OpenAIProviderSettings = zod.infer<
 
 export const openAIProviderSettingsSchema = zod
   .strictObject({
-    type: zod
-      .enum(['responses', 'chat_completions'])
-      .default('chat_completions')
+    requestType: zod
+      .enum(['responses', 'chatCompletions'])
+      .default('chatCompletions')
       .describe('The type of the API to call.'),
     apiKey: zod
       .string()

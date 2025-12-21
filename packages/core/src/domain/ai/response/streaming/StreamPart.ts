@@ -1,45 +1,59 @@
 import zod from 'zod';
 import {
   filePartSchema,
-  reasoningPartFinishSchema,
-  reasoningPartSchema,
+  reasoningDeltaPartSchema,
+  reasoningEndPartSchema,
+  reasoningStartPartSchema,
   sourcePartSchema,
-  textPartSchema,
+  textDeltaPartSchema,
+  textEndPartSchema,
+  textStartPartSchema,
 } from './ContentParts';
 import {
   abortPartSchema,
   errorPartSchema,
   finishPartSchema,
   finishStepPartSchema,
+  rawPartSchema,
   startPartSchema,
   startStepPartSchema,
 } from './LifecycleParts';
 import {
-  toolCallDeltaPartSchema,
   toolCallPartSchema,
-  toolCallStreamingStartPartSchema,
+  toolErrorPartSchema,
+  toolInputDeltaPartSchema,
+  toolInputEndPartSchema,
+  toolInputStartPartSchema,
   toolResultPartSchema,
 } from './ToolParts';
 
 export type StreamPart = zod.infer<typeof streamPartSchema>;
 
-export const streamPartSchema = zod.discriminatedUnion('type', [
-  // Content parts
-  textPartSchema,
-  reasoningPartSchema,
-  reasoningPartFinishSchema,
-  sourcePartSchema,
+// Note: sourcePartSchema is a union, not compatible with discriminated union
+// We use zod.union at the end to combine all schemas
+export const streamPartSchema = zod.union([
+  // Content parts (8)
+  textStartPartSchema,
+  textEndPartSchema,
+  textDeltaPartSchema,
+  reasoningStartPartSchema,
+  reasoningEndPartSchema,
+  reasoningDeltaPartSchema,
+  sourcePartSchema, // This is already a union of url and document
   filePartSchema,
-  // Tool parts
-  toolCallStreamingStartPartSchema,
-  toolCallDeltaPartSchema,
+  // Tool parts (6)
+  toolInputStartPartSchema,
+  toolInputEndPartSchema,
+  toolInputDeltaPartSchema,
   toolCallPartSchema,
   toolResultPartSchema,
-  // Lifecycle parts
+  toolErrorPartSchema,
+  // Lifecycle parts (7)
   startPartSchema,
   startStepPartSchema,
   finishStepPartSchema,
   finishPartSchema,
   errorPartSchema,
   abortPartSchema,
+  rawPartSchema,
 ]);

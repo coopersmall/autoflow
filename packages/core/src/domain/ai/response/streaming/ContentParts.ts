@@ -2,28 +2,60 @@ import zod from 'zod';
 import { generatedFileSchema } from '../shared/GeneratedFile';
 import { providerMetadataSchema } from '../shared/ProviderMetadata';
 
-export type TextPart = zod.infer<typeof textPartSchema>;
-export type ReasoningPart = zod.infer<typeof reasoningPartSchema>;
-export type ReasoningPartFinish = zod.infer<typeof reasoningPartFinishSchema>;
-export type SourcePart = zod.infer<typeof sourcePartSchema>;
-export type FilePart = zod.infer<typeof filePartSchema>;
+// === TEXT PARTS ===
 
-export const textPartSchema = zod.strictObject({
-  type: zod.literal('text'),
-  text: zod.string().describe('The text content.'),
-});
-
-export const reasoningPartSchema = zod.strictObject({
-  type: zod.literal('reasoning'),
-  text: zod.string().describe('The reasoning text delta.'),
+export type TextStartPart = zod.infer<typeof textStartPartSchema>;
+export const textStartPartSchema = zod.strictObject({
+  type: zod.literal('text-start'),
+  id: zod.string(),
   providerMetadata: providerMetadataSchema.optional(),
 });
 
-export const reasoningPartFinishSchema = zod.strictObject({
-  type: zod.literal('reasoning-part-finish'),
+export type TextEndPart = zod.infer<typeof textEndPartSchema>;
+export const textEndPartSchema = zod.strictObject({
+  type: zod.literal('text-end'),
+  id: zod.string(),
+  providerMetadata: providerMetadataSchema.optional(),
 });
 
-export const sourcePartSchema = zod.strictObject({
+export type TextDeltaPart = zod.infer<typeof textDeltaPartSchema>;
+export const textDeltaPartSchema = zod.strictObject({
+  type: zod.literal('text-delta'),
+  id: zod.string(),
+  text: zod.string(),
+  providerMetadata: providerMetadataSchema.optional(),
+});
+
+// === REASONING PARTS ===
+
+export type ReasoningStartPart = zod.infer<typeof reasoningStartPartSchema>;
+export const reasoningStartPartSchema = zod.strictObject({
+  type: zod.literal('reasoning-start'),
+  id: zod.string(),
+  providerMetadata: providerMetadataSchema.optional(),
+});
+
+export type ReasoningEndPart = zod.infer<typeof reasoningEndPartSchema>;
+export const reasoningEndPartSchema = zod.strictObject({
+  type: zod.literal('reasoning-end'),
+  id: zod.string(),
+  providerMetadata: providerMetadataSchema.optional(),
+});
+
+export type ReasoningDeltaPart = zod.infer<typeof reasoningDeltaPartSchema>;
+export const reasoningDeltaPartSchema = zod.strictObject({
+  type: zod.literal('reasoning-delta'),
+  id: zod.string(),
+  text: zod.string(),
+  providerMetadata: providerMetadataSchema.optional(),
+});
+
+// === SOURCE PART ===
+// Matches LanguageModelV2Source (url | document)
+
+export type SourcePart = zod.infer<typeof sourcePartSchema>;
+
+const urlSourceSchema = zod.strictObject({
   type: zod.literal('source'),
   sourceType: zod.literal('url'),
   id: zod.string(),
@@ -32,7 +64,26 @@ export const sourcePartSchema = zod.strictObject({
   providerMetadata: providerMetadataSchema.optional(),
 });
 
+const documentSourceSchema = zod.strictObject({
+  type: zod.literal('source'),
+  sourceType: zod.literal('document'),
+  id: zod.string(),
+  mediaType: zod.string(),
+  title: zod.string(),
+  filename: zod.string().optional(),
+  providerMetadata: providerMetadataSchema.optional(),
+});
+
+export const sourcePartSchema = zod.union([
+  urlSourceSchema,
+  documentSourceSchema,
+]);
+
+// === FILE PART ===
+
+export type FilePart = zod.infer<typeof filePartSchema>;
 export const filePartSchema = zod.strictObject({
   type: zod.literal('file'),
   file: generatedFileSchema,
+  providerMetadata: providerMetadataSchema.optional(),
 });
