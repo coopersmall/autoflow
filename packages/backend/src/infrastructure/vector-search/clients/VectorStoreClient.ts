@@ -161,6 +161,7 @@ class VectorStoreClient implements IVectorStoreClient {
         }
       }
       // Cast to string[] to satisfy TypeScript - Bun Redis actually handles Buffer values correctly
+      // biome-ignore lint: @typescript/no-explicit-any
       await this.redis.send('HSET', args as string[]);
       return ok(undefined);
     } catch (error) {

@@ -1,70 +1,70 @@
-import type { AppError } from "@core/errors/AppError";
-import { validate } from "@core/validation/validate";
-import type { Result } from "neverthrow";
+import type { AppError } from '@core/errors/AppError';
+import { validate } from '@core/validation/validate';
+import type { Result } from 'neverthrow';
 import {
   type CompletionsRequest,
+  completionsRequestSchema,
   type StandardCompletionsRequest,
   type StructuredCompletionsRequest,
-  completionsRequestSchema,
   standardCompletionsRequestSchema,
   structuredCompletionsRequestSchema,
-} from "../completions";
+} from '../completions';
 import {
   type ResponseFormat,
   responseFormatSchema,
-} from "../completions/format/ResponseFormat";
+} from '../completions/format/ResponseFormat';
 import {
   type ResponseFormatJson,
   responseFormatJsonSchema,
-} from "../completions/format/ResponseFormatJson";
+} from '../completions/format/ResponseFormatJson';
 import {
   type ResponseFormatJsonSchema,
   responseFormatJsonSchemaSchema,
-} from "../completions/format/ResponseFormatJsonSchema";
+} from '../completions/format/ResponseFormatJsonSchema';
 import {
   type ResponseFormatText,
   responseFormatTextSchema,
-} from "../completions/format/ResponseFormatText";
-import { type Message, messageSchema } from "../completions/messages/Message";
+} from '../completions/format/ResponseFormatText';
 import {
   type AssistantMessage,
   assistantMessageSchema,
-} from "../completions/messages/AssistantMessage";
+} from '../completions/messages/AssistantMessage';
+import { type Message, messageSchema } from '../completions/messages/Message';
 import {
   type SystemMessage,
   systemMessageSchema,
-} from "../completions/messages/SystemMessage";
+} from '../completions/messages/SystemMessage';
 import {
   type ToolMessage,
   toolMessageSchema,
-} from "../completions/messages/ToolMessage";
+} from '../completions/messages/ToolMessage';
 import {
   type UserMessage,
   userMessageSchema,
-} from "../completions/messages/UserMessage";
+} from '../completions/messages/UserMessage';
 import {
   type GenerationLimits,
   generationLimitsSchema,
-} from "../completions/shared/GenerationLimits";
+} from '../completions/shared/GenerationLimits';
 import {
   type SamplingParameters,
   samplingParametersSchema,
-} from "../completions/shared/SamplingParameters";
+} from '../completions/shared/SamplingParameters';
 import {
   type Temperature,
   temperatureSchema,
-} from "../completions/shared/Temperature";
-import { type Tool, toolSchema } from "../completions/tools/Tool";
+} from '../completions/shared/Temperature';
+import { type Tool, toolSchema } from '../completions/tools/Tool';
 import {
   type ToolChoice,
   toolChoiceSchema,
-} from "../completions/tools/ToolChoice";
+} from '../completions/tools/ToolChoice';
 import {
   type EmbeddingRequest,
   type EmbeddingsRequest,
   embeddingRequestSchema,
   embeddingsRequestSchema,
-} from "../embeddings";
+} from '../embeddings';
 
 // Completions Request
 export function validCompletionsRequest(

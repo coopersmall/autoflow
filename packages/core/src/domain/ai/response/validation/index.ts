@@ -1,1 +1,1 @@
-export * from "./validResponse";
+export * from './validResponse';
