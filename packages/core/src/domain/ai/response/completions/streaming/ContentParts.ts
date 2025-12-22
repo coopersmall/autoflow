@@ -1,3 +1,7 @@
+import {
+  documentSourceSchema as baseDocumentSourceSchema,
+  urlSourceSchema as baseUrlSourceSchema,
+} from '@core/domain/source/Source';
 import zod from 'zod';
 import { generatedFileSchema } from '../shared/GeneratedFile';
 import { providerMetadataSchema } from '../shared/ProviderMetadata';
@@ -51,32 +55,23 @@ export const reasoningDeltaPartSchema = zod.strictObject({
 });
 
 // === SOURCE PART ===
-// Matches LanguageModelV2Source (url | document)
+// Extends base source schemas with streaming-specific fields (type discriminator, providerMetadata)
 
 export type SourcePart = zod.infer<typeof sourcePartSchema>;
 
-const urlSourceSchema = zod.strictObject({
+const urlSourcePartSchema = baseUrlSourceSchema.extend({
   type: zod.literal('source'),
-  sourceType: zod.literal('url'),
-  id: zod.string(),
-  url: zod.string(),
-  title: zod.string().optional(),
   providerMetadata: providerMetadataSchema.optional(),
 });
 
-const documentSourceSchema = zod.strictObject({
+const documentSourcePartSchema = baseDocumentSourceSchema.extend({
   type: zod.literal('source'),
-  sourceType: zod.literal('document'),
-  id: zod.string(),
-  mediaType: zod.string(),
-  title: zod.string(),
-  filename: zod.string().optional(),
   providerMetadata: providerMetadataSchema.optional(),
 });
 
 export const sourcePartSchema = zod.union([
-  urlSourceSchema,
-  documentSourceSchema,
+  urlSourcePartSchema,
+  documentSourcePartSchema,
 ]);
 
 // === FILE PART ===

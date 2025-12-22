@@ -23,7 +23,7 @@ export const requestUserContentPartSchema = zod.discriminatedUnion('type', [
   requestFilePartSchema,
 ]);
 
-// Assistant messages can contain text, files, reasoning, and tool calls
+// Assistant messages can contain text, files, reasoning, tool calls, and tool results
 export const requestAssistantContentPartSchema = zod.discriminatedUnion(
   'type',
   [
@@ -31,6 +31,7 @@ export const requestAssistantContentPartSchema = zod.discriminatedUnion(
     requestFilePartSchema,
     requestReasoningPartSchema,
     requestToolCallPartSchema,
+    requestToolResultPartSchema,
   ],
 );
 

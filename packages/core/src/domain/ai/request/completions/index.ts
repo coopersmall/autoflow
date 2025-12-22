@@ -2,6 +2,7 @@ export * from './BaseCompletionsRequest';
 export * from './CompletionsRequest';
 export * from './content';
 export * from './format';
+export * from './hooks';
 export * from './messages';
 export * from './StandardCompletionsRequest';
 export * from './StructuredCompletionsRequest';

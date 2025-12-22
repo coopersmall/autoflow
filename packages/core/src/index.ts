@@ -11,6 +11,8 @@ export * from './domain/CorrelationId';
 // Domain - Configuration
 export * from './domain/configuration/app/Environments';
 export * from './domain/configuration/app/EnvironmentVariables';
+// Domain - File
+export * from './domain/file';
 export * from './domain/Id';
 export * from './domain/Item';
 // Domain - Integrations

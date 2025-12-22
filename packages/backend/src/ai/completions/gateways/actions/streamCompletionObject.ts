@@ -9,7 +9,7 @@ import type { LanguageModelV2 } from '@openrouter/ai-sdk-provider';
 import { jsonSchema, streamObject } from 'ai';
 import { err, ok, type Result } from 'neverthrow';
 import type { CompletionsProvider } from '../../providers/CompletionsProviders';
-import { convertMessages } from './utils/convertMessages';
+import { convertToModelMessages } from './utils/convertMessages';
 import { convertProviderOptions } from './utils/convertProviderOptions';
 
 export async function* streamCompletionObject(
@@ -24,7 +24,7 @@ export async function* streamCompletionObject(
   try {
     const response = actions.streamObject({
       model,
-      messages: convertMessages(request.messages),
+      messages: convertToModelMessages(request.messages),
       schema: jsonSchema(request.responseFormat.schema),
       schemaName: request.responseFormat.name,
       schemaDescription: request.responseFormat.description,

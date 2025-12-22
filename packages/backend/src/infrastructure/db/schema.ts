@@ -1,5 +1,12 @@
 import { sql } from 'drizzle-orm';
-import { index, jsonb, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import {
+  foreignKey,
+  index,
+  jsonb,
+  pgTable,
+  text,
+  timestamp,
+} from 'drizzle-orm/pg-core';
 
 type Extensions = Parameters<typeof pgTable>[2];
 
@@ -38,6 +45,15 @@ function createStandardTable(tableName: string, extensions?: Extensions) {
 
 export const users = createSharedTable('users');
 export const integrations = createStandardTable('integrations');
+export const conversations = createStandardTable('conversations');
+export const conversationItems = createStandardTable(
+  'conversation_items',
+  (_) => ({
+    conversationIdIdx: index('conversation_items_conversation_id_idx').on(
+      sql`((data->>'conversationId'))`,
+    ),
+  }),
+);
 export const secrets = createStandardTable('secrets');
 export const tasks = createSharedTable('tasks', (_) => ({
   userIdIdx: index('tasks_user_id_idx').on(sql`((data->>'userId'))`),

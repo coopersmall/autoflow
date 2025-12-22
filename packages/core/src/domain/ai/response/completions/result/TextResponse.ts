@@ -2,10 +2,10 @@ import zod from 'zod';
 import { finishReasonSchema } from '../shared/FinishReason';
 import { generatedFileSchema } from '../shared/GeneratedFile';
 import { providerMetadataSchema } from '../shared/ProviderMetadata';
+import { providerSourceSchema } from '../shared/ProviderSource';
 import { reasoningOutputSchema } from '../shared/Reasoning';
 import { requestMetadataSchema } from '../shared/RequestMetadata';
 import { responseMetadataSchema } from '../shared/ResponseMetadata';
-import { sourceSchema } from '../shared/Source';
 import { toolCallSchema } from '../shared/ToolCall';
 import { toolResultSchema } from '../shared/ToolResult';
 import { usageSchema } from '../shared/Usage';
@@ -26,7 +26,7 @@ export const textResponseSchema = zod
       .optional()
       .describe('The reasoning text from the last step.'),
     sources: zod
-      .array(sourceSchema)
+      .array(providerSourceSchema)
       .describe('Sources used (accumulated from all steps).'),
     files: zod
       .array(generatedFileSchema)
