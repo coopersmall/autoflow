@@ -53,11 +53,11 @@ build:
 db-push:
 	bun run db:push
 
-db-generate:
-	bun run db:generate
-
-db-migrate:
+migrate-apply:
 	bun run db:migrate
+
+migrate:
+	bun run db:generate
 
 # === Infrastructure ===
 install-pre-push:

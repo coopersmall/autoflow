@@ -22,9 +22,10 @@ import {
   getAllRecords,
   getRecord,
   updateRecord,
-} from '@backend/infrastructure/repos/actions/shared';
+} from '@backend/infrastructure/repos/actions';
 import type { IRelationalDatabaseAdapter } from '@backend/infrastructure/repos/domain/DatabaseAdapter';
 import type { IDatabaseClient } from '@backend/infrastructure/repos/domain/DatabaseClient';
+import type { ExtraColumnsConfig } from '@backend/infrastructure/repos/domain/ExtraColumnsConfig';
 import type { DBError } from '@backend/infrastructure/repos/errors/DBError';
 import { createCachedGetter } from '@backend/infrastructure/utils/createCachedGetter';
 import type { Id } from '@core/domain/Id';
@@ -57,6 +58,17 @@ interface SharedRepoActions {
 }
 
 /**
+ * Options for configuring a SharedRepo instance.
+ */
+interface SharedRepoOptions<T> {
+  /**
+   * Configuration for extra database columns beyond the standard columns.
+   * Maps database column names to domain entity field names.
+   */
+  readonly extraColumns?: ExtraColumnsConfig<T>;
+}
+
+/**
  * Repository for globally accessible data without user scoping.
  * Provides CRUD operations with automatic validation and error handling.
  * All data is accessible without user context.
@@ -67,19 +79,22 @@ export class SharedRepo<
 > implements ISharedRepo<ID, T>
 {
   private readonly getAdapter: () => Result<IRelationalDatabaseAdapter, never>;
+  private readonly extraColumns?: ExtraColumnsConfig<T>;
 
   /**
    * Creates a new shared repository instance.
    * @param tableName - Database table name for this repository
    * @param appConfig - Application configuration service
    * @param validator - Zod validator function for domain entity validation
-   * @param sharedRepoActions - Injectable actions for testing
+   * @param options - Optional configuration including extra columns
    * @param dependencies - Injectable dependencies for testing
+   * @param sharedRepoActions - Injectable actions for testing
    */
   constructor(
     private readonly tableName: string,
     private readonly appConfig: IAppConfigurationService,
     private readonly validator: (data: unknown) => Result<T, AppError>,
+    options?: SharedRepoOptions<T>,
     dependencies: SharedRepoDependencies = {
       createRelationalDatabaseAdapter,
     },
@@ -91,6 +106,7 @@ export class SharedRepo<
       deleteRecord,
     },
   ) {
+    this.extraColumns = options?.extraColumns;
     this.getAdapter = createCachedGetter(() =>
       ok(
         dependencies.createRelationalDatabaseAdapter({
@@ -119,6 +135,7 @@ export class SharedRepo<
       {
         adapter: adapterResult.value,
         validator: this.validator,
+        extraColumns: this.extraColumns,
       },
     );
   }
@@ -147,6 +164,7 @@ export class SharedRepo<
       {
         adapter: adapterResult.value,
         validator: this.validator,
+        extraColumns: this.extraColumns,
       },
     );
   }
@@ -175,6 +193,7 @@ export class SharedRepo<
       {
         adapter: adapterResult.value,
         validator: this.validator,
+        extraColumns: this.extraColumns,
       },
     );
   }
@@ -203,6 +222,7 @@ export class SharedRepo<
       {
         adapter: adapterResult.value,
         validator: this.validator,
+        extraColumns: this.extraColumns,
       },
     );
   }
@@ -225,6 +245,7 @@ export class SharedRepo<
       {
         adapter: adapterResult.value,
         validator: this.validator,
+        extraColumns: this.extraColumns,
       },
     );
   }

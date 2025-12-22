@@ -3,11 +3,11 @@ import { createMockContext } from '@backend/infrastructure/context/__mocks__/Con
 import { buildRequestContext } from '@backend/infrastructure/http/handlers/actions/buildRequestContext';
 import { getMockRequest } from '@backend/infrastructure/http/handlers/domain/__mocks__/Request.mock';
 import { CorrelationId } from '@core/domain/CorrelationId';
+import { UserId } from '@core/domain/user/user';
 import {
   type UsersSession,
   UsersSessionId,
-} from '@core/domain/session/UsersSession';
-import { UserId } from '@core/domain/user/user';
+} from '@core/domain/user-session/UsersSession';
 
 describe('buildRequestContext', () => {
   const createMockSession = (): UsersSession => ({

@@ -1,5 +1,5 @@
 import type { Context } from '@backend/infrastructure/context';
-import type { UsersSession } from '@core/domain/session/UsersSession';
+import type { UsersSession } from '@core/domain/user-session/UsersSession';
 import type { AppError } from '@core/errors';
 
 import type { Validator } from '@core/validation/validate';

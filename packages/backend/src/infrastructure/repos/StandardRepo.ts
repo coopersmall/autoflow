@@ -28,9 +28,10 @@ import {
   getAllRecords,
   getRecord,
   updateRecord,
-} from '@backend/infrastructure/repos/actions/standard';
+} from '@backend/infrastructure/repos/actions';
 import type { IRelationalDatabaseAdapter } from '@backend/infrastructure/repos/domain/DatabaseAdapter';
 import type { IDatabaseClient } from '@backend/infrastructure/repos/domain/DatabaseClient';
+import type { ExtraColumnsConfig } from '@backend/infrastructure/repos/domain/ExtraColumnsConfig';
 import type { DBError } from '@backend/infrastructure/repos/errors/DBError';
 import { createCachedGetter } from '@backend/infrastructure/utils/createCachedGetter';
 import type { Id } from '@core/domain/Id';
@@ -64,6 +65,17 @@ interface StandardRepoActions {
 }
 
 /**
+ * Options for configuring a StandardRepo instance.
+ */
+interface StandardRepoOptions<T> {
+  /**
+   * Configuration for extra database columns beyond the standard columns.
+   * Maps database column names to domain entity field names.
+   */
+  readonly extraColumns?: ExtraColumnsConfig<T>;
+}
+
+/**
  * Repository for user-scoped data with automatic user isolation.
  * Provides CRUD operations with userId-based filtering and validation.
  * Ensures users can only access their own data.
@@ -73,19 +85,22 @@ export class StandardRepo<
   T extends Item<ID> = Item<ID>,
 > {
   private readonly getAdapter: () => Result<IRelationalDatabaseAdapter, never>;
+  private readonly extraColumns?: ExtraColumnsConfig<T>;
 
   /**
    * Creates a new standard repository instance.
    * @param tableName - Database table name for this repository
    * @param appConfig - Application configuration service
    * @param validator - Zod validator function for domain entity validation
-   * @param standardRepoActions - Injectable actions for testing
+   * @param options - Optional configuration including extra columns
    * @param dependencies - Injectable dependencies for testing
+   * @param standardRepoActions - Injectable actions for testing
    */
   constructor(
     private readonly tableName: string,
     private readonly appConfig: IAppConfigurationService,
     private readonly validator: (data: unknown) => Result<T, AppError>,
+    options?: StandardRepoOptions<T>,
     dependencies: StandardRepoDependencies = {
       createRelationalDatabaseAdapter,
     },
@@ -97,6 +112,7 @@ export class StandardRepo<
       deleteRecord,
     },
   ) {
+    this.extraColumns = options?.extraColumns;
     this.getAdapter = createCachedGetter(() =>
       ok(
         dependencies.createRelationalDatabaseAdapter({
@@ -127,6 +143,7 @@ export class StandardRepo<
       {
         adapter: adapterResult.value,
         validator: this.validator,
+        extraColumns: this.extraColumns,
       },
     );
   }
@@ -156,6 +173,7 @@ export class StandardRepo<
       {
         adapter: adapterResult.value,
         validator: this.validator,
+        extraColumns: this.extraColumns,
       },
     );
   }
@@ -186,6 +204,7 @@ export class StandardRepo<
       {
         adapter: adapterResult.value,
         validator: this.validator,
+        extraColumns: this.extraColumns,
       },
     );
   }
@@ -217,6 +236,7 @@ export class StandardRepo<
       {
         adapter: adapterResult.value,
         validator: this.validator,
+        extraColumns: this.extraColumns,
       },
     );
   }
@@ -245,6 +265,7 @@ export class StandardRepo<
       {
         adapter: adapterResult.value,
         validator: this.validator,
+        extraColumns: this.extraColumns,
       },
     );
   }

@@ -15,6 +15,12 @@ import type { IDatabaseClient } from './DatabaseClient';
 import type { RawDatabaseQuery } from './RawDatabaseQuery';
 
 /**
+ * Extra column values to insert/update alongside the standard columns.
+ * Keys are database column names (snake_case), values are the data to store.
+ */
+export type ExtraColumnValues = Readonly<Record<string, unknown>>;
+
+/**
  * Database adapter interface for CRUD operations on relational databases.
  * Supports both user-scoped and global data through optional userId parameters.
  * Returns raw database results that require validation before use.
@@ -52,6 +58,7 @@ export interface IRelationalDatabaseAdapter {
    * @param args.createdAt - Creation timestamp
    * @param args.userId - Optional user ID to associate with record (used by StandardRepo)
    * @param args.data - Record data to store
+   * @param args.extraColumns - Optional extra column values to insert
    * @returns Created record or validation error
    */
   create(args: {
@@ -59,6 +66,7 @@ export interface IRelationalDatabaseAdapter {
     createdAt: Date;
     userId?: string;
     data: unknown;
+    extraColumns?: ExtraColumnValues;
   }): Promise<Result<RawDatabaseQuery, AppError>>;
 
   /**
@@ -69,6 +77,7 @@ export interface IRelationalDatabaseAdapter {
    * @param args.where.updatedAt - Update timestamp
    * @param args.where.userId - Optional user ID for filtering (used by StandardRepo)
    * @param args.data - Partial record data to update
+   * @param args.extraColumns - Optional extra column values to update
    * @returns Updated record or validation error
    */
   update(args: {
@@ -78,6 +87,7 @@ export interface IRelationalDatabaseAdapter {
       userId?: string;
     };
     data: unknown;
+    extraColumns?: ExtraColumnValues;
   }): Promise<Result<RawDatabaseQuery, AppError>>;
 
   /**

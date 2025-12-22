@@ -7,7 +7,7 @@
  */
 import { type Context, createContext } from '@backend/infrastructure/context';
 import type { CorrelationId } from '@core/domain/CorrelationId';
-import type { UsersSession } from '@core/domain/session/UsersSession';
+import type { UsersSession } from '@core/domain/user-session/UsersSession';
 import type { BunRequest } from 'bun';
 
 /**

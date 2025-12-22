@@ -26,6 +26,10 @@ import {
   providerMetadataSchema,
 } from '../completions/shared/ProviderMetadata';
 import {
+  type ProviderSource,
+  providerSourceSchema,
+} from '../completions/shared/ProviderSource';
+import {
   type ReasoningOutput,
   reasoningOutputSchema,
 } from '../completions/shared/Reasoning';
@@ -37,7 +41,6 @@ import {
   type ResponseMetadata,
   responseMetadataSchema,
 } from '../completions/shared/ResponseMetadata';
-import { type Source, sourceSchema } from '../completions/shared/Source';
 import { type ToolCall, toolCallSchema } from '../completions/shared/ToolCall';
 import {
   type ToolResult,
@@ -118,8 +121,10 @@ export function validResponseMetadata(
   return validate(responseMetadataSchema, input);
 }
 
-export function validSource(input: unknown): Result<Source, AppError> {
-  return validate(sourceSchema, input);
+export function validProviderSource(
+  input: unknown,
+): Result<ProviderSource, AppError> {
+  return validate(providerSourceSchema, input);
 }
 
 export function validToolCall(input: unknown): Result<ToolCall, AppError> {

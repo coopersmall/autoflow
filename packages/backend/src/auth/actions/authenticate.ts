@@ -2,7 +2,7 @@ import type { Context } from '@backend/infrastructure/context';
 import type { IEncryptionService } from '@backend/infrastructure/encryption/domain/EncryptionService';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { Permission } from '@core/domain/permissions/permissions';
-import type { UsersSession } from '@core/domain/session/UsersSession';
+import type { UsersSession } from '@core/domain/user-session/UsersSession';
 import { type AppError, internalError } from '@core/errors';
 import { err, type Result } from 'neverthrow';
 import { authenticateFromJWT } from './authenticateFromJWT';

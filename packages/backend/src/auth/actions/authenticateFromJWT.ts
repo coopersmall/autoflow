@@ -5,7 +5,7 @@ import type { Permission } from '@core/domain/permissions/permissions';
 import {
   createUserSession,
   type UsersSession,
-} from '@core/domain/session/UsersSession';
+} from '@core/domain/user-session/UsersSession';
 import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
 import { extractPermissions } from './claims/extractPermissions';

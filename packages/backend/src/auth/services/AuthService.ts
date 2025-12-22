@@ -20,8 +20,8 @@ import type { IEncryptionService } from '@backend/infrastructure/encryption/doma
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { JWTClaim } from '@core/domain/jwt/JWTClaim';
 import type { Permission } from '@core/domain/permissions/permissions';
-import type { UsersSession } from '@core/domain/session/UsersSession';
 import type { UserId } from '@core/domain/user/user';
+import type { UsersSession } from '@core/domain/user-session/UsersSession';
 import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 

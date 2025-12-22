@@ -19,7 +19,10 @@
  */
 
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
-import type { IRelationalDatabaseAdapter } from '@backend/infrastructure/repos/domain/DatabaseAdapter';
+import type {
+  ExtraColumnValues,
+  IRelationalDatabaseAdapter,
+} from '@backend/infrastructure/repos/domain/DatabaseAdapter';
 import type {
   DatabaseClientType,
   IDatabaseClient,
@@ -162,10 +165,11 @@ class RelationalDatabaseAdapter implements IRelationalDatabaseAdapter {
   }
 
   /**
-   * Creates a new record with optional user association.
+   * Creates a new record with optional user association and extra columns.
    * Generates INSERT INTO with conditional user_id column based on userId parameter.
+   * Extra columns are added dynamically to the INSERT statement.
    * Uses RETURNING * to return the created record.
-   * @param args - Creation arguments with ID, timestamp, optional userId, and data
+   * @param args - Creation arguments with ID, timestamp, optional userId, data, and extra columns
    * @returns Created record or validation error
    */
   async create(args: {
@@ -173,37 +177,48 @@ class RelationalDatabaseAdapter implements IRelationalDatabaseAdapter {
     createdAt: Date;
     userId?: string;
     data: unknown;
+    extraColumns?: ExtraColumnValues;
   }): Promise<Result<RawDatabaseQuery, AppError>> {
     const db = this.getClient();
     if (db.isErr()) {
       return err(db.error);
     }
     try {
-      if (args.userId) {
-        const result = await db.value`
-                INSERT INTO ${db.value(this.tableName)} (id, user_id, created_at, data)
-                VALUES (${args.id}, ${args.userId}, ${args.createdAt}, ${args.data})
-                RETURNING *
-            `;
-        return validateRawDatabaseQuery(result);
-      } else {
-        const result = await db.value`
-                INSERT INTO ${db.value(this.tableName)} (id, created_at, data)
-                VALUES (${args.id}, ${args.createdAt}, ${args.data})
-                RETURNING *
-            `;
-        return validateRawDatabaseQuery(result);
+      const extraCols = args.extraColumns ?? {};
+      const extraColEntries = Object.entries(extraCols);
+
+      // Build column list and values list dynamically
+      let columns = args.userId
+        ? db.value`id, user_id, created_at, data`
+        : db.value`id, created_at, data`;
+
+      let values = args.userId
+        ? db.value`${args.id}, ${args.userId}, ${args.createdAt}, ${args.data}`
+        : db.value`${args.id}, ${args.createdAt}, ${args.data}`;
+
+      // Add extra columns dynamically
+      for (const [colName, colValue] of extraColEntries) {
+        columns = db.value`${columns}, ${db.value(colName)}`;
+        values = db.value`${values}, ${colValue}`;
       }
+
+      const result = await db.value`
+        INSERT INTO ${db.value(this.tableName)} (${columns})
+        VALUES (${values})
+        RETURNING *
+      `;
+      return validateRawDatabaseQuery(result);
     } catch (error) {
       return err(createDatabaseError(error));
     }
   }
 
   /**
-   * Updates an existing record with optional user filtering.
+   * Updates an existing record with optional user filtering and extra columns.
    * Builds UPDATE query with SET data and updated_at, WHERE id = ? and optional AND user_id = ?.
+   * Extra columns are updated alongside the JSONB data.
    * Uses RETURNING * to return the updated record.
-   * @param args - Update arguments with ID, timestamp, optional userId, and partial data
+   * @param args - Update arguments with ID, timestamp, optional userId, partial data, and extra columns
    * @returns Updated record or validation error
    */
   async update(args: {
@@ -213,30 +228,36 @@ class RelationalDatabaseAdapter implements IRelationalDatabaseAdapter {
       userId?: string;
     };
     data: unknown;
+    extraColumns?: ExtraColumnValues;
   }): Promise<Result<RawDatabaseQuery, AppError>> {
     const db = this.getClient();
     if (db.isErr()) {
       return err(db.error);
     }
     try {
-      // Use JSONB concatenation (||) for partial updates - merges new data with existing
-      let query = db.value`
-                UPDATE ${db.value(this.tableName)}
-                SET data = data || ${args.data}, updated_at = ${args.where.updatedAt}
-                WHERE id = ${args.where.id}
-                `;
+      const extraCols = args.extraColumns ?? {};
+      const extraColEntries = Object.entries(extraCols);
 
-      if (args.where.userId) {
-        query = db.value`
-                    ${query}
-                    AND user_id = ${args.where.userId}
-                `;
+      // Build SET clause dynamically - start with data and updated_at
+      let setClause = db.value`data = data || ${args.data}, updated_at = ${args.where.updatedAt}`;
+
+      // Add extra columns to SET clause
+      for (const [colName, colValue] of extraColEntries) {
+        setClause = db.value`${setClause}, ${db.value(colName)} = ${colValue}`;
       }
 
-      query = db.value`
-                ${query}
-                RETURNING *
-                `;
+      // Build WHERE clause
+      let query = db.value`
+        UPDATE ${db.value(this.tableName)}
+        SET ${setClause}
+        WHERE id = ${args.where.id}
+      `;
+
+      if (args.where.userId) {
+        query = db.value`${query} AND user_id = ${args.where.userId}`;
+      }
+
+      query = db.value`${query} RETURNING *`;
 
       const result = await query;
       return validateRawDatabaseQuery(result);

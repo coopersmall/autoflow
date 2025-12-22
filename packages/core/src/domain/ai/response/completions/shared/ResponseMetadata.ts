@@ -5,7 +5,7 @@ export type ResponseMetadata = zod.infer<typeof responseMetadataSchema>;
 export const responseMetadataSchema = zod
   .strictObject({
     id: zod.string().describe('ID for the generated response.'),
-    timestamp: zod
+    timestamp: zod.coerce
       .date()
       .describe('Timestamp for the start of the generated response.'),
     modelId: zod
@@ -18,6 +18,12 @@ export const responseMetadataSchema = zod
       .optional()
       .describe(
         'Response headers (available only for providers that use HTTP requests).',
+      ),
+    isContinued: zod
+      .boolean()
+      .optional()
+      .describe(
+        'True when there will be a continuation step with a continuation text.',
       ),
   })
   .describe('Metadata about the response.');
