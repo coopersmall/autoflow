@@ -1,5 +1,4 @@
 import zod from 'zod';
-import { createIdSchema, newId } from '../../Id';
 import type {
   AgentAbortedResult,
   AgentCompleteResult,
@@ -13,12 +12,6 @@ import type {
   UserMessageBody,
 } from './MessageItem';
 import { messageItemSchema } from './MessageItem';
-
-// === CONVERSATION ITEM ID ===
-
-export type ConversationItemId = zod.infer<typeof conversationItemIdSchema>;
-export const ConversationItemId = newId<ConversationItemId>;
-export const conversationItemIdSchema = createIdSchema('ConversationItemId');
 
 // === CONVERSATION ITEM UNION ===
 

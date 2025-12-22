@@ -3,7 +3,7 @@ import { createItemSchema } from '../../Item';
 import { conversationIdSchema } from '../Conversation';
 import { attachmentSchema } from '../shared/Attachment';
 import { summarySchema } from '../shared/Summary';
-import { conversationItemIdSchema } from './ConversationItem';
+import { conversationItemIdSchema } from './ConversationItemId';
 
 // === BASE SCHEMA ===
 

@@ -4,7 +4,7 @@ import { finishReasonSchema, usageSchema } from '../../ai/response';
 import { createItemSchema } from '../../Item';
 import { conversationIdSchema } from '../Conversation';
 import { stepSchema } from '../steps/Step';
-import { conversationItemIdSchema } from './ConversationItem';
+import { conversationItemIdSchema } from './ConversationItemId';
 
 // === BASE SCHEMA ===
 

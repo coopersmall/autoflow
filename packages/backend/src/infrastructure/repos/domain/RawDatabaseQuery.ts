@@ -15,14 +15,17 @@ import zod from 'zod';
  * Zod schema for a single database record.
  * Represents the raw structure with snake_case fields.
  * Note: Uses `.nullish()` for optional fields since PostgreSQL returns `null` for NULL values.
+ * Uses `.passthrough()` to allow extra columns beyond the standard set.
  */
-const rawDatabaseEntrySchema = zod.object({
-  id: zod.string(),
-  created_at: zod.union([zod.string(), zod.date()]),
-  updated_at: zod.union([zod.string(), zod.date()]).nullish(),
-  user_id: zod.string().nullish(),
-  data: zod.record(zod.unknown()),
-});
+const rawDatabaseEntrySchema = zod
+  .object({
+    id: zod.string(),
+    created_at: zod.union([zod.string(), zod.date()]),
+    updated_at: zod.union([zod.string(), zod.date()]).nullish(),
+    user_id: zod.string().nullish(),
+    data: zod.record(zod.unknown()),
+  })
+  .passthrough();
 
 /**
  * Zod schema for database query results.

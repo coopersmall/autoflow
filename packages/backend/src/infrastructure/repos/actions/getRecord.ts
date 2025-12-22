@@ -1,6 +1,7 @@
 import type { Context } from '@backend/infrastructure/context';
 import { convertQueryResultsToData } from '@backend/infrastructure/repos/actions/convertQueryResultsToData';
 import type { IRelationalDatabaseAdapter } from '@backend/infrastructure/repos/domain/DatabaseAdapter';
+import type { ExtraColumnsConfig } from '@backend/infrastructure/repos/domain/ExtraColumnsConfig';
 import {
   createNotFoundError,
   type DBError,
@@ -12,39 +13,47 @@ import type { AppError } from '@core/errors';
 
 import { err, ok, type Result } from 'neverthrow';
 
-export interface DeleteRecordDeps<
+export interface GetRecordDeps<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 > {
   readonly adapter: IRelationalDatabaseAdapter;
   readonly validator: (data: unknown) => Result<T, AppError>;
+  readonly extraColumns?: ExtraColumnsConfig<T>;
 }
 
-export interface DeleteRecordRequest<ID extends Id<string> = Id<string>> {
+export interface GetRecordRequest<ID extends Id<string> = Id<string>> {
   readonly id: ID;
-  readonly userId: UserId;
+  readonly userId?: UserId;
 }
 
 /**
- * Deletes a user-scoped record from the database and returns it.
+ * Gets a single record by ID from the database.
+ * If userId is provided, the record must also match the userId (user-scoped query).
  */
-export async function deleteRecord<
+export async function getRecord<
   ID extends Id<string> = Id<string>,
   T extends Item<ID> = Item<ID>,
 >(
-  ctx: Context,
-  request: DeleteRecordRequest<ID>,
-  deps: DeleteRecordDeps<ID, T>,
+  _ctx: Context,
+  request: GetRecordRequest<ID>,
+  deps: GetRecordDeps<ID, T>,
 ): Promise<Result<T, DBError>> {
-  const { adapter, validator } = deps;
+  const { adapter, validator, extraColumns } = deps;
   const { id, userId } = request;
 
-  const result = await adapter.delete({ where: { id, userId } });
+  const where = userId !== undefined ? { id, userId } : { id };
+  const result = await adapter.findUnique({ where });
+
   if (result.isErr()) {
     return err(result.error);
   }
 
-  const dataResult = convertQueryResultsToData(result.value, validator);
+  const dataResult = convertQueryResultsToData(
+    result.value,
+    validator,
+    extraColumns,
+  );
   if (dataResult.isErr()) {
     return err(dataResult.error);
   }

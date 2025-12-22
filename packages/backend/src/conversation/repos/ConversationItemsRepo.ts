@@ -34,7 +34,13 @@ class ConversationItemsRepo extends StandardRepo<
   ConversationItem
 > {
   constructor(config: { appConfig: IAppConfigurationService }) {
-    super(CONVERSATION_ITEMS_TABLE, config.appConfig, validConversationItem);
+    super(CONVERSATION_ITEMS_TABLE, config.appConfig, validConversationItem, {
+      extraColumns: {
+        columnToField: {
+          conversation_id: 'conversationId',
+        },
+      },
+    });
   }
 
   /**
@@ -60,8 +66,8 @@ class ConversationItemsRepo extends StandardRepo<
       const rawResult = await db`
         SELECT * FROM ${db(CONVERSATION_ITEMS_TABLE)}
         WHERE user_id = ${userId}
-        AND data->>'conversationId' = ${conversationId}
-        ORDER BY (data->>'turnIndex')::int ASC
+        AND conversation_id = ${conversationId}
+        ORDER BY created_at ASC
       `;
 
       // Validate the raw database result structure

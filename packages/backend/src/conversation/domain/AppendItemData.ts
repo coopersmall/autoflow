@@ -1,4 +1,8 @@
-import type { ConversationItem } from '@core/domain/conversation';
+import type {
+  ConversationItem,
+  MessageItem,
+  AgentItem,
+} from "@core/domain/conversation";
 
 /**
  * Input type for appending a new conversation item.
@@ -8,8 +12,9 @@ import type { ConversationItem } from '@core/domain/conversation';
  * - createdAt, updatedAt: set by the repo
  *
  * Note: turnIndex IS included - caller provides it.
+ *
+ * Uses distributive omit to properly handle discriminated union types.
  */
-export type AppendItemData = Omit<
-  ConversationItem,
-  'id' | 'conversationId' | 'createdAt' | 'updatedAt'
->;
+export type AppendItemData =
+  | Omit<MessageItem, "id" | "conversationId" | "createdAt" | "updatedAt">
+  | Omit<AgentItem, "id" | "conversationId" | "createdAt" | "updatedAt">;
