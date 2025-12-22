@@ -1,5 +1,4 @@
 import type {
-  AIProvider,
   OnStepFinishFunction,
   OnStepFinishResult,
   PrepareStepFunction,
@@ -141,7 +140,7 @@ function convertFromAISDKPrepareStepOptions(
   return {
     steps: options.steps.map(convertFromAISDKStepResult),
     stepNumber: options.stepNumber,
-    provider: modelInfo.provider as AIProvider,
+    provider: modelInfo.provider,
     model: modelInfo.modelId,
     messages: convertFromModelMessages(options.messages),
   };

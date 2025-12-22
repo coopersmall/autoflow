@@ -1,8 +1,4 @@
-import type {
-  ConversationItem,
-  MessageItem,
-  AgentItem,
-} from "@core/domain/conversation";
+import type { AgentItem, MessageItem } from '@core/domain/conversation';
 
 /**
  * Input type for appending a new conversation item.
@@ -16,5 +12,5 @@ import type {
  * Uses distributive omit to properly handle discriminated union types.
  */
 export type AppendItemData =
-  | Omit<MessageItem, "id" | "conversationId" | "createdAt" | "updatedAt">
-  | Omit<AgentItem, "id" | "conversationId" | "createdAt" | "updatedAt">;
+  | Omit<MessageItem, 'id' | 'conversationId' | 'createdAt' | 'updatedAt'>
+  | Omit<AgentItem, 'id' | 'conversationId' | 'createdAt' | 'updatedAt'>;

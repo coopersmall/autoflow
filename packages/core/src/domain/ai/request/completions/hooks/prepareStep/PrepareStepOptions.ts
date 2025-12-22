@@ -1,5 +1,4 @@
 import zod from 'zod';
-import { aiProviderSchema } from '../../../../providers/AIProviders';
 import { stepResultSchema } from '../../../../response/completions/result/StepResult';
 import { messageSchema } from '../../messages/Message';
 
@@ -15,9 +14,11 @@ export const prepareStepOptionsSchema = zod
       .int()
       .nonnegative()
       .describe('The number of the step that is being executed.'),
-    provider: aiProviderSchema.describe(
-      'The AI provider being used (e.g., openai, anthropic, google).',
-    ),
+    provider: zod
+      .string()
+      .describe(
+        'The AI provider being used (e.g., openai, anthropic, google).',
+      ),
     model: zod.string().describe('The model identifier being used.'),
     messages: zod
       .array(messageSchema)
