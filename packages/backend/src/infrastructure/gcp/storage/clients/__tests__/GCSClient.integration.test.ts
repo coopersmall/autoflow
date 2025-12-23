@@ -17,6 +17,7 @@ import { Storage } from '@google-cloud/storage';
 import * as fc from 'fast-check';
 import { bucketExists } from '../../actions/bucketExists';
 import { createBucket } from '../../actions/createBucket';
+import { deleteBucket } from '../../actions/deleteBucket';
 import { deleteObject } from '../../actions/deleteObject';
 import { downloadObject } from '../../actions/downloadObject';
 import { downloadObjectStream } from '../../actions/downloadObjectStream';
@@ -87,6 +88,7 @@ function createTestGCSClient(logger: ILogger): {
     getSignedUrl: (request) => getSignedUrl(request, storage, logger),
     bucketExists: (bucketName) => bucketExists(bucketName, storage, logger),
     createBucket: (request) => createBucket(request, storage, logger),
+    deleteBucket: (bucketName) => deleteBucket(bucketName, storage, logger),
   };
 
   return { client, storage };

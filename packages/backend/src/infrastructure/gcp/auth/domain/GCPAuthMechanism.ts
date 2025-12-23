@@ -37,21 +37,39 @@ const adcMechanismSchema = zod.strictObject({
     .describe('GCP project ID (derived from environment if not provided)'),
 });
 
+/**
+ * Test auth mechanism for integration testing with GCS emulator.
+ *
+ * WARNING: This mechanism is ONLY for use in test environments.
+ * The GCS emulator does not validate authentication.
+ * NEVER use this in production code.
+ */
+const testMechanismSchema = zod.strictObject({
+  type: zod.literal('test'),
+  projectId: zod.string().min(1).describe('GCP project ID for testing'),
+  apiEndpoint: zod
+    .string()
+    .url()
+    .describe('Custom API endpoint for GCS emulator'),
+});
+
 // ============================================================================
 // Discriminated Union Schema
 // ============================================================================
 
 /**
  * Zod discriminated union for GCP auth mechanisms.
- * Supports three authentication types:
+ * Supports four authentication types:
  * - service_account: Explicit service account credentials
  * - oauth2: Customer OAuth2 tokens (pre-scoped)
  * - adc: Application Default Credentials for GCP-hosted environments
+ * - test: Test mechanism for integration testing with GCS emulator (test-only)
  */
 export const gcpAuthMechanismSchema = zod.discriminatedUnion('type', [
   serviceAccountMechanismSchema,
   oauth2MechanismSchema,
   adcMechanismSchema,
+  testMechanismSchema,
 ]);
 
 // ============================================================================
@@ -81,6 +99,12 @@ export type OAuth2Mechanism = Readonly<zod.infer<typeof oauth2MechanismSchema>>;
  * Application Default Credentials auth mechanism type.
  */
 export type ADCMechanism = Readonly<zod.infer<typeof adcMechanismSchema>>;
+
+/**
+ * Test auth mechanism type.
+ * WARNING: Only for use in test environments.
+ */
+export type TestMechanism = Readonly<zod.infer<typeof testMechanismSchema>>;
 
 // ============================================================================
 // Validation Function

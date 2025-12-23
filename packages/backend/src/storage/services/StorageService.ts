@@ -16,10 +16,9 @@ import type { FileAsset, FileReferenceReady } from '@core/domain/file';
 import { FileAssetId as createFileAssetId } from '@core/domain/file';
 import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
-import { confirmUpload } from '../actions/confirmUpload';
 import { deleteFile } from '../actions/deleteFile';
 import { getDownloadUrl } from '../actions/getDownloadUrl';
-import { getFileStatus } from '../actions/getFileStatus';
+import { getFile } from '../actions/getFile';
 import { getUploadUrl } from '../actions/getUploadUrl';
 import { listFiles } from '../actions/listFiles';
 import { upload } from '../actions/upload';
@@ -33,10 +32,9 @@ import { createUploadStateCache } from '../cache/UploadStateCache';
 import type { IStorageProvider } from '../domain/StorageProvider';
 import type { IStorageService } from '../domain/StorageService';
 import type {
-  ConfirmUploadRequest,
   DeleteFileRequest,
   GetDownloadUrlRequest,
-  GetFileStatusRequest,
+  GetFileRequest,
   GetUploadUrlRequest,
   ListFilesRequest,
   ListFilesResponse,
@@ -87,10 +85,9 @@ export interface StorageServiceConfig {
 
 interface StorageServiceActions {
   readonly getUploadUrl: typeof getUploadUrl;
-  readonly confirmUpload: typeof confirmUpload;
   readonly upload: typeof upload;
   readonly uploadStream: typeof uploadStream;
-  readonly getFileStatus: typeof getFileStatus;
+  readonly getFile: typeof getFile;
   readonly getDownloadUrl: typeof getDownloadUrl;
   readonly listFiles: typeof listFiles;
   readonly deleteFile: typeof deleteFile;
@@ -116,10 +113,9 @@ class StorageService implements IStorageService {
     },
     private readonly actions: StorageServiceActions = {
       getUploadUrl,
-      confirmUpload,
       upload,
       uploadStream,
-      getFileStatus,
+      getFile,
       getDownloadUrl,
       listFiles,
       deleteFile,
@@ -156,18 +152,6 @@ class StorageService implements IStorageService {
     });
   }
 
-  async confirmUpload(
-    ctx: Context,
-    request: ConfirmUploadRequest,
-  ): Promise<Result<FileAsset, AppError>> {
-    return this.actions.confirmUpload(ctx, request, {
-      storageProvider: this.storageProvider,
-      uploadStateCache: this.uploadStateCache,
-      logger: this.config.logger,
-      uploadStateTtlSeconds: this.uploadStateTtlSeconds,
-    });
-  }
-
   async upload(
     ctx: Context,
     request: UploadRequest,
@@ -193,11 +177,11 @@ class StorageService implements IStorageService {
     });
   }
 
-  async getFileStatus(
+  async getFile(
     ctx: Context,
-    request: GetFileStatusRequest,
+    request: GetFileRequest,
   ): Promise<Result<FileAsset, AppError>> {
-    return this.actions.getFileStatus(ctx, request, {
+    return this.actions.getFile(ctx, request, {
       storageProvider: this.storageProvider,
       uploadStateCache: this.uploadStateCache,
     });

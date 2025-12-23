@@ -26,19 +26,21 @@ const uploadStateItemSchema = createItemSchema(uploadStateIdSchema);
 
 export const uploadStateSchema = uploadStateItemSchema.extend({
   folder: zod.string().min(1),
+  /** Original filename provided by the caller */
   filename: zod.string().min(1),
+  /** Sanitized filename used for storage (safe for object keys) */
+  sanitizedFilename: zod.string().min(1),
   mediaType: zod.string().min(1),
   size: zod.number().int().positive().optional(),
   checksum: zod.string().optional(),
   state: zod.enum(['uploading', 'failed']),
   error: zod.string().optional(),
-  bytesUploaded: zod.number().int().nonnegative().optional(),
   updatedAt: zod.date().optional(),
 });
 
 export type UploadState = Readonly<zod.infer<typeof uploadStateSchema>>;
 
-export const UPLOAD_STATE_SCHEMA_VERSION = 1;
+export const UPLOAD_STATE_SCHEMA_VERSION = 2;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Validation

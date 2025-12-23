@@ -18,7 +18,6 @@ export interface PutStreamOptions {
   readonly contentType: string;
   readonly size?: number; // Optional, helps GCS optimize
   readonly metadata?: Record<string, string>;
-  readonly onProgress?: (bytesUploaded: number) => void; // Called after each chunk
 }
 
 export interface SignedUploadUrlOptions {
@@ -62,7 +61,6 @@ export interface IStorageProvider {
   /**
    * Upload data via streaming (resumable upload).
    * Handles any file size with bounded memory usage.
-   * Progress callback is invoked after each chunk is successfully uploaded.
    */
   putStream(
     key: string,

@@ -5,6 +5,7 @@ import type { TokenFetcherResult } from '../domain/TokenFetcher';
 import { createADCTokenFetcher } from './createADCTokenFetcher';
 import { createOAuth2TokenFetcher } from './createOAuth2TokenFetcher';
 import { createServiceAccountTokenFetcher } from './createServiceAccountTokenFetcher';
+import { createTestTokenFetcher } from './createTestTokenFetcher';
 
 /**
  * Creates a token fetcher for the given auth mechanism.
@@ -38,5 +39,7 @@ export function createTokenFetcher(
       return createOAuth2TokenFetcher(mechanism, logger);
     case 'adc':
       return createADCTokenFetcher(mechanism, scopes, logger);
+    case 'test':
+      return createTestTokenFetcher(mechanism);
   }
 }

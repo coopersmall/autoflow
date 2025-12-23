@@ -9,6 +9,13 @@ export const fileAssetSchema = zod
     state: zod
       .enum(['uploading', 'ready', 'failed'])
       .describe('current state of the file asset'),
+    filename: zod
+      .string()
+      .describe('filename as stored (sanitized for security)'),
+    originalFilename: zod
+      .string()
+      .optional()
+      .describe('original filename provided by the caller (if available)'),
     mediaType: zod
       .string()
       .describe('IANA media type of the file (e.g., image/png)'),

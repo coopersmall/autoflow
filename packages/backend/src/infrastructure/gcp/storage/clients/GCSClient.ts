@@ -2,12 +2,13 @@ import type { Readable } from 'node:stream';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { AppError } from '@core/errors/AppError';
 import { Storage } from '@google-cloud/storage';
+import { get } from 'lodash';
 import type { Result } from 'neverthrow';
-
 import { createGCPAuthClient } from '../../auth/clients/GCPAuthClient';
 import type { GCPAuthMechanism } from '../../auth/domain/GCPAuthMechanism';
 import { bucketExists } from '../actions/bucketExists';
 import { createBucket } from '../actions/createBucket';
+import { deleteBucket } from '../actions/deleteBucket';
 import { deleteObject } from '../actions/deleteObject';
 import { downloadObject } from '../actions/downloadObject';
 import { downloadObjectStream } from '../actions/downloadObjectStream';
@@ -71,13 +72,20 @@ export function createGCSClient(
   return Object.freeze(new GCSClient(mechanism, logger));
 }
 
+function createStorageInstance(
+  projectId: string,
+  apiEndpoint?: string,
+): Storage {
+  return new Storage({ projectId, apiEndpoint });
+}
+
 // ============================================================================
 // Dependencies Interface
 // ============================================================================
 
 interface GCSClientDependencies {
   readonly createAuthClient: typeof createGCPAuthClient;
-  readonly createStorageInstance: (projectId: string) => Storage;
+  readonly createStorageInstance: typeof createStorageInstance;
   readonly actions: {
     readonly uploadObject: typeof uploadObject;
     readonly uploadObjectStream: typeof uploadObjectStream;
@@ -90,12 +98,13 @@ interface GCSClientDependencies {
     readonly getSignedUrl: typeof getSignedUrl;
     readonly bucketExists: typeof bucketExists;
     readonly createBucket: typeof createBucket;
+    readonly deleteBucket: typeof deleteBucket;
   };
 }
 
 const defaultDependencies: GCSClientDependencies = {
   createAuthClient: createGCPAuthClient,
-  createStorageInstance: (projectId: string) => new Storage({ projectId }),
+  createStorageInstance,
   actions: {
     uploadObject,
     uploadObjectStream,
@@ -108,6 +117,7 @@ const defaultDependencies: GCSClientDependencies = {
     getSignedUrl,
     bucketExists,
     createBucket,
+    deleteBucket,
   },
 };
 
@@ -133,7 +143,10 @@ class GCSClient implements IStorageClient {
     );
 
     this.projectId = authClient.projectId;
-    this.storage = dependencies.createStorageInstance(this.projectId);
+    this.storage = dependencies.createStorageInstance(
+      this.projectId,
+      get(mechanism, 'apiEndpoint'),
+    );
     this.logger = logger;
     this.actions = dependencies.actions;
   }
@@ -196,5 +209,9 @@ class GCSClient implements IStorageClient {
     request: CreateBucketRequest,
   ): Promise<Result<void, AppError>> {
     return this.actions.createBucket(request, this.storage, this.logger);
+  }
+
+  async deleteBucket(bucketName: string): Promise<Result<void, AppError>> {
+    return this.actions.deleteBucket(bucketName, this.storage, this.logger);
   }
 }

@@ -14,7 +14,7 @@ import type {
   GetUploadUrlRequest,
   UploadUrlResponse,
 } from '../domain/StorageTypes';
-import { buildObjectKey } from './buildObjectKey';
+import { buildObjectKey, sanitizeFilename } from './buildObjectKey';
 
 export interface GetUploadUrlDeps {
   readonly storageProvider: IStorageProvider;
@@ -41,6 +41,7 @@ export async function getUploadUrl(
 
   // Generate file ID
   const fileId = newFileAssetId();
+  const sanitizedFilename = sanitizeFilename(request.filename);
   const objectKey = buildObjectKey(request.folder, fileId, request.filename);
 
   logger.debug('Generating upload URL', {
@@ -66,6 +67,7 @@ export async function getUploadUrl(
     id: uploadStateId,
     folder: request.folder,
     filename: request.filename,
+    sanitizedFilename,
     mediaType: request.mediaType,
     size: request.size,
     state: 'uploading',
@@ -92,6 +94,8 @@ export async function getUploadUrl(
   const fileAsset: FileAsset = {
     id: fileId,
     state: 'uploading',
+    filename: sanitizedFilename,
+    originalFilename: request.filename,
     mediaType: request.mediaType,
     size: request.size,
     createdAt: now,

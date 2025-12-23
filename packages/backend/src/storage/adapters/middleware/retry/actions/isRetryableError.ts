@@ -1,4 +1,4 @@
-import { isAppError } from "@core/errors/AppError";
+import { isAppError } from '@core/errors/AppError';
 
 /**
  * Determines if an error is retryable based on its ErrorCode.
@@ -21,10 +21,10 @@ export function isRetryableError(error: unknown): boolean {
   }
 
   const retryableCodes = new Set([
-    "Timeout",
-    "TooManyRequests",
-    "InternalServer",
-    "GatewayTimeout",
+    'Timeout',
+    'TooManyRequests',
+    'InternalServer',
+    'GatewayTimeout',
   ]);
 
   return retryableCodes.has(error.code);

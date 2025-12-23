@@ -45,6 +45,7 @@ export function getMockedStorageClient(
     getSignedUrl: mock(),
     bucketExists: mock(),
     createBucket: mock(),
+    deleteBucket: mock(),
     projectId: 'test-project-id',
     ...overrides,
   };

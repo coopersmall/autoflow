@@ -45,19 +45,6 @@ export interface UploadUrlResponse {
   readonly expiresAt: string;
 }
 
-export const confirmUploadRequestSchema = zod.strictObject({
-  fileId: zod
-    .string()
-    .min(1)
-    .describe('FileAssetId returned from getUploadUrl'),
-  folder: zod.string().min(1).describe('Folder path'),
-  filename: zod.string().min(1).describe('Original filename'),
-});
-
-export type ConfirmUploadRequest = Readonly<
-  zod.infer<typeof confirmUploadRequestSchema>
->;
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Upload Types
 // ─────────────────────────────────────────────────────────────────────────────
@@ -76,15 +63,13 @@ export interface UploadStreamRequest {
 // Query Types
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const getFileStatusRequestSchema = zod.strictObject({
+export const getFileRequestSchema = zod.strictObject({
   fileId: zod.string().min(1),
   folder: zod.string().min(1),
   filename: zod.string().min(1),
 });
 
-export type GetFileStatusRequest = Readonly<
-  zod.infer<typeof getFileStatusRequestSchema>
->;
+export type GetFileRequest = Readonly<zod.infer<typeof getFileRequestSchema>>;
 
 export const getDownloadUrlRequestSchema = zod.strictObject({
   fileId: zod.string().min(1),

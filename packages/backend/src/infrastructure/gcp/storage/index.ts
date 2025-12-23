@@ -2,6 +2,7 @@
 
 export { bucketExists } from './actions/bucketExists';
 export { createBucket } from './actions/createBucket';
+export { deleteBucket } from './actions/deleteBucket';
 export { deleteObject } from './actions/deleteObject';
 export { downloadObject } from './actions/downloadObject';
 export { downloadObjectStream } from './actions/downloadObjectStream';

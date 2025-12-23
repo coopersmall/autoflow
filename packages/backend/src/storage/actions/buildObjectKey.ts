@@ -14,15 +14,23 @@ export function buildObjectKey(
   fileId: FileAssetId,
   filename: string,
 ): string {
-  const sanitizedFilename = sanitizeFilename(filename);
+  const sanitized = sanitizeFilename(filename);
   const normalizedFolder = folder.replace(/\/+$/, ''); // Remove trailing slashes
-  return `${normalizedFolder}/${fileId}/${sanitizedFilename}`;
+  return `${normalizedFolder}/${fileId}/${sanitized}`;
 }
 
 /**
  * Sanitize filename to prevent path traversal and invalid characters.
+ *
+ * @param filename - Original filename
+ * @returns Sanitized filename safe for storage
+ *
+ * @example
+ * sanitizeFilename('file..txt') // 'filetxt'
+ * sanitizeFilename('path/to/file.txt') // 'path_to_file.txt'
+ * sanitizeFilename('file<name>.txt') // 'file_name_.txt'
  */
-function sanitizeFilename(filename: string): string {
+export function sanitizeFilename(filename: string): string {
   return filename
     .replace(/\.\./g, '') // Remove path traversal
     .replace(/[<>:"|?*]/g, '_') // Replace invalid chars

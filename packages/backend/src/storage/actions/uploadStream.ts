@@ -11,7 +11,7 @@ import {
 import type { IUploadStateCache } from '../cache/domain/UploadStateCache';
 import type { IStorageProvider } from '../domain/StorageProvider';
 import type { UploadStreamRequest } from '../domain/StorageTypes';
-import { buildObjectKey } from './buildObjectKey';
+import { buildObjectKey, sanitizeFilename } from './buildObjectKey';
 
 export interface UploadStreamDeps {
   readonly storageProvider: IStorageProvider;
@@ -23,8 +23,7 @@ export interface UploadStreamDeps {
 /**
  * Upload a file from a stream.
  *
- * Uses GCS resumable uploads with progress tracking.
- * Updates cache after each chunk for progress polling.
+ * Uses GCS resumable uploads.
  * Auto-cleanup on failure.
  */
 export async function uploadStream(
@@ -35,6 +34,7 @@ export async function uploadStream(
   const { storageProvider, uploadStateCache, logger, uploadStateTtlSeconds } =
     deps;
   const { payload, folder } = request;
+  const sanitizedFilename = sanitizeFilename(payload.filename);
   const objectKey = buildObjectKey(folder, payload.id, payload.filename);
   const now = new Date();
 
@@ -50,10 +50,10 @@ export async function uploadStream(
     id: uploadStateId,
     folder,
     filename: payload.filename,
+    sanitizedFilename,
     mediaType: payload.mediaType,
     size: payload.size,
     state: 'uploading',
-    bytesUploaded: 0,
     createdAt: now,
     updatedAt: now,
     schemaVersion: UPLOAD_STATE_SCHEMA_VERSION,
@@ -71,15 +71,17 @@ export async function uploadStream(
     const fileAsset: FileAsset = {
       id: payload.id,
       state: 'failed',
+      filename: sanitizedFilename,
+      originalFilename: payload.filename,
       mediaType: payload.mediaType,
-      size: payload.size ?? 0,
+      size: payload.size,
       error: cacheSetResult.error.message,
       createdAt: now,
     };
     return ok(fileAsset);
   }
 
-  // Upload with progress callback
+  // Upload to storage
   const uploadResult = await storageProvider.putStream(
     objectKey,
     payload.stream,
@@ -88,27 +90,6 @@ export async function uploadStream(
       size: payload.size,
       metadata: {
         originalFilename: payload.filename,
-      },
-      onProgress: async (bytesUploaded: number) => {
-        // Update cache with progress
-        const updatedState: UploadState = {
-          ...uploadState,
-          bytesUploaded,
-          updatedAt: new Date(),
-        };
-
-        await uploadStateCache.set(
-          ctx,
-          uploadStateId,
-          updatedState,
-          uploadStateTtlSeconds,
-        );
-
-        logger.debug('Upload progress', {
-          fileId: payload.id,
-          bytesUploaded,
-          totalSize: payload.size,
-        });
       },
     },
   );
@@ -138,8 +119,10 @@ export async function uploadStream(
     const fileAsset: FileAsset = {
       id: payload.id,
       state: 'failed',
+      filename: sanitizedFilename,
+      originalFilename: payload.filename,
       mediaType: payload.mediaType,
-      size: payload.size ?? 0,
+      size: payload.size,
       error: uploadResult.error.message,
       createdAt: now,
     };
@@ -159,8 +142,10 @@ export async function uploadStream(
   const fileAsset: FileAsset = {
     id: payload.id,
     state: 'ready',
+    filename: sanitizedFilename,
+    originalFilename: payload.filename,
     mediaType: payload.mediaType,
-    size: payload.size ?? 0,
+    size: payload.size,
     createdAt: now,
   };
 

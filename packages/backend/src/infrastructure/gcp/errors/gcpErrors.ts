@@ -2,14 +2,14 @@ import {
   type AppError,
   createAppError,
   type ErrorOptions,
-} from "@core/errors/AppError";
+} from '@core/errors/AppError';
 
 // ============================================================================
 // Auth Error Options
 // ============================================================================
 
 interface GCPAuthErrorOptions extends ErrorOptions {
-  mechanism?: "service_account" | "oauth2" | "adc";
+  mechanism?: 'service_account' | 'oauth2' | 'adc';
   projectId?: string;
 }
 
@@ -24,11 +24,11 @@ export function gcpAuthFailed(
   message: string,
   options?: GCPAuthErrorOptions,
 ): AppError {
-  return createAppError(message, "Unauthorized", {
+  return createAppError(message, 'Unauthorized', {
     ...options,
     metadata: {
       ...options?.metadata,
-      gcpService: "auth",
+      gcpService: 'auth',
       mechanism: options?.mechanism,
       projectId: options?.projectId,
     },
@@ -42,12 +42,12 @@ export function gcpCredentialsInvalid(
   message: string,
   options?: ErrorOptions,
 ): AppError {
-  return createAppError(message, "BadRequest", {
+  return createAppError(message, 'BadRequest', {
     ...options,
     metadata: {
       ...options?.metadata,
-      gcpService: "auth",
-      errorType: "invalid_credentials",
+      gcpService: 'auth',
+      errorType: 'invalid_credentials',
     },
   });
 }
@@ -59,12 +59,12 @@ export function gcpTokenExpired(
   message: string,
   options?: GCPAuthErrorOptions,
 ): AppError {
-  return createAppError(message, "Unauthorized", {
+  return createAppError(message, 'Unauthorized', {
     ...options,
     metadata: {
       ...options?.metadata,
-      gcpService: "auth",
-      errorType: "token_expired",
+      gcpService: 'auth',
+      errorType: 'token_expired',
       mechanism: options?.mechanism,
     },
   });
@@ -78,15 +78,16 @@ interface GCSErrorOptions extends ErrorOptions {
   bucket?: string;
   objectName?: string;
   operation?:
-    | "upload"
-    | "download"
-    | "delete"
-    | "list"
-    | "exists"
-    | "getMetadata"
-    | "signedUrl"
-    | "bucketExists"
-    | "createBucket";
+    | 'upload'
+    | 'download'
+    | 'delete'
+    | 'list'
+    | 'exists'
+    | 'getMetadata'
+    | 'signedUrl'
+    | 'bucketExists'
+    | 'createBucket'
+    | 'deleteBucket';
 }
 
 // ============================================================================
@@ -100,11 +101,11 @@ export function gcsOperationFailed(
   message: string,
   options?: GCSErrorOptions,
 ): AppError {
-  return createAppError(message, "InternalServer", {
+  return createAppError(message, 'InternalServer', {
     ...options,
     metadata: {
       ...options?.metadata,
-      gcpService: "storage",
+      gcpService: 'storage',
       bucket: options?.bucket,
       objectName: options?.objectName,
       operation: options?.operation,
@@ -119,11 +120,11 @@ export function gcsObjectNotFound(
   message: string,
   options?: GCSErrorOptions,
 ): AppError {
-  return createAppError(message, "NotFound", {
+  return createAppError(message, 'NotFound', {
     ...options,
     metadata: {
       ...options?.metadata,
-      gcpService: "storage",
+      gcpService: 'storage',
       bucket: options?.bucket,
       objectName: options?.objectName,
     },
@@ -135,13 +136,13 @@ export function gcsObjectNotFound(
  */
 export function gcsBucketNotFound(
   message: string,
-  options?: Omit<GCSErrorOptions, "objectName">,
+  options?: Omit<GCSErrorOptions, 'objectName'>,
 ): AppError {
-  return createAppError(message, "NotFound", {
+  return createAppError(message, 'NotFound', {
     ...options,
     metadata: {
       ...options?.metadata,
-      gcpService: "storage",
+      gcpService: 'storage',
       bucket: options?.bucket,
     },
   });
@@ -154,11 +155,11 @@ export function gcsAccessDenied(
   message: string,
   options?: GCSErrorOptions,
 ): AppError {
-  return createAppError(message, "Forbidden", {
+  return createAppError(message, 'Forbidden', {
     ...options,
     metadata: {
       ...options?.metadata,
-      gcpService: "storage",
+      gcpService: 'storage',
       bucket: options?.bucket,
       objectName: options?.objectName,
       operation: options?.operation,
@@ -173,11 +174,11 @@ export function gcsQuotaExceeded(
   message: string,
   options?: GCSErrorOptions,
 ): AppError {
-  return createAppError(message, "TooManyRequests", {
+  return createAppError(message, 'TooManyRequests', {
     ...options,
     metadata: {
       ...options?.metadata,
-      gcpService: "storage",
+      gcpService: 'storage',
       bucket: options?.bucket,
     },
   });
@@ -190,11 +191,11 @@ export function gcsBadRequest(
   message: string,
   options?: GCSErrorOptions,
 ): AppError {
-  return createAppError(message, "BadRequest", {
+  return createAppError(message, 'BadRequest', {
     ...options,
     metadata: {
       ...options?.metadata,
-      gcpService: "storage",
+      gcpService: 'storage',
       bucket: options?.bucket,
       objectName: options?.objectName,
       operation: options?.operation,
@@ -209,11 +210,11 @@ export function gcsUnauthorized(
   message: string,
   options?: GCSErrorOptions,
 ): AppError {
-  return createAppError(message, "Unauthorized", {
+  return createAppError(message, 'Unauthorized', {
     ...options,
     metadata: {
       ...options?.metadata,
-      gcpService: "storage",
+      gcpService: 'storage',
       bucket: options?.bucket,
       objectName: options?.objectName,
       operation: options?.operation,
@@ -228,11 +229,11 @@ export function gcsTimeout(
   message: string,
   options?: GCSErrorOptions,
 ): AppError {
-  return createAppError(message, "Timeout", {
+  return createAppError(message, 'Timeout', {
     ...options,
     metadata: {
       ...options?.metadata,
-      gcpService: "storage",
+      gcpService: 'storage',
       bucket: options?.bucket,
       objectName: options?.objectName,
       operation: options?.operation,
@@ -247,11 +248,11 @@ export function gcsGatewayTimeout(
   message: string,
   options?: GCSErrorOptions,
 ): AppError {
-  return createAppError(message, "GatewayTimeout", {
+  return createAppError(message, 'GatewayTimeout', {
     ...options,
     metadata: {
       ...options?.metadata,
-      gcpService: "storage",
+      gcpService: 'storage',
       bucket: options?.bucket,
       objectName: options?.objectName,
       operation: options?.operation,
@@ -266,15 +267,15 @@ export function gcsServiceUnavailable(
   message: string,
   options?: GCSErrorOptions,
 ): AppError {
-  return createAppError(message, "InternalServer", {
+  return createAppError(message, 'InternalServer', {
     ...options,
     metadata: {
       ...options?.metadata,
-      gcpService: "storage",
+      gcpService: 'storage',
       bucket: options?.bucket,
       objectName: options?.objectName,
       operation: options?.operation,
-      errorType: "service_unavailable",
+      errorType: 'service_unavailable',
     },
   });
 }

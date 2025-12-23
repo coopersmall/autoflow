@@ -95,6 +95,13 @@ export type IStorageClient = Readonly<{
    */
   createBucket(request: CreateBucketRequest): Promise<Result<void, AppError>>;
 
+  /**
+   * Delete a bucket.
+   * Requires elevated permissions (storage.buckets.delete).
+   * Bucket must be empty before deletion.
+   */
+  deleteBucket(bucketName: string): Promise<Result<void, AppError>>;
+
   // ============================================================================
   // Properties
   // ============================================================================

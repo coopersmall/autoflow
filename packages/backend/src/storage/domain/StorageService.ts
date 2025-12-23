@@ -11,10 +11,9 @@ import type { FileAsset, FileReferenceReady } from '@core/domain/file';
 import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 import type {
-  ConfirmUploadRequest,
   DeleteFileRequest,
   GetDownloadUrlRequest,
-  GetFileStatusRequest,
+  GetFileRequest,
   GetUploadUrlRequest,
   ListFilesRequest,
   ListFilesResponse,
@@ -42,17 +41,6 @@ export type IStorageService = Readonly<{
     ctx: Context,
     request: GetUploadUrlRequest,
   ): Promise<Result<UploadUrlResponse, AppError>>;
-
-  /**
-   * Confirm client-side upload completed.
-   * Verifies file exists in storage, deletes cache state.
-   *
-   * @returns FileAsset with state 'ready' or 'failed'
-   */
-  confirmUpload(
-    ctx: Context,
-    request: ConfirmUploadRequest,
-  ): Promise<Result<FileAsset, AppError>>;
 
   // ─────────────────────────────────────────────────────────────────────────
   // Server-Side Upload (Application Code)
@@ -83,12 +71,12 @@ export type IStorageService = Readonly<{
   // ─────────────────────────────────────────────────────────────────────────
 
   /**
-   * Get the current status of a file.
-   * Derives state from: storage existence -> cache state -> not found
+   * Get the current state of a file.
+   * Derives state from: storage (ready) -> cache (uploading/failed) -> not found
    */
-  getFileStatus(
+  getFile(
     ctx: Context,
-    request: GetFileStatusRequest,
+    request: GetFileRequest,
   ): Promise<Result<FileAsset, AppError>>;
 
   /**

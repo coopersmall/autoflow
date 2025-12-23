@@ -89,11 +89,6 @@ class GCSStorageAdapter implements IStorageProvider {
         return err(result.error);
       }
 
-      // Call progress callback with final size if provided
-      if (options.onProgress && result.value.size) {
-        options.onProgress(result.value.size);
-      }
-
       return ok(undefined);
     } catch (error) {
       this.logger.error('putStream failed', error, {

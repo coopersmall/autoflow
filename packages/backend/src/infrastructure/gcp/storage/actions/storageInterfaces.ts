@@ -1,8 +1,8 @@
-import type { Readable } from "node:stream";
-import type { ILogger } from "@backend/infrastructure/logger/Logger";
+import type { Readable } from 'node:stream';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
 
-import type { AppError } from "@core/errors/AppError";
-import { Storage } from "@google-cloud/storage";
+import type { AppError } from '@core/errors/AppError';
+import { Storage } from '@google-cloud/storage';
 
 import {
   gcsAccessDenied,
@@ -14,7 +14,7 @@ import {
   gcsServiceUnavailable,
   gcsTimeout,
   gcsUnauthorized,
-} from "../../errors/gcpErrors";
+} from '../../errors/gcpErrors';
 
 // ============================================================================
 // Storage Instance Interface
@@ -87,8 +87,8 @@ export interface IGetFilesOptions {
 }
 
 export interface ISignedUrlOptions {
-  version: "v4";
-  action: "read" | "write" | "delete";
+  version: 'v4';
+  action: 'read' | 'write' | 'delete';
   expires: number;
 }
 
@@ -101,15 +101,16 @@ export function mapStorageError(
   bucket: string,
   objectName: string | undefined,
   operation:
-    | "upload"
-    | "download"
-    | "delete"
-    | "list"
-    | "exists"
-    | "getMetadata"
-    | "signedUrl"
-    | "bucketExists"
-    | "createBucket",
+    | 'upload'
+    | 'download'
+    | 'delete'
+    | 'list'
+    | 'exists'
+    | 'getMetadata'
+    | 'signedUrl'
+    | 'bucketExists'
+    | 'createBucket'
+    | 'deleteBucket',
   logger: ILogger,
 ): AppError {
   const httpCode = getErrorCode(error);
@@ -177,9 +178,9 @@ export function mapStorageError(
 export function getErrorCode(error: unknown): number | undefined {
   if (
     error !== null &&
-    typeof error === "object" &&
-    "code" in error &&
-    typeof error.code === "number"
+    typeof error === 'object' &&
+    'code' in error &&
+    typeof error.code === 'number'
   ) {
     return error.code;
   }

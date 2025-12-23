@@ -73,8 +73,9 @@ export function createStorageProvider(
     default:
       unreachable(config.type);
   }
-  if (config.middleware) {
-    return applyMiddleware(baseProvider, config.middleware);
+  const { middleware } = config;
+  if (middleware) {
+    return applyMiddleware(baseProvider, middleware);
   } else {
     return baseProvider;
   }
