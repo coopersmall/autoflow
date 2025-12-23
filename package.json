@@ -24,7 +24,9 @@
         "bullmq": "^5.64.1",
         "pino": "^9.11.0",
         "jose": "^6.0.11",
-        "immer": "^11.0.1"
+        "immer": "^11.0.1",
+        "@google-cloud/storage": "^7.18.0",
+        "google-auth-library": "^10.5.0"
       },
       "ai": {
         "ai": "^5.0.56",

@@ -1,5 +1,5 @@
 import { mock } from 'bun:test';
-import { getMockedStandardService } from '@backend/__mocks__/StandardService.mock';
+import { getMockedStandardService } from '@backend/infrastructure/services/__mocks__/StandardService.mock';
 import type { ISecretsService } from '@backend/secrets';
 import type { Secret, SecretId } from '@core/domain/secrets/Secret';
 import type { ExtractMockMethods } from '@core/types';

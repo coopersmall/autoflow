@@ -4,6 +4,8 @@ export * from './cache/index';
 export * from './configuration/AppConfigurationService';
 // Encryption
 export * from './encryption/index';
+// GCP
+export * from './gcp/index';
 export * from './http/domain/HttpHandler';
 export * from './http/domain/HttpRoute';
 export * from './http/handlers/domain/HttpRouteFactory';

@@ -11,8 +11,8 @@ export function getMockedAppConfigurationService(): ExtractMockMethods<IAppConfi
   return {
     polygonKey: 'polygon-key',
     openAIKey: 'openai-key',
+    gcpCredentials: 'mock-gcp-credentials',
     googleGenAIKey: 'mock-google-genai-key',
-    groqKey: 'mock-groq-key',
     nodeEnv: 'development',
     jwtPublicKey: `-----BEGIN PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA698Pbq58th9itKlttpav
@@ -55,7 +55,6 @@ D/CSwUIUzDUWifG1nHgcS2H2Kg==
     secretsPrivateKey: 'mock-secrets-private-key',
     databaseUrl: 'mock-database-url',
     redisUrl: 'mock-redis-url',
-    apiKey: 'mock-api-key',
     environment: 'development',
     site: 'localhost:3000',
     siteUrl: 'http://localhost:3000',

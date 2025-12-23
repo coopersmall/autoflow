@@ -128,6 +128,10 @@ export function createCacheDeserializationError(
   });
 }
 
+export function isCacheMissError(error: AppError): boolean {
+  return error.code === 'NotFound' && error.message === 'Cache miss';
+}
+
 /**
  * Union type of all possible cache errors.
  * Used in Result<T, CacheError> return types throughout the cache layer.

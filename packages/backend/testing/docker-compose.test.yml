@@ -25,3 +25,14 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  test-gcs:
+    image: fsouza/fake-gcs-server
+    ports:
+      - '4443:4443'
+    command: ['-scheme', 'http', '-port', '4443', '-backend', 'memory', '-public-host', 'localhost:4443']
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:4443/storage/v1/b']
+      interval: 5s
+      timeout: 5s
+      retries: 5
