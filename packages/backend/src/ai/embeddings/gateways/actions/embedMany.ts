@@ -14,7 +14,7 @@ import { convertProviderOptions } from './utils/convertProviderOptions';
 export async function embedMany(
   ctx: Context,
   provider: EmbeddingsProvider,
-  model: EmbeddingModel<string>,
+  model: EmbeddingModel,
   request: EmbeddingsRequest,
   actions = {
     embedMany: aiSdkEmbedMany,

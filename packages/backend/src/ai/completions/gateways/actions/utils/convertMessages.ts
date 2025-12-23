@@ -201,37 +201,50 @@ function convertFromAssistantMessageContent(
   if (typeof content === 'string') {
     return content;
   }
-  return content.map((part) => {
+
+  const parts: AssistantMessage['content'] = [];
+
+  for (const part of content) {
     switch (part.type) {
       case 'text':
-        return { type: 'text', text: part.text };
+        parts.push({ type: 'text', text: part.text });
+        break;
       case 'reasoning':
-        return { type: 'reasoning', text: part.text };
+        parts.push({ type: 'reasoning', text: part.text });
+        break;
       case 'file':
-        return {
+        parts.push({
           type: 'file',
           data: convertDataContentToString(part.data),
           mediaType: part.mediaType,
           filename: part.filename,
-        };
+        });
+        break;
       case 'tool-call':
-        return {
+        parts.push({
           type: 'tool-call',
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           input: JSON.stringify(part.input),
-        };
+        });
+        break;
       case 'tool-result':
-        return {
+        parts.push({
           type: 'tool-result',
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           output: convertToolResultOutput(part.output),
-        };
+        });
+        break;
+      case 'tool-approval-request':
+        // Skip tool approval requests - not yet supported in domain types
+        break;
       default:
-        return unreachable(part);
+        unreachable(part);
     }
-  });
+  }
+
+  return parts;
 }
 function convertDataContentToString(data: DataContent | URL): string {
   if (data instanceof URL) {
@@ -243,14 +256,15 @@ function convertDataContentToString(data: DataContent | URL): string {
   const uint8 = data instanceof Uint8Array ? data : new Uint8Array(data);
   return Buffer.from(uint8).toString('base64');
 }
-convertFromToolMessageContent;
 function convertFromToolMessageContent(
   content: ToolContent,
 ): ToolMessage['content'] {
-  return content.map((part) => {
+  const parts: ToolMessage['content'] = [];
+
+  for (const part of content) {
     switch (part.type) {
       case 'tool-result':
-        return {
+        parts.push({
           type: 'tool-result',
           toolCallId: part.toolCallId,
           toolName: part.toolName,
@@ -260,11 +274,17 @@ function convertFromToolMessageContent(
             part.output.type === 'error-json'
               ? true
               : undefined,
-        };
+        });
+        break;
+      case 'tool-approval-response':
+        // Skip tool approval responses - not yet supported in domain types
+        break;
       default:
-        return unreachable(part.type);
+        unreachable(part);
     }
-  });
+  }
+
+  return parts;
 }
 function convertToolResultOutput(
   output: ToolResultPart['output'],
@@ -279,8 +299,37 @@ function convertToolResultOutput(
     case 'error-json':
       return { type: 'error-json', value: JSON.stringify(output.value) };
     case 'content':
-      return { type: 'content', value: output.value };
+      // Filter out unsupported content types (file-data, execution-denied, etc.)
+      // and only keep text and media
+      return {
+        type: 'content',
+        value: output.value
+          .filter(
+            (
+              item,
+            ): item is
+              | { type: 'text'; text: string }
+              | { type: 'media'; data: string; mediaType: string } =>
+              item.type === 'text' || item.type === 'media',
+          )
+          .map((item) => {
+            if (item.type === 'text') {
+              return { type: 'text' as const, text: item.text };
+            }
+            return {
+              type: 'media' as const,
+              data: item.data,
+              mediaType: item.mediaType,
+            };
+          }),
+      };
+    case 'execution-denied':
+      // Convert execution-denied to error-text for domain compatibility
+      return {
+        type: 'error-text',
+        value: output.reason ?? 'Tool execution was denied',
+      };
     default:
-      return unreachable(output);
+      unreachable(output);
   }
 }

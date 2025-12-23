@@ -143,6 +143,16 @@ export function fromStreamPart(
           error: streamPart.error,
         },
       };
+    case 'tool-output-denied':
+      // Tool output was denied - convert to tool error for domain compatibility
+      return {
+        event: {
+          type: 'tool-error',
+          toolCallId: streamPart.toolCallId,
+          toolName: streamPart.toolName,
+          error: 'Tool output was denied',
+        },
+      };
 
     // Lifecycle events
     case 'start':
@@ -179,5 +189,11 @@ export function fromStreamPart(
     // Ignored events (SDK-specific, not needed in our domain)
     case 'raw':
       return { event: undefined };
+
+    default: {
+      // Exhaustive check - if we reach here, we have an unhandled stream part type
+      const _exhaustiveCheck: never = streamPart;
+      return { event: undefined };
+    }
   }
 }

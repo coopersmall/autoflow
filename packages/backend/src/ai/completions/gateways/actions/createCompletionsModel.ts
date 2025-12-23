@@ -2,7 +2,7 @@ import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { createOpenAI } from '@ai-sdk/openai';
 import { unreachable } from '@core/unreachable';
-import type { LanguageModelV2 } from '@openrouter/ai-sdk-provider';
+import type { LanguageModel } from 'ai';
 import type {
   AnthropicCompletionsProvider,
   CompletionsProvider,
@@ -12,7 +12,7 @@ import type {
 
 export function createCompletionsModel(
   request: CompletionsProvider,
-): LanguageModelV2 {
+): LanguageModel {
   switch (request.provider) {
     case 'openai':
       return createOpenAIProvider(request);
@@ -27,7 +27,7 @@ export function createCompletionsModel(
 
 function createOpenAIProvider(
   config: OpenAICompletionsProvider,
-): LanguageModelV2 {
+): LanguageModel {
   const {
     model,
     settings: { requestType, apiKey },
@@ -45,7 +45,7 @@ function createOpenAIProvider(
 
 function createGoogleProvider(
   config: GoogleCompletionsProvider,
-): LanguageModelV2 {
+): LanguageModel {
   const {
     model,
     settings: { apiKey },
@@ -56,7 +56,7 @@ function createGoogleProvider(
 
 function createAnthropicProvider(
   config: AnthropicCompletionsProvider,
-): LanguageModelV2 {
+): LanguageModel {
   const {
     model,
     settings: { apiKey },

@@ -65,9 +65,20 @@ export const toolErrorPartSchema = zod.strictObject({
   type: zod.literal('tool-error'),
   toolCallId: zod.string(),
   toolName: zod.string(),
-  input: zod.unknown(),
-  error: zod.unknown(),
+  input: zod.unknown().optional(),
+  error: zod.unknown().optional(),
   providerExecuted: zod.boolean().optional(),
   dynamic: zod.boolean().optional(),
   providerMetadata: providerMetadataSchema.optional(),
+});
+
+// === TOOL OUTPUT DENIED PART ===
+
+export type ToolOutputDeniedPart = zod.infer<typeof toolOutputDeniedPartSchema>;
+export const toolOutputDeniedPartSchema = zod.strictObject({
+  type: zod.literal('tool-output-denied'),
+  toolCallId: zod.string(),
+  toolName: zod.string(),
+  providerExecuted: zod.boolean().optional(),
+  dynamic: zod.boolean().optional(),
 });

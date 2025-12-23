@@ -1,12 +1,19 @@
-import { type AnthropicProvider, anthropic } from '@ai-sdk/anthropic';
-import { type GoogleGenerativeAIProvider, google } from '@ai-sdk/google';
-import { type OpenAIProvider, openai } from '@ai-sdk/openai';
-import type { Tool as AITool, ToolSet } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { google } from '@ai-sdk/google';
+import { openai } from '@ai-sdk/openai';
+import type { Tool, ToolSet } from 'ai';
 import type { AnthropicBuiltinTools } from '../../../providers/anthropic/AnthropicBuiltinTools';
 import type { CompletionsProvider } from '../../../providers/CompletionsProviders';
 import type { GoogleBuiltinTools } from '../../../providers/google/GoogleBuiltinTools';
 import type { OpenAIBuiltinTools } from '../../../providers/openai/OpenAIBuiltinTools';
 
+/**
+ * Provider builtin tools are passed directly to generateText/streamText.
+ *
+ * Note: We use Record<string, unknown> because the provider SDK tool factories
+ * return tools with specific internal types that don't perfectly align with
+ * the generic ToolSet type. The runtime structure is compatible with the AI SDK.
+ */
 export function convertBuiltinTools(
   provider: CompletionsProvider,
 ): ToolSet | undefined {
@@ -21,91 +28,141 @@ export function convertBuiltinTools(
   }
 }
 
-type OpenAIToolSet = Partial<Record<keyof OpenAIProvider['tools'], AITool>>;
+function convertOpenAITools(builtinTools: OpenAIBuiltinTools): ToolSet {
+  const tools: ToolSet = {};
 
-function convertOpenAITools(builtinTools: OpenAIBuiltinTools): OpenAIToolSet {
-  const toolSet: OpenAIToolSet = {};
   if (builtinTools.webSearch) {
     const tool = openai.tools.webSearch(builtinTools.webSearch);
-    toolSet.webSearch = tool;
+    tools.webSearch = convertTool(tool);
   }
   if (builtinTools.codeInterpreter) {
     const tool = openai.tools.codeInterpreter(builtinTools.codeInterpreter);
-    toolSet.codeInterpreter = tool;
+    tools.codeInterpreter = convertTool(tool);
   }
+
   if (builtinTools.fileSearch) {
     const tool = openai.tools.fileSearch(builtinTools.fileSearch);
-    toolSet.fileSearch = tool;
+    tools.fileSearch = convertTool(tool);
   }
-  return toolSet;
+
+  return tools;
 }
 
-type AnthropicToolSet = Partial<
-  Record<keyof AnthropicProvider['tools'], AITool>
->;
+function convertAnthropicTools(builtinTools: AnthropicBuiltinTools): ToolSet {
+  const tools: ToolSet = {};
 
-function convertAnthropicTools(
-  builtinTools: AnthropicBuiltinTools,
-): AnthropicToolSet {
-  const toolSet: AnthropicToolSet = {};
   if (builtinTools.bash) {
     const tool = anthropic.tools.bash_20250124(builtinTools.bash);
-    toolSet.bash_20250124 = tool;
+    tools.bash_20250124 = convertTool(tool);
   }
+
   if (builtinTools.memory) {
     const tool = anthropic.tools.memory_20250818(builtinTools.memory);
-    toolSet.memory_20250818 = tool;
+    tools.memory_20250818 = convertTool(tool);
   }
+
   if (builtinTools.textEditor) {
     const tool = anthropic.tools.textEditor_20241022({});
-    toolSet.textEditor_20241022 = tool;
+    tools.textEditor_20241022 = convertTool(tool);
   }
+
   if (builtinTools.computer) {
     const tool = anthropic.tools.computer_20250124(builtinTools.computer);
-    toolSet.computer_20250124 = tool;
+    tools.computer_20250124 = convertTool(tool);
   }
+
   if (builtinTools.webSearch) {
     const tool = anthropic.tools.webSearch_20250305(builtinTools.webSearch);
-    toolSet.webSearch_20250305 = tool;
+    tools.webSearch_20250305 = convertTool(tool);
   }
+
   if (builtinTools.webFetch) {
     const tool = anthropic.tools.webFetch_20250910(builtinTools.webFetch);
-    toolSet.webFetch_20250910 = tool;
+    tools.webFetch_20250910 = convertTool(tool);
   }
+
   if (builtinTools.codeExecution) {
     const tool = anthropic.tools.codeExecution_20250825(
       builtinTools.codeExecution,
     );
-    toolSet.codeExecution_20250825 = tool;
+    tools.codeExecution_20250825 = convertTool(tool);
   }
-  return toolSet;
+
+  return tools;
 }
 
-type GoogleToolSet = Partial<
-  Record<keyof GoogleGenerativeAIProvider['tools'], AITool>
->;
+function convertGoogleTools(builtinTools: GoogleBuiltinTools) {
+  const tools: ToolSet = {};
 
-function convertGoogleTools(builtinTools: GoogleBuiltinTools): GoogleToolSet {
-  const toolSet: GoogleToolSet = {};
   if (builtinTools.codeExecution) {
     const tool = google.tools.codeExecution(builtinTools.codeExecution);
-    toolSet.codeExecution = tool;
+    tools.codeExecution = convertTool(tool);
   }
+
   if (builtinTools.googleSearch) {
     const tool = google.tools.googleSearch(builtinTools.googleSearch);
-    toolSet.googleSearch = tool;
+    tools.googleSearch = convertTool(tool);
   }
+
   if (builtinTools.fileSearch) {
     const tool = google.tools.fileSearch(builtinTools.fileSearch);
-    toolSet.fileSearch = tool;
+    tools.fileSearch = convertTool(tool);
   }
+
   if (builtinTools.urlContext) {
     const tool = google.tools.urlContext(builtinTools.urlContext);
-    toolSet.urlContext = tool;
+    tools.urlContext = convertTool(tool);
   }
+
   if (builtinTools.vertexRagStore) {
     const tool = google.tools.vertexRagStore(builtinTools.vertexRagStore);
-    toolSet.vertexRagStore = tool;
+    tools.vertexRagStore = convertTool(tool);
   }
-  return toolSet;
+
+  return tools;
+}
+
+type AnthropicBash = ReturnType<typeof anthropic.tools.bash_20250124>;
+type AnthropicMemory = ReturnType<typeof anthropic.tools.memory_20250818>;
+type AnthropicTextEditor = ReturnType<
+  typeof anthropic.tools.textEditor_20241022
+>;
+type AnthropicComputer = ReturnType<typeof anthropic.tools.computer_20250124>;
+type AnthropicWebSearch = ReturnType<typeof anthropic.tools.webSearch_20250305>;
+type AnthropicWebFetch = ReturnType<typeof anthropic.tools.webFetch_20250910>;
+type AnthropicCodeExecution = ReturnType<
+  typeof anthropic.tools.codeExecution_20250825
+>;
+
+type GoogleCodeExecution = ReturnType<typeof google.tools.codeExecution>;
+type GoogleSearch = ReturnType<typeof google.tools.googleSearch>;
+type GoogleFileSearch = ReturnType<typeof google.tools.fileSearch>;
+type GoogleURLContext = ReturnType<typeof google.tools.urlContext>;
+type GoogleVertexRagStore = ReturnType<typeof google.tools.vertexRagStore>;
+
+type OpenAIWebSearch = ReturnType<typeof openai.tools.webSearch>;
+type OpenAICodeInterpreter = ReturnType<typeof openai.tools.codeInterpreter>;
+type OpenAIFileSearch = ReturnType<typeof openai.tools.fileSearch>;
+
+type BuiltinToolInstance =
+  | AnthropicBash
+  | AnthropicMemory
+  | AnthropicTextEditor
+  | AnthropicComputer
+  | AnthropicWebSearch
+  | AnthropicWebFetch
+  | AnthropicCodeExecution
+  | GoogleCodeExecution
+  | GoogleSearch
+  | GoogleFileSearch
+  | GoogleURLContext
+  | GoogleVertexRagStore
+  | OpenAIWebSearch
+  | OpenAICodeInterpreter
+  | OpenAIFileSearch;
+
+// biome-ignore lint: no-explicit-any
+function convertTool(tool: BuiltinToolInstance): Tool<any, any> {
+  // biome-ignore lint: no-explicit-any
+  return tool as Tool<any, any>;
 }

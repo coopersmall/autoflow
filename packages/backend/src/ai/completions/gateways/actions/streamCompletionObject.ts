@@ -5,8 +5,7 @@ import {
   type StructuredCompletionsRequest,
 } from '@autoflow/core';
 import type { Context } from '@backend/infrastructure/context/Context';
-import type { LanguageModelV2 } from '@openrouter/ai-sdk-provider';
-import { jsonSchema, streamObject } from 'ai';
+import { jsonSchema, type LanguageModel, Output, streamText } from 'ai';
 import { err, ok, type Result } from 'neverthrow';
 import type { CompletionsProvider } from '../../providers/CompletionsProviders';
 import { convertToModelMessages } from './utils/convertMessages';
@@ -15,29 +14,53 @@ import { convertProviderOptions } from './utils/convertProviderOptions';
 export async function* streamCompletionObject(
   ctx: Context,
   provider: CompletionsProvider,
-  model: LanguageModelV2,
+  model: LanguageModel,
   request: StructuredCompletionsRequest,
   actions = {
-    streamObject,
+    streamText,
   },
 ): AsyncGenerator<Result<ObjectStreamPart, AppError>> {
   try {
-    const response = actions.streamObject({
+    const response = actions.streamText({
       model,
       messages: convertToModelMessages(request.messages),
-      schema: jsonSchema(request.responseFormat.schema),
-      schemaName: request.responseFormat.name,
-      schemaDescription: request.responseFormat.description,
+      output: Output.object({
+        schema: jsonSchema(request.responseFormat.schema),
+        name: request.responseFormat.name,
+        description: request.responseFormat.description,
+      }),
       providerOptions: convertProviderOptions(provider),
-      mode: 'json',
-      output: 'object',
       maxRetries: 0,
       abortSignal: ctx.signal,
     });
 
-    for await (const part of response.fullStream) {
-      yield ok(part);
+    for await (const partialObject of response.partialOutputStream) {
+      yield ok({
+        type: 'object',
+        object: partialObject,
+      });
     }
+
+    const [finishReason, usage, sdkResponse, providerMetadata] =
+      await Promise.all([
+        response.finishReason,
+        response.usage,
+        response.response,
+        response.providerMetadata,
+      ]);
+
+    yield ok({
+      type: 'finish',
+      finishReason,
+      usage,
+      response: {
+        id: sdkResponse.id,
+        modelId: sdkResponse.modelId,
+        timestamp: sdkResponse.timestamp,
+        headers: sdkResponse.headers,
+      },
+      providerMetadata,
+    });
   } catch (error) {
     yield err(
       badRequest('Failed to generate streaming structured completion', {

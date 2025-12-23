@@ -10,7 +10,7 @@ import type {
 
 export function createEmbeddingsModel(
   provider: EmbeddingsProvider,
-): EmbeddingModel<string> {
+): EmbeddingModel {
   switch (provider.provider) {
     case 'openai':
       return createOpenAIEmbeddingsModel(provider);
@@ -23,20 +23,20 @@ export function createEmbeddingsModel(
 
 function createOpenAIEmbeddingsModel(
   config: OpenAIEmbeddingsProvider,
-): EmbeddingModel<string> {
+): EmbeddingModel {
   const {
     model,
     settings: { apiKey },
   } = config;
-  return createOpenAI({ apiKey }).textEmbeddingModel(model);
+  return createOpenAI({ apiKey }).embeddingModel(model);
 }
 
 function createGoogleEmbeddingsModel(
   config: GoogleEmbeddingsProvider,
-): EmbeddingModel<string> {
+): EmbeddingModel {
   const {
     model,
     settings: { apiKey },
   } = config;
-  return createGoogleGenerativeAI({ apiKey }).textEmbeddingModel(model);
+  return createGoogleGenerativeAI({ apiKey }).embeddingModel(model);
 }

@@ -16,6 +16,9 @@ import { convertStopWhen } from './convertStopWhen';
 import { convertTools } from './convertTools';
 import { mergeToolSets } from './mergeToolSets';
 
+/**
+ * The completion request structure passed to generateText/streamText.
+ */
 type CompletionRequest = {
   messages: ModelMessage[];
   tools?: ToolSet;
@@ -31,13 +34,14 @@ export function convertCompletionRequest(
 ): CompletionRequest {
   const { messages, tools } = request;
 
-  const requestTools = convertTools(tools);
   const builtinTools = convertBuiltinTools(provider);
+  const requestTools = convertTools(tools);
+  const finalTools = mergeToolSets([builtinTools, requestTools]);
 
   return {
     ...request,
     messages: convertToModelMessages(messages),
-    tools: mergeToolSets([requestTools, builtinTools]),
+    tools: finalTools,
     stopWhen: convertStopWhen(request.stopWhen),
     prepareStep: convertPrepareStep(request.prepareStep),
     onStepFinish: convertOnStepFinish(request.onStepFinish),

@@ -1,6 +1,7 @@
 // Domain - Core
 
 // Domain - AI
+export * from './domain/ai/mcp';
 export * from './domain/ai/providers/AIProviders';
 export * from './domain/ai/request';
 export * from './domain/ai/response';

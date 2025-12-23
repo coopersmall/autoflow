@@ -14,7 +14,6 @@ export type AnthropicProviderConfig = Readonly<
 export type GoogleProviderConfig = Readonly<
   zod.infer<typeof googleProviderSchema>
 >;
-export type GroqProviderConfig = Readonly<zod.infer<typeof groqProviderSchema>>;
 export type OpenRouterProviderConfig = Readonly<
   zod.infer<typeof openRouterProviderSchema>
 >;
@@ -70,21 +69,6 @@ export const googleProviderSchema = zod.strictObject({
   data: googleProviderConfigSchema,
 });
 
-const groqProviderV1Schema = zod.strictObject({
-  schemaVersion: zod.literal(1),
-  apiKey: secretIdSchema.describe('the secret containing the Groq API key'),
-});
-
-export const groqProviderConfigSchema = zod.discriminatedUnion(
-  'schemaVersion',
-  [groqProviderV1Schema],
-);
-
-export const groqProviderSchema = zod.strictObject({
-  provider: zod.literal('groq'),
-  data: groqProviderConfigSchema,
-});
-
 const openRouterProviderV1Schema = zod.strictObject({
   schemaVersion: zod.literal(1),
   apiKey: secretIdSchema.describe(
@@ -106,7 +90,6 @@ export const aiProviderConfigSchema = zod.discriminatedUnion('provider', [
   openAiProviderSchema,
   anthropicProviderSchema,
   googleProviderSchema,
-  groqProviderSchema,
   openRouterProviderSchema,
 ]);
 
@@ -137,12 +120,6 @@ export function isGoogleProviderIntegration(
   config: unknown,
 ): config is GoogleProviderConfig {
   return googleProviderSchema.safeParse(config).success;
-}
-
-export function isGroqProviderIntegration(
-  config: unknown,
-): config is GroqProviderConfig {
-  return groqProviderSchema.safeParse(config).success;
 }
 
 export function isOpenRouterProviderIntegration(
