@@ -110,6 +110,14 @@ export class AISDKMCPClient implements IMCPClient {
 
     try {
       const result = await this.sdkClient.readResource({ uri });
+      if (result.contents.length === 0) {
+        return err(
+          mcpResourceError('Resource has no contents', {
+            uri,
+            metadata: { clientId: this.id },
+          }),
+        );
+      }
       const firstContent = result.contents[0];
 
       // SDK returns text/blob as unknown, we need to handle them carefully
