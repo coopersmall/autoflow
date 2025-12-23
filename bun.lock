@@ -4,10 +4,6 @@
   "workspaces": {
     "": {
       "name": "autoflow",
-      "dependencies": {
-        "@google-cloud/storage": "^7.18.0",
-        "google-auth-library": "^10.5.0",
-      },
       "devDependencies": {
         "@biomejs/biome": "^2.3.8",
         "@types/bun": "latest",
@@ -46,11 +42,13 @@
         "@ai-sdk/groq": "catalog:ai",
         "@ai-sdk/openai": "catalog:ai",
         "@autoflow/core": "workspace:*",
+        "@google-cloud/storage": "catalog:backend",
         "@openrouter/ai-sdk-provider": "catalog:ai",
         "@polygon.io/client-js": "^8.2.0",
         "ai": "catalog:ai",
         "bullmq": "catalog:backend",
         "drizzle-orm": "catalog:backend",
+        "google-auth-library": "catalog:backend",
         "immer": "catalog:backend",
         "ioredis": "catalog:backend",
         "jose": "catalog:backend",
@@ -154,8 +152,10 @@
       "ai": "^5.0.56",
     },
     "backend": {
+      "@google-cloud/storage": "^7.18.0",
       "bullmq": "^5.64.1",
       "drizzle-orm": "^0.44.5",
+      "google-auth-library": "^10.5.0",
       "immer": "^11.0.1",
       "ioredis": "^5.8.2",
       "jose": "^6.0.11",
