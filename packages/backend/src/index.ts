@@ -1,3 +1,5 @@
+// AI
+export * from './ai/index';
 // Auth
 export * from './auth/index';
 // Infrastructure

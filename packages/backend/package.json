@@ -46,8 +46,8 @@
     "@ai-sdk/anthropic": "catalog:ai",
     "@ai-sdk/openai": "catalog:ai",
     "@ai-sdk/google": "catalog:ai",
-    "@ai-sdk/groq": "catalog:ai",
-    "@openrouter/ai-sdk-provider": "catalog:ai",
+    "@ai-sdk/mcp": "catalog:ai",
+    "@modelcontextprotocol/sdk": "catalog:ai",
     "@polygon.io/client-js": "^8.2.0"
   },
   "devDependencies": {

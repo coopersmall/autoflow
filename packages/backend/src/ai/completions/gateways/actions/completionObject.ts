@@ -5,8 +5,7 @@ import {
   type StructuredCompletionsRequest,
 } from '@autoflow/core';
 import type { Context } from '@backend/infrastructure/context/Context';
-import type { LanguageModelV2 } from '@openrouter/ai-sdk-provider';
-import { generateObject, jsonSchema } from 'ai';
+import { generateText, jsonSchema, type LanguageModel, Output } from 'ai';
 import { err, ok, type Result } from 'neverthrow';
 import type { CompletionsProvider } from '../../providers/CompletionsProviders';
 import { convertToModelMessages } from './utils/convertMessages';
@@ -15,26 +14,43 @@ import { convertProviderOptions } from './utils/convertProviderOptions';
 export async function completionObject(
   ctx: Context,
   provider: CompletionsProvider,
-  model: LanguageModelV2,
+  model: LanguageModel,
   request: StructuredCompletionsRequest,
   actions = {
-    generateObject,
+    generateText,
   },
 ): Promise<Result<ObjectResponse, AppError>> {
   try {
-    const response = await actions.generateObject({
+    const response = await actions.generateText({
       model,
       messages: convertToModelMessages(request.messages),
-      schema: jsonSchema(request.responseFormat.schema),
-      schemaName: request.responseFormat.name,
-      schemaDescription: request.responseFormat.description,
+      output: Output.object({
+        schema: jsonSchema(request.responseFormat.schema),
+        name: request.responseFormat.name,
+        description: request.responseFormat.description,
+      }),
       providerOptions: convertProviderOptions(provider),
-      mode: 'json',
-      output: 'object',
       maxRetries: 0,
       abortSignal: ctx.signal,
     });
-    return ok(response);
+
+    // Convert generateText result to ObjectResponse format
+    const objectResponse: ObjectResponse = {
+      object: response.output,
+      finishReason: response.finishReason,
+      usage: response.usage,
+      request: response.request,
+      response: {
+        id: response.response.id,
+        modelId: response.response.modelId,
+        timestamp: response.response.timestamp,
+        headers: response.response.headers,
+      },
+      warnings: response.warnings,
+      providerMetadata: response.providerMetadata,
+    };
+
+    return ok(objectResponse);
   } catch (error) {
     return err(
       badRequest('Failed to generate structured completion', {

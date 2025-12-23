@@ -4,12 +4,14 @@ import {
   type StandardCompletionsRequest,
   type TextResponse,
 } from '@autoflow/core';
+import { createMCPService } from '@backend/ai/mcp';
 import type { Context } from '@backend/infrastructure/context/Context';
-import type { LanguageModelV2 } from '@openrouter/ai-sdk-provider';
-import { generateText } from 'ai';
+import { generateText, type LanguageModel } from 'ai';
 import { err, ok, type Result } from 'neverthrow';
 import type { CompletionsProvider } from '../../providers/CompletionsProviders';
+import { closeMCPClients } from './utils/closeMCPClients';
 import { convertCompletionRequest } from './utils/convertCompletionRequest';
+import { withMCPTools } from './utils/withMCPTools';
 
 export interface CompletionRequest {
   provider: CompletionsProvider;
@@ -19,15 +21,31 @@ export interface CompletionRequest {
 export async function completion(
   ctx: Context,
   provider: CompletionsProvider,
-  model: LanguageModelV2,
+  model: LanguageModel,
   request: StandardCompletionsRequest,
   actions = {
     generateText,
+    mcpService: createMCPService(),
+    closeMCPClients,
   },
 ): Promise<Result<TextResponse, AppError>> {
+  const mcpResult = await withMCPTools({
+    request,
+    mcpService: actions.mcpService,
+  });
+
+  if (mcpResult.isErr()) {
+    return err(mcpResult.error);
+  }
+
+  const { tools: mergedTools, clients } = mcpResult.value;
+
   try {
     const response = await actions.generateText({
-      ...convertCompletionRequest(provider, request),
+      ...convertCompletionRequest(provider, {
+        ...request,
+        tools: mergedTools,
+      }),
       model,
       maxRetries: 0,
       abortSignal: ctx.signal,
@@ -40,5 +58,7 @@ export async function completion(
         cause: error,
       }),
     );
+  } finally {
+    await actions.closeMCPClients(clients);
   }
 }

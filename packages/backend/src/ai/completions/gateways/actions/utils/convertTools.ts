@@ -1,46 +1,49 @@
-import type { ExecuteFunction, Tool } from '@autoflow/core';
+import type { ToolWithExecution } from '@autoflow/core';
 import {
+  dynamicTool,
   jsonSchema,
-  type ToolCallOptions,
-  type ToolExecuteFunction,
+  type ToolExecutionOptions,
   type ToolSet,
   tool,
 } from 'ai';
 import { convertFromModelMessages } from './convertMessages';
 
-interface ToolWithExecute extends Tool {
-  execute?: ExecuteFunction;
-}
-
-export function convertTools(tools?: ToolWithExecute[]): ToolSet | undefined {
+/**
+ * Converts domain ToolWithExecution array to AI SDK ToolSet format.
+ *
+ * Uses `dynamicTool` for tools with execute functions (accepts unknown input/output)
+ * and `tool` for tools without execute functions (schema-only).
+ */
+export function convertTools(tools?: ToolWithExecution[]): ToolSet | undefined {
   if (!tools || tools.length === 0) {
     return;
   }
-  return tools.reduce<ToolSet>((toolSet, t) => {
+
+  const toolSet: ToolSet = {};
+
+  for (const t of tools) {
     const inputSchema = jsonSchema(t.function.parameters);
-    toolSet[t.function.name] = tool({
-      ...t.function,
-      inputSchema,
-    });
+    const executeFn = t.execute;
 
-    const executeFn = convertExecuteFunction(t.execute);
     if (executeFn) {
-      toolSet[t.function.name].execute = executeFn;
+      // Use dynamicTool for tools with execute - it accepts unknown input/output
+      toolSet[t.function.name] = dynamicTool({
+        description: t.function.description,
+        inputSchema,
+        execute: async (input: unknown, options: ToolExecutionOptions) => {
+          return executeFn(input, {
+            messages: convertFromModelMessages(options.messages),
+          });
+        },
+      });
+    } else {
+      // Use tool for schema-only tools without execute
+      toolSet[t.function.name] = tool({
+        description: t.function.description,
+        inputSchema,
+      });
     }
-
-    return toolSet;
-  }, {});
-}
-
-function convertExecuteFunction(
-  fn?: ExecuteFunction,
-): ToolExecuteFunction<unknown, ToolCallOptions> | undefined {
-  if (!fn) {
-    return;
   }
-  return async (input: unknown, options: ToolCallOptions) => {
-    return fn(input, {
-      messages: convertFromModelMessages(options.messages),
-    });
-  };
+
+  return toolSet;
 }

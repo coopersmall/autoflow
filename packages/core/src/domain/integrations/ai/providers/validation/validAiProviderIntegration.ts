@@ -4,9 +4,7 @@ import {
   aiProviderIntegrationSchema,
   anthropicProviderSchema,
   type GoogleProviderConfig,
-  type GroqProviderConfig,
   googleProviderSchema,
-  groqProviderSchema,
   type OpenAIProviderConfig,
   type OpenRouterProviderConfig,
   openAiProviderSchema,
@@ -38,12 +36,6 @@ export function validGoogleProviderConfig(
   input: unknown,
 ): Result<GoogleProviderConfig, AppError> {
   return validate(googleProviderSchema, input);
-}
-
-export function validGroqProviderConfig(
-  input: unknown,
-): Result<GroqProviderConfig, AppError> {
-  return validate(groqProviderSchema, input);
 }
 
 export function validOpenRouterProviderConfig(
