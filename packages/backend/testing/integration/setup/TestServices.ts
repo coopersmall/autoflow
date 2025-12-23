@@ -6,4 +6,8 @@ export class TestServices {
   static getRedisUrl(): string {
     return 'redis://localhost:6380';
   }
+
+  static getGCSEmulatorUrl(): string {
+    return 'http://localhost:4443';
+  }
 }

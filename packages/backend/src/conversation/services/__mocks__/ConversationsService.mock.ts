@@ -1,6 +1,6 @@
 import { mock } from 'bun:test';
-import { getMockedStandardService } from '@backend/__mocks__/StandardService.mock';
 import type { IConversationsService } from '@backend/conversation/domain/ConversationsService';
+import { getMockedStandardService } from '@backend/infrastructure/services/__mocks__/StandardService.mock';
 import type { Conversation, ConversationId } from '@core/domain/conversation';
 import type { ExtractMockMethods } from '@core/types';
 

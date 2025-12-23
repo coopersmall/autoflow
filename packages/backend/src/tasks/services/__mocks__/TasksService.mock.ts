@@ -1,5 +1,5 @@
 import { mock } from 'bun:test';
-import { getMockedSharedService } from '@backend/__mocks__/SharedService.mock';
+import { getMockedSharedService } from '@backend/infrastructure/services/__mocks__/SharedService.mock';
 import type { TaskId } from '@backend/tasks/domain/TaskId';
 import type { TaskRecord } from '@backend/tasks/domain/TaskRecord';
 import type { ITasksService } from '@backend/tasks/domain/TasksService';

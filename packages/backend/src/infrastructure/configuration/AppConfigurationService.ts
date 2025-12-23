@@ -20,7 +20,6 @@ type AppOverrides = Partial<Record<AppConfigKey, string>>;
 
 interface AppConfigurationServiceActions {
   getEnv: typeof getEnv;
-  getArg: typeof getArg;
 }
 
 class AppConfigurationService {
@@ -28,7 +27,6 @@ class AppConfigurationService {
     private readonly overrides: AppOverrides = {},
     private readonly actions: AppConfigurationServiceActions = {
       getEnv,
-      getArg,
     },
   ) {}
 
@@ -40,12 +38,12 @@ class AppConfigurationService {
     return this.getConfig('openAIKey');
   }
 
-  get googleGenAIKey(): string | undefined {
-    return this.getConfig('googleGenAIKey');
+  get gcpCredentials(): string | undefined {
+    return this.getConfig('gcpCredentials');
   }
 
-  get groqKey(): string | undefined {
-    return this.getConfig('groqKey');
+  get googleGenAIKey(): string | undefined {
+    return this.getConfig('googleGenAIKey');
   }
 
   get nodeEnv(): string | undefined {
@@ -76,10 +74,6 @@ class AppConfigurationService {
     return this.getConfig('redisUrl');
   }
 
-  get apiKey(): string | undefined {
-    return this.getConfig('apiKey');
-  }
-
   get siteUrl(): string | undefined {
     return this.getConfig('siteUrl');
   }
@@ -107,10 +101,6 @@ class AppConfigurationService {
     if (this.overrides[key]) {
       return this.overrides[key];
     }
-    const arg = this.actions.getArg(key);
-    if (arg) {
-      return arg;
-    }
     const envKey = appKeyToEnvMap[key];
     return this.actions.getEnv(envKey);
   }
@@ -121,17 +111,11 @@ function getEnv(key: EnvironmentVariable): string | undefined {
   return process.env[key];
 }
 
-function getArg(key: AppConfigKey): string | undefined {
-  const arg = process.argv.find((a) => a.startsWith(`--${key}=`));
-  if (!arg) return undefined;
-  return arg.split('=')[1];
-}
-
 const appKeyToEnvMap: Record<AppConfigKey, EnvironmentVariable> = {
   polygonKey: 'POLYGON_KEY',
   openAIKey: 'OPENAI_KEY',
+  gcpCredentials: 'GCP_CREDENTIALS',
   googleGenAIKey: 'GOOGLE_GEN_AI_KEY',
-  groqKey: 'GROQ_KEY',
   nodeEnv: 'NODE_ENV',
   jwtPublicKey: 'JWT_PUBLIC_KEY',
   jwtPrivateKey: 'JWT_PRIVATE_KEY',
@@ -139,7 +123,6 @@ const appKeyToEnvMap: Record<AppConfigKey, EnvironmentVariable> = {
   secretsPrivateKey: 'SECRETS_PRIVATE_KEY',
   databaseUrl: 'DATABASE_URL',
   redisUrl: 'REDIS_URL',
-  apiKey: 'API_KEY',
   siteUrl: 'SITE_URL',
   environment: 'NODE_ENV',
   site: 'SITE_URL',

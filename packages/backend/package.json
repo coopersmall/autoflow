@@ -40,6 +40,8 @@
     "pino": "catalog:backend",
     "jose": "catalog:backend",
     "immer": "catalog:backend",
+    "@google-cloud/storage": "catalog:backend",
+    "google-auth-library": "catalog:backend",
     "ai": "catalog:ai",
     "@ai-sdk/anthropic": "catalog:ai",
     "@ai-sdk/openai": "catalog:ai",

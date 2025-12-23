@@ -31,9 +31,8 @@ export const fileAssetSchema = zod
       .string()
       .optional()
       .describe('error message (present when failed)'),
-    createdAt: zod
-      .string()
-      .datetime()
+    createdAt: zod.coerce
+      .date()
       .describe('when the file asset was created (ISO 8601)'),
     expiresAt: zod
       .string()
