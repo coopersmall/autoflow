@@ -72,11 +72,17 @@ export function createGCSClient(
   return Object.freeze(new GCSClient(mechanism, logger));
 }
 
+interface StorageCredentials {
+  readonly client_email: string;
+  readonly private_key: string;
+}
+
 function createStorageInstance(
   projectId: string,
   apiEndpoint?: string,
+  credentials?: StorageCredentials,
 ): Storage {
-  return new Storage({ projectId, apiEndpoint });
+  return new Storage({ projectId, apiEndpoint, credentials });
 }
 
 // ============================================================================
@@ -86,39 +92,41 @@ function createStorageInstance(
 interface GCSClientDependencies {
   readonly createAuthClient: typeof createGCPAuthClient;
   readonly createStorageInstance: typeof createStorageInstance;
-  readonly actions: {
-    readonly uploadObject: typeof uploadObject;
-    readonly uploadObjectStream: typeof uploadObjectStream;
-    readonly downloadObject: typeof downloadObject;
-    readonly downloadObjectStream: typeof downloadObjectStream;
-    readonly deleteObject: typeof deleteObject;
-    readonly objectExists: typeof objectExists;
-    readonly getObjectMetadata: typeof getObjectMetadata;
-    readonly listObjects: typeof listObjects;
-    readonly getSignedUrl: typeof getSignedUrl;
-    readonly bucketExists: typeof bucketExists;
-    readonly createBucket: typeof createBucket;
-    readonly deleteBucket: typeof deleteBucket;
-  };
+}
+
+interface GCSClientActions {
+  readonly uploadObject: typeof uploadObject;
+  readonly uploadObjectStream: typeof uploadObjectStream;
+  readonly downloadObject: typeof downloadObject;
+  readonly downloadObjectStream: typeof downloadObjectStream;
+  readonly deleteObject: typeof deleteObject;
+  readonly objectExists: typeof objectExists;
+  readonly getObjectMetadata: typeof getObjectMetadata;
+  readonly listObjects: typeof listObjects;
+  readonly getSignedUrl: typeof getSignedUrl;
+  readonly bucketExists: typeof bucketExists;
+  readonly createBucket: typeof createBucket;
+  readonly deleteBucket: typeof deleteBucket;
 }
 
 const defaultDependencies: GCSClientDependencies = {
   createAuthClient: createGCPAuthClient,
   createStorageInstance,
-  actions: {
-    uploadObject,
-    uploadObjectStream,
-    downloadObject,
-    downloadObjectStream,
-    deleteObject,
-    objectExists,
-    getObjectMetadata,
-    listObjects,
-    getSignedUrl,
-    bucketExists,
-    createBucket,
-    deleteBucket,
-  },
+};
+
+const defaultActions: GCSClientActions = {
+  uploadObject,
+  uploadObjectStream,
+  downloadObject,
+  downloadObjectStream,
+  deleteObject,
+  objectExists,
+  getObjectMetadata,
+  listObjects,
+  getSignedUrl,
+  bucketExists,
+  createBucket,
+  deleteBucket,
 };
 
 // ============================================================================
@@ -129,12 +137,12 @@ class GCSClient implements IStorageClient {
   readonly projectId: string;
   private readonly storage: Storage;
   private readonly logger: ILogger;
-  private readonly actions: GCSClientDependencies['actions'];
 
   constructor(
     mechanism: GCPAuthMechanism,
     logger: ILogger,
     dependencies: GCSClientDependencies = defaultDependencies,
+    private readonly actions: GCSClientActions = defaultActions,
   ) {
     const authClient = dependencies.createAuthClient(
       mechanism,
@@ -142,13 +150,22 @@ class GCSClient implements IStorageClient {
       logger,
     );
 
+    // Extract credentials for signed URL support (only service_account has private_key)
+    const credentials: StorageCredentials | undefined =
+      mechanism.type === 'service_account'
+        ? {
+            client_email: mechanism.credentials.client_email,
+            private_key: mechanism.credentials.private_key,
+          }
+        : undefined;
+
     this.projectId = authClient.projectId;
     this.storage = dependencies.createStorageInstance(
       this.projectId,
       get(mechanism, 'apiEndpoint'),
+      credentials,
     );
     this.logger = logger;
-    this.actions = dependencies.actions;
   }
 
   async upload(

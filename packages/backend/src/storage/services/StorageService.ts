@@ -10,27 +10,27 @@
 import type {
   IAppConfigurationService,
   ILogger,
-} from '@backend/infrastructure';
-import type { Context } from '@backend/infrastructure/context';
-import type { FileAsset, FileReferenceReady } from '@core/domain/file';
-import { FileAssetId as createFileAssetId } from '@core/domain/file';
-import type { AppError } from '@core/errors/AppError';
-import type { Result } from 'neverthrow';
-import { deleteFile } from '../actions/deleteFile';
-import { getDownloadUrl } from '../actions/getDownloadUrl';
-import { getFile } from '../actions/getFile';
-import { getUploadUrl } from '../actions/getUploadUrl';
-import { listFiles } from '../actions/listFiles';
-import { upload } from '../actions/upload';
-import { uploadStream } from '../actions/uploadStream';
+} from "@backend/infrastructure";
+import type { Context } from "@backend/infrastructure/context";
+import type { FileAsset, FileReferenceReady } from "@core/domain/file";
+import { FileAssetId as createFileAssetId } from "@core/domain/file";
+import type { AppError } from "@core/errors/AppError";
+import type { Result } from "neverthrow";
+import { deleteFile } from "../actions/deleteFile";
+import { getDownloadUrl } from "../actions/getDownloadUrl";
+import { getFile } from "../actions/getFile";
+import { getUploadUrl } from "../actions/getUploadUrl";
+import { listFiles } from "../actions/listFiles";
+import { upload } from "../actions/upload";
+import { uploadStream } from "../actions/uploadStream";
 import {
   createStorageProvider,
   type StorageProviderConfig,
-} from '../adapters/createStorageProvider';
-import type { IUploadStateCache } from '../cache/domain/UploadStateCache';
-import { createUploadStateCache } from '../cache/UploadStateCache';
-import type { IStorageProvider } from '../domain/StorageProvider';
-import type { IStorageService } from '../domain/StorageService';
+} from "../adapters/createStorageProvider";
+import type { IUploadStateCache } from "../cache/domain/UploadStateCache";
+import { createUploadStateCache } from "../cache/UploadStateCache";
+import type { IStorageProvider } from "../domain/StorageProvider";
+import type { IStorageService } from "../domain/StorageService";
 import type {
   DeleteFileRequest,
   GetDownloadUrlRequest,
@@ -41,13 +41,42 @@ import type {
   UploadRequest,
   UploadStreamRequest,
   UploadUrlResponse,
-} from '../domain/StorageTypes';
+} from "../domain/StorageTypes";
 import {
   DEFAULT_SIGNED_URL_EXPIRATION_SECONDS,
   DEFAULT_SMALL_FILE_SIZE_THRESHOLD,
   DEFAULT_UPLOAD_STATE_TTL_SECONDS,
-} from '../domain/StorageTypes';
+} from "../domain/StorageTypes";
 
+/**
+ * Creates a new StorageService instance.
+ *
+ * The StorageService is the main entry point for file storage operations.
+ * It coordinates between the storage provider (e.g., GCS) and the upload
+ * state cache (Redis) to provide a consistent file management API.
+ *
+ * @param config - Service configuration including logger, app config, and storage provider settings
+ * @returns Frozen IStorageService instance
+ *
+ * @example
+ * ```typescript
+ * const storageService = createStorageService({
+ *   logger,
+ *   appConfig,
+ *   storageProviderConfig: {
+ *     type: 'gcs',
+ *     auth: { type: 'service_account', credentials: {...} },
+ *     bucketName: 'my-bucket',
+ *   },
+ * });
+ *
+ * // Upload a file
+ * const result = await storageService.upload(ctx, {
+ *   payload: { id: fileId, filename: 'doc.pdf', mediaType: 'application/pdf', data, size },
+ *   folder: 'users/usr_123/documents',
+ * });
+ * ```
+ */
 export function createStorageService(
   config: StorageServiceConfig,
 ): IStorageService {

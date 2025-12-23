@@ -58,8 +58,6 @@ export function createGCSStorageAdapter(
 // Implementation
 // ─────────────────────────────────────────────────────────────────────────────
 
-const _CHUNK_SIZE = 8 * 1024 * 1024; // 8MB chunks for resumable uploads
-
 class GCSStorageAdapter implements IStorageProvider {
   constructor(
     private readonly client: IStorageClient,

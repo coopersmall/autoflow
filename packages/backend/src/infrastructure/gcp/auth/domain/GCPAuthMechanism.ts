@@ -12,6 +12,11 @@ import { gcpServiceAccountCredentialsSchema } from './GCPServiceAccountCredentia
 const serviceAccountMechanismSchema = zod.strictObject({
   type: zod.literal('service_account'),
   credentials: gcpServiceAccountCredentialsSchema,
+  apiEndpoint: zod
+    .string()
+    .url()
+    .optional()
+    .describe('Custom API endpoint (for testing with GCS emulator)'),
 });
 
 const oauth2MechanismSchema = zod.strictObject({
@@ -37,22 +42,6 @@ const adcMechanismSchema = zod.strictObject({
     .describe('GCP project ID (derived from environment if not provided)'),
 });
 
-/**
- * Test auth mechanism for integration testing with GCS emulator.
- *
- * WARNING: This mechanism is ONLY for use in test environments.
- * The GCS emulator does not validate authentication.
- * NEVER use this in production code.
- */
-const testMechanismSchema = zod.strictObject({
-  type: zod.literal('test'),
-  projectId: zod.string().min(1).describe('GCP project ID for testing'),
-  apiEndpoint: zod
-    .string()
-    .url()
-    .describe('Custom API endpoint for GCS emulator'),
-});
-
 // ============================================================================
 // Discriminated Union Schema
 // ============================================================================
@@ -69,7 +58,6 @@ export const gcpAuthMechanismSchema = zod.discriminatedUnion('type', [
   serviceAccountMechanismSchema,
   oauth2MechanismSchema,
   adcMechanismSchema,
-  testMechanismSchema,
 ]);
 
 // ============================================================================
@@ -99,12 +87,6 @@ export type OAuth2Mechanism = Readonly<zod.infer<typeof oauth2MechanismSchema>>;
  * Application Default Credentials auth mechanism type.
  */
 export type ADCMechanism = Readonly<zod.infer<typeof adcMechanismSchema>>;
-
-/**
- * Test auth mechanism type.
- * WARNING: Only for use in test environments.
- */
-export type TestMechanism = Readonly<zod.infer<typeof testMechanismSchema>>;
 
 // ============================================================================
 // Validation Function

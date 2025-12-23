@@ -1,30 +1,89 @@
-import type { Context } from '@backend/infrastructure/context';
-import type { ILogger } from '@backend/infrastructure/logger/Logger';
-import type { FileAsset } from '@core/domain/file';
-import type { AppError } from '@core/errors/AppError';
-import { ok, type Result } from 'neverthrow';
+/**
+ * Upload action for streaming file uploads.
+ *
+ * This action handles uploads of files from streams, supporting files of any size
+ * with bounded memory usage. It manages upload state in cache and handles both
+ * success and failure scenarios.
+ *
+ * @module storage/actions/uploadStream
+ */
+
+import type { Context } from "@backend/infrastructure/context";
+import type { ILogger } from "@backend/infrastructure/logger/Logger";
+import type { FileAsset } from "@core/domain/file";
+import type { AppError } from "@core/errors/AppError";
+import { err, ok, type Result } from "neverthrow";
 import {
   UPLOAD_STATE_SCHEMA_VERSION,
   type UploadState,
   UploadStateId,
-} from '../cache/domain/UploadState';
-import type { IUploadStateCache } from '../cache/domain/UploadStateCache';
-import type { IStorageProvider } from '../domain/StorageProvider';
-import type { UploadStreamRequest } from '../domain/StorageTypes';
-import { buildObjectKey, sanitizeFilename } from './buildObjectKey';
+} from "../cache/domain/UploadState";
+import type { IUploadStateCache } from "../cache/domain/UploadStateCache";
+import type { IStorageProvider } from "../domain/StorageProvider";
+import type { UploadStreamRequest } from "../domain/StorageTypes";
+import { buildObjectKey, validateAndSanitizeFilename } from "./buildObjectKey";
 
+/**
+ * Dependencies required by the uploadStream action.
+ */
 export interface UploadStreamDeps {
+  /** Storage provider for file operations */
   readonly storageProvider: IStorageProvider;
+  /** Cache for tracking upload state */
   readonly uploadStateCache: IUploadStateCache;
+  /** Logger for debugging and error reporting */
   readonly logger: ILogger;
+  /** TTL in seconds for upload state in cache */
   readonly uploadStateTtlSeconds: number;
 }
 
 /**
  * Upload a file from a stream.
  *
- * Uses GCS resumable uploads.
- * Auto-cleanup on failure.
+ * This is the core upload method that handles files of any size. It uses
+ * GCS resumable uploads internally, providing automatic retry for transient
+ * failures during upload.
+ *
+ * ## State Management
+ *
+ * The upload goes through these states:
+ * 1. **uploading** - Initial state, stored in cache
+ * 2. **ready** - Upload succeeded, cache entry deleted (storage is source of truth)
+ * 3. **failed** - Upload failed, cache entry updated with error
+ *
+ * ## Error Handling
+ *
+ * On upload failure, this function returns `Ok(FileAsset)` with `state: 'failed'`
+ * rather than an error. This allows callers to inspect the failure and potentially
+ * retry. The failed state is persisted in cache for the configured TTL.
+ *
+ * @param ctx - Request context for correlation and tracing
+ * @param request - Upload request containing stream payload and folder
+ * @param deps - Dependencies (storage provider, cache, logger, etc.)
+ * @returns FileAsset with 'ready' or 'failed' state
+ *
+ * @example
+ * ```typescript
+ * const stream = file.stream(); // Get ReadableStream from File API
+ * const result = await uploadStream(ctx, {
+ *   payload: {
+ *     id: FileAssetId(),
+ *     filename: 'large-video.mp4',
+ *     mediaType: 'video/mp4',
+ *     stream,
+ *     size: file.size, // Optional but helps optimize upload
+ *   },
+ *   folder: 'users/usr_123/videos',
+ * }, deps);
+ *
+ * if (result.isOk() && result.value.state === 'ready') {
+ *   console.log('Upload complete!');
+ * } else if (result.isOk() && result.value.state === 'failed') {
+ *   console.error('Upload failed:', result.value.error);
+ * }
+ * ```
+ *
+ * @see upload - For small buffered uploads with size limit
  */
 export async function uploadStream(
   ctx: Context,
@@ -34,14 +93,21 @@ export async function uploadStream(
   const { storageProvider, uploadStateCache, logger, uploadStateTtlSeconds } =
     deps;
   const { payload, folder } = request;
-  const sanitizedFilename = sanitizeFilename(payload.filename);
+
+  // Validate and sanitize filename
+  const sanitizedResult = validateAndSanitizeFilename(payload.filename);
+  if (sanitizedResult.isErr()) {
+    return err(sanitizedResult.error);
+  }
+  const sanitizedFilename = sanitizedResult.value;
+
   const objectKey = buildObjectKey(folder, payload.id, payload.filename);
   const now = new Date();
 
-  logger.debug('Starting stream upload', {
+  logger.debug("Starting stream upload", {
     fileId: payload.id,
     objectKey,
-    size: payload.size ?? 'unknown',
+    size: payload.size ?? "unknown",
   });
 
   // Create upload state in cache
@@ -53,7 +119,7 @@ export async function uploadStream(
     sanitizedFilename,
     mediaType: payload.mediaType,
     size: payload.size,
-    state: 'uploading',
+    state: "uploading",
     createdAt: now,
     updatedAt: now,
     schemaVersion: UPLOAD_STATE_SCHEMA_VERSION,
@@ -70,7 +136,7 @@ export async function uploadStream(
     // Return a FileAsset with failed state if cache fails
     const fileAsset: FileAsset = {
       id: payload.id,
-      state: 'failed',
+      state: "failed",
       filename: sanitizedFilename,
       originalFilename: payload.filename,
       mediaType: payload.mediaType,
@@ -98,7 +164,7 @@ export async function uploadStream(
     // Upload failed - update cache to failed state
     const failedState: UploadState = {
       ...uploadState,
-      state: 'failed',
+      state: "failed",
       error: uploadResult.error.message,
       updatedAt: new Date(),
     };
@@ -110,7 +176,7 @@ export async function uploadStream(
       uploadStateTtlSeconds,
     );
 
-    logger.error('Stream upload failed', uploadResult.error, {
+    logger.error("Stream upload failed", uploadResult.error, {
       fileId: payload.id,
       objectKey,
     });
@@ -118,7 +184,7 @@ export async function uploadStream(
     // Return a FileAsset with failed state (not an error - caller gets FileAsset)
     const fileAsset: FileAsset = {
       id: payload.id,
-      state: 'failed',
+      state: "failed",
       filename: sanitizedFilename,
       originalFilename: payload.filename,
       mediaType: payload.mediaType,
@@ -133,7 +199,7 @@ export async function uploadStream(
   // Upload succeeded - delete cache state
   await uploadStateCache.del(ctx, uploadStateId);
 
-  logger.info('Stream upload completed', {
+  logger.info("Stream upload completed", {
     fileId: payload.id,
     objectKey,
     size: payload.size,
@@ -141,7 +207,7 @@ export async function uploadStream(
 
   const fileAsset: FileAsset = {
     id: payload.id,
-    state: 'ready',
+    state: "ready",
     filename: sanitizedFilename,
     originalFilename: payload.filename,
     mediaType: payload.mediaType,
