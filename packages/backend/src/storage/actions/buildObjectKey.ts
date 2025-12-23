@@ -11,10 +11,10 @@
  * @module storage/actions/buildObjectKey
  */
 
-import type { FileAssetId } from "@core/domain/file";
-import type { AppError } from "@core/errors/AppError";
-import { badRequest } from "@core/errors/factories";
-import { err, ok, type Result } from "neverthrow";
+import type { FileAssetId } from '@core/domain/file';
+import type { AppError } from '@core/errors/AppError';
+import { badRequest } from '@core/errors/factories';
+import { err, ok, type Result } from 'neverthrow';
 
 /**
  * Builds the storage object key for a file.
@@ -41,7 +41,7 @@ export function buildObjectKey(
   filename: string,
 ): string {
   const sanitized = sanitizeFilename(filename);
-  const normalizedFolder = folder.replace(/\/+$/, ""); // Remove trailing slashes
+  const normalizedFolder = folder.replace(/\/+$/, ''); // Remove trailing slashes
   return `${normalizedFolder}/${fileId}/${sanitized}`;
 }
 
@@ -64,7 +64,7 @@ export function validateAndSanitizeFilename(
   if (sanitized.length === 0) {
     return err(
       badRequest(
-        "Filename is invalid. After removing unsafe characters, the filename is empty.",
+        'Filename is invalid. After removing unsafe characters, the filename is empty.',
         {
           metadata: {
             originalFilename: filename,
@@ -90,9 +90,9 @@ export function validateAndSanitizeFilename(
  */
 export function sanitizeFilename(filename: string): string {
   return filename
-    .replace(/\.\./g, "") // Remove path traversal
-    .replace(/[<>:"|?*]/g, "_") // Replace invalid chars
-    .replace(/\//g, "_") // Replace forward slashes
-    .replace(/\\/g, "_") // Replace backslashes
+    .replace(/\.\./g, '') // Remove path traversal
+    .replace(/[<>:"|?*]/g, '_') // Replace invalid chars
+    .replace(/\//g, '_') // Replace forward slashes
+    .replace(/\\/g, '_') // Replace backslashes
     .trim();
 }

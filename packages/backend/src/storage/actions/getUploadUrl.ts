@@ -8,23 +8,23 @@
  * @module storage/actions/getUploadUrl
  */
 
-import type { Context } from "@backend/infrastructure/context";
-import type { ILogger } from "@backend/infrastructure/logger/Logger";
-import type { FileAsset, FileAssetId } from "@core/domain/file";
-import type { AppError } from "@core/errors/AppError";
-import { err, ok, type Result } from "neverthrow";
+import type { Context } from '@backend/infrastructure/context';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import type { FileAsset, FileAssetId } from '@core/domain/file';
+import type { AppError } from '@core/errors/AppError';
+import { err, ok, type Result } from 'neverthrow';
 import {
   UPLOAD_STATE_SCHEMA_VERSION,
   type UploadState,
   UploadStateId,
-} from "../cache/domain/UploadState";
-import type { IUploadStateCache } from "../cache/domain/UploadStateCache";
-import type { IStorageProvider } from "../domain/StorageProvider";
+} from '../cache/domain/UploadState';
+import type { IUploadStateCache } from '../cache/domain/UploadStateCache';
+import type { IStorageProvider } from '../domain/StorageProvider';
 import type {
   GetUploadUrlRequest,
   UploadUrlResponse,
-} from "../domain/StorageTypes";
-import { buildObjectKey, validateAndSanitizeFilename } from "./buildObjectKey";
+} from '../domain/StorageTypes';
+import { buildObjectKey, validateAndSanitizeFilename } from './buildObjectKey';
 
 /**
  * Dependencies required by the getUploadUrl action.
@@ -121,7 +121,7 @@ export async function getUploadUrl(
 
   const objectKey = buildObjectKey(request.folder, fileId, request.filename);
 
-  logger.debug("Generating upload URL", {
+  logger.debug('Generating upload URL', {
     fileId,
     objectKey,
     size: request.size,
@@ -147,7 +147,7 @@ export async function getUploadUrl(
     sanitizedFilename,
     mediaType: request.mediaType,
     size: request.size,
-    state: "uploading",
+    state: 'uploading',
     createdAt: now,
     schemaVersion: UPLOAD_STATE_SCHEMA_VERSION,
   };
@@ -170,7 +170,7 @@ export async function getUploadUrl(
 
   const fileAsset: FileAsset = {
     id: fileId,
-    state: "uploading",
+    state: 'uploading',
     filename: sanitizedFilename,
     originalFilename: request.filename,
     mediaType: request.mediaType,

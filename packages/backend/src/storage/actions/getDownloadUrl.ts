@@ -7,17 +7,17 @@
  * @module storage/actions/getDownloadUrl
  */
 
-import type { Context } from "@backend/infrastructure/context";
-import type { ILogger } from "@backend/infrastructure/logger/Logger";
-import type { FileReferenceReady } from "@core/domain/file";
-import { fileAssetIdSchema } from "@core/domain/file";
-import { notFound } from "@core/errors";
-import type { AppError } from "@core/errors/AppError";
-import { validate } from "@core/validation/validate";
-import { err, ok, type Result } from "neverthrow";
-import type { IStorageProvider } from "../domain/StorageProvider";
-import type { GetDownloadUrlRequest } from "../domain/StorageTypes";
-import { buildObjectKey } from "./buildObjectKey";
+import type { Context } from '@backend/infrastructure/context';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import type { FileReferenceReady } from '@core/domain/file';
+import { fileAssetIdSchema } from '@core/domain/file';
+import { notFound } from '@core/errors';
+import type { AppError } from '@core/errors/AppError';
+import { validate } from '@core/validation/validate';
+import { err, ok, type Result } from 'neverthrow';
+import type { IStorageProvider } from '../domain/StorageProvider';
+import type { GetDownloadUrlRequest } from '../domain/StorageTypes';
+import { buildObjectKey } from './buildObjectKey';
 
 /**
  * Dependencies required by the getDownloadUrl action.
@@ -96,7 +96,7 @@ export async function getDownloadUrl(
   const metadata = metadataResult.value;
   if (!metadata) {
     return err(
-      notFound("File not found", {
+      notFound('File not found', {
         metadata: { fileId, objectKey },
       }),
     );
@@ -112,14 +112,14 @@ export async function getDownloadUrl(
     return err(signedUrlResult.error);
   }
 
-  logger.debug("Generated download URL", {
+  logger.debug('Generated download URL', {
     correlationId: ctx.correlationId,
     fileId,
     objectKey,
   });
 
   const fileReference: FileReferenceReady = {
-    status: "ready",
+    status: 'ready',
     id: fileId,
     url: signedUrlResult.value,
     mediaType: metadata.contentType,

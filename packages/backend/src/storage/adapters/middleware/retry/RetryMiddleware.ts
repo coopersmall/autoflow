@@ -7,9 +7,9 @@
  * @module storage/adapters/middleware/retry/RetryMiddleware
  */
 
-import type { AppError } from "@core/errors/AppError";
-import type { Result } from "neverthrow";
-import type { RetryConfig } from "../../../domain/MiddlewareConfig";
+import type { AppError } from '@core/errors/AppError';
+import type { Result } from 'neverthrow';
+import type { RetryConfig } from '../../../domain/MiddlewareConfig';
 import type {
   IStorageProvider,
   ListOptions,
@@ -17,8 +17,8 @@ import type {
   ObjectMetadata,
   PutStreamOptions,
   SignedUploadUrlOptions,
-} from "../../../domain/StorageProvider";
-import { withRetry } from "./actions/withRetry";
+} from '../../../domain/StorageProvider';
+import { withRetry } from './actions/withRetry';
 
 /**
  * Creates a retry middleware that wraps a storage provider.

@@ -22,8 +22,8 @@
  * @see UploadStateId - The key type for this cache
  */
 
-import type { ISharedCache } from "@backend/infrastructure/cache/SharedCache";
-import type { UploadState, UploadStateId } from "./UploadState";
+import type { ISharedCache } from '@backend/infrastructure/cache/SharedCache';
+import type { UploadState, UploadStateId } from './UploadState';
 
 /**
  * Cache interface for upload state tracking.

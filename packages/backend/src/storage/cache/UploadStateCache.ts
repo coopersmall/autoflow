@@ -8,15 +8,15 @@
  * @module storage/cache/UploadStateCache
  */
 
-import { SharedCache } from "@backend/infrastructure/cache/SharedCache";
-import type { IAppConfigurationService } from "@backend/infrastructure/configuration/AppConfigurationService";
-import type { ILogger } from "@backend/infrastructure/logger/Logger";
+import { SharedCache } from '@backend/infrastructure/cache/SharedCache';
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import {
   type UploadState,
   type UploadStateId,
   validUploadState,
-} from "./domain/UploadState";
-import type { IUploadStateCache } from "./domain/UploadStateCache";
+} from './domain/UploadState';
+import type { IUploadStateCache } from './domain/UploadStateCache';
 
 /**
  * Creates an upload state cache instance.
@@ -53,7 +53,7 @@ class UploadStateCache
   implements IUploadStateCache
 {
   constructor(logger: ILogger, appConfig: IAppConfigurationService) {
-    super("upload-state", {
+    super('upload-state', {
       appConfig,
       logger,
       validator: validUploadState,

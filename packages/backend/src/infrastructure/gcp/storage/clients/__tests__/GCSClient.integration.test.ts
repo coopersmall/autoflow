@@ -8,14 +8,14 @@
  * Uses property-based testing for core invariants like upload/download round-trips.
  */
 
-import { afterAll, afterEach, beforeAll, describe, expect, it } from "bun:test";
-import { Readable } from "node:stream";
-import { getMockedLogger } from "@backend/infrastructure/logger/__mocks__/Logger.mock";
-import type { ILogger } from "@backend/infrastructure/logger/Logger";
-import { TestServices } from "@backend/testing/integration/setup/TestServices";
-import * as fc from "fast-check";
-import type { IStorageClient } from "../../domain/StorageClient";
-import { createGCSClient } from "../GCSClient";
+import { afterAll, afterEach, beforeAll, describe, expect, it } from 'bun:test';
+import { Readable } from 'node:stream';
+import { getMockedLogger } from '@backend/infrastructure/logger/__mocks__/Logger.mock';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import { TestServices } from '@backend/testing/integration/setup/TestServices';
+import * as fc from 'fast-check';
+import type { IStorageClient } from '../../domain/StorageClient';
+import { createGCSClient } from '../GCSClient';
 
 // ============================================================================
 // Test Setup
@@ -24,7 +24,7 @@ import { createGCSClient } from "../GCSClient";
 /**
  * Creates a unique bucket name for test isolation.
  */
-function createUniqueBucketName(prefix = "test"): string {
+function createUniqueBucketName(prefix = 'test'): string {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
@@ -43,7 +43,7 @@ async function streamToBuffer(stream: Readable): Promise<Buffer> {
 // Integration Tests
 // ============================================================================
 
-describe("GCSClient Integration Tests", () => {
+describe('GCSClient Integration Tests', () => {
   let client: IStorageClient;
   let logger: ILogger;
   let testBucket: string;
@@ -57,7 +57,7 @@ describe("GCSClient Integration Tests", () => {
     client = createGCSClient(authMechanism, logger);
 
     // Create a shared test bucket
-    testBucket = createUniqueBucketName("integration");
+    testBucket = createUniqueBucketName('integration');
     bucketsToCleanup.push(testBucket);
 
     const createResult = await client.createBucket({ bucketName: testBucket });
@@ -72,7 +72,7 @@ describe("GCSClient Integration Tests", () => {
     // Clean up objects in the test bucket after each test
     const listResult = await client.list({
       bucketName: testBucket,
-      prefix: "",
+      prefix: '',
     });
     if (listResult.isOk()) {
       for (const file of listResult.value.files) {
@@ -88,7 +88,7 @@ describe("GCSClient Integration Tests", () => {
     // Clean up all test buckets
     for (const bucket of bucketsToCleanup) {
       // Delete all objects first
-      const listResult = await client.list({ bucketName: bucket, prefix: "" });
+      const listResult = await client.list({ bucketName: bucket, prefix: '' });
       if (listResult.isOk()) {
         for (const file of listResult.value.files) {
           await client.delete({ bucketName: bucket, objectName: file.name });
@@ -102,12 +102,12 @@ describe("GCSClient Integration Tests", () => {
   // Factory and Initialization Tests
   // ============================================================================
 
-  describe("Factory and Initialization", () => {
-    it("should create a client with the correct project ID", () => {
-      expect(client.projectId).toBe("test-project");
+  describe('Factory and Initialization', () => {
+    it('should create a client with the correct project ID', () => {
+      expect(client.projectId).toBe('test-project');
     });
 
-    it("should create a frozen (immutable) client instance", () => {
+    it('should create a frozen (immutable) client instance', () => {
       expect(Object.isFrozen(client)).toBe(true);
     });
   });
@@ -116,14 +116,14 @@ describe("GCSClient Integration Tests", () => {
   // Property-Based Tests
   // ============================================================================
 
-  describe("Property Tests", () => {
+  describe('Property Tests', () => {
     // Arbitraries
     const binaryDataArb = fc
       .uint8Array({ minLength: 0, maxLength: 10000 })
       .map((arr) => Buffer.from(arr));
     const objectNameArb = fc
       .stringMatching(/^[a-zA-Z0-9][a-zA-Z0-9_\-./]*$/)
-      .filter((s) => s.length >= 1 && s.length <= 200 && !s.endsWith("/"));
+      .filter((s) => s.length >= 1 && s.length <= 200 && !s.endsWith('/'));
     const metadataKeyArb = fc
       .stringMatching(/^[a-zA-Z][a-zA-Z0-9_-]*$/)
       .filter((s) => s.length >= 1 && s.length <= 50);
@@ -133,7 +133,7 @@ describe("GCSClient Integration Tests", () => {
       maxKeys: 5,
     });
 
-    it("should preserve data through upload/download round-trip", async () => {
+    it('should preserve data through upload/download round-trip', async () => {
       await fc.assert(
         fc.asyncProperty(
           binaryDataArb,
@@ -160,7 +160,7 @@ describe("GCSClient Integration Tests", () => {
       );
     });
 
-    it("should preserve custom metadata through upload", async () => {
+    it('should preserve custom metadata through upload', async () => {
       await fc.assert(
         fc.asyncProperty(
           binaryDataArb,
@@ -189,13 +189,13 @@ describe("GCSClient Integration Tests", () => {
       );
     });
 
-    it("should preserve object names including nested paths", async () => {
+    it('should preserve object names including nested paths', async () => {
       const nestedPathArb = fc
         .array(fc.stringMatching(/^[a-zA-Z0-9_-]+$/), {
           minLength: 1,
           maxLength: 5,
         })
-        .map((parts) => parts.join("/"));
+        .map((parts) => parts.join('/'));
 
       await fc.assert(
         fc.asyncProperty(
@@ -225,7 +225,7 @@ describe("GCSClient Integration Tests", () => {
       );
     });
 
-    it("should remove object after delete", async () => {
+    it('should remove object after delete', async () => {
       await fc.assert(
         fc.asyncProperty(
           binaryDataArb,
@@ -267,7 +267,7 @@ describe("GCSClient Integration Tests", () => {
       );
     });
 
-    it("should list all uploaded objects", async () => {
+    it('should list all uploaded objects', async () => {
       const objectNamesArb = fc
         .array(
           fc
@@ -279,7 +279,7 @@ describe("GCSClient Integration Tests", () => {
 
       await fc.assert(
         fc.asyncProperty(objectNamesArb, async (objectNames) => {
-          const data = Buffer.from("test content");
+          const data = Buffer.from('test content');
 
           // Upload all objects
           for (const objectName of objectNames) {
@@ -306,7 +306,7 @@ describe("GCSClient Integration Tests", () => {
       );
     });
 
-    it("should filter objects by prefix", async () => {
+    it('should filter objects by prefix', async () => {
       const prefixArb = fc
         .stringMatching(/^[a-z]+$/)
         .filter((s) => s.length >= 2 && s.length <= 10);
@@ -316,7 +316,7 @@ describe("GCSClient Integration Tests", () => {
 
       await fc.assert(
         fc.asyncProperty(prefixArb, suffixArb, async (prefix, suffix) => {
-          const data = Buffer.from("test content");
+          const data = Buffer.from('test content');
           const matchingName = `${prefix}/${suffix}`;
           const nonMatchingName = `other-${suffix}`;
 
@@ -349,7 +349,7 @@ describe("GCSClient Integration Tests", () => {
       );
     });
 
-    it("should accurately report object existence", async () => {
+    it('should accurately report object existence', async () => {
       await fc.assert(
         fc.asyncProperty(objectNameArb, async (baseName) => {
           // Use unique prefix to avoid collisions with other property tests
@@ -367,7 +367,7 @@ describe("GCSClient Integration Tests", () => {
           const uploadResult = await client.upload({
             bucketName: testBucket,
             objectName,
-            data: Buffer.from("test"),
+            data: Buffer.from('test'),
           });
           expect(uploadResult.isOk()).toBe(true);
 
@@ -383,9 +383,9 @@ describe("GCSClient Integration Tests", () => {
       );
     });
 
-    it("should isolate objects between buckets", async () => {
-      const bucket1 = createUniqueBucketName("iso1");
-      const bucket2 = createUniqueBucketName("iso2");
+    it('should isolate objects between buckets', async () => {
+      const bucket1 = createUniqueBucketName('iso1');
+      const bucket2 = createUniqueBucketName('iso2');
       bucketsToCleanup.push(bucket1, bucket2);
 
       await client.createBucket({ bucketName: bucket1 });
@@ -425,16 +425,16 @@ describe("GCSClient Integration Tests", () => {
   // CRUD Operation Tests
   // ============================================================================
 
-  describe("CRUD Operations", () => {
-    it("should upload and download a simple file", async () => {
-      const objectName = "simple-file.txt";
-      const content = Buffer.from("Hello, GCS!");
+  describe('CRUD Operations', () => {
+    it('should upload and download a simple file', async () => {
+      const objectName = 'simple-file.txt';
+      const content = Buffer.from('Hello, GCS!');
 
       const uploadResult = await client.upload({
         bucketName: testBucket,
         objectName,
         data: content,
-        contentType: "text/plain",
+        contentType: 'text/plain',
       });
 
       expect(uploadResult.isOk()).toBe(true);
@@ -449,19 +449,19 @@ describe("GCSClient Integration Tests", () => {
       });
 
       expect(downloadResult.isOk()).toBe(true);
-      expect(downloadResult._unsafeUnwrap().toString()).toBe("Hello, GCS!");
+      expect(downloadResult._unsafeUnwrap().toString()).toBe('Hello, GCS!');
     });
 
-    it("should upload via stream and download", async () => {
-      const objectName = "stream-file.txt";
-      const content = "Stream content for testing";
+    it('should upload via stream and download', async () => {
+      const objectName = 'stream-file.txt';
+      const content = 'Stream content for testing';
       const stream = Readable.from([content]);
 
       const uploadResult = await client.uploadStream({
         bucketName: testBucket,
         objectName,
         stream,
-        contentType: "text/plain",
+        contentType: 'text/plain',
       });
 
       expect(uploadResult.isOk()).toBe(true);
@@ -475,9 +475,9 @@ describe("GCSClient Integration Tests", () => {
       expect(downloadResult._unsafeUnwrap().toString()).toBe(content);
     });
 
-    it("should download as stream", async () => {
-      const objectName = "download-stream.txt";
-      const content = Buffer.from("Content to stream download");
+    it('should download as stream', async () => {
+      const objectName = 'download-stream.txt';
+      const content = Buffer.from('Content to stream download');
 
       await client.upload({
         bucketName: testBucket,
@@ -497,16 +497,16 @@ describe("GCSClient Integration Tests", () => {
       expect(downloadedBuffer.equals(content)).toBe(true);
     });
 
-    it("should get object metadata", async () => {
-      const objectName = "metadata-test.txt";
-      const content = Buffer.from("Content for metadata test");
+    it('should get object metadata', async () => {
+      const objectName = 'metadata-test.txt';
+      const content = Buffer.from('Content for metadata test');
 
       await client.upload({
         bucketName: testBucket,
         objectName,
         data: content,
-        contentType: "text/plain",
-        metadata: { customKey: "customValue" },
+        contentType: 'text/plain',
+        metadata: { customKey: 'customValue' },
       });
 
       const metadataResult = await client.getMetadata({
@@ -521,17 +521,17 @@ describe("GCSClient Integration Tests", () => {
       expect(metadata?.size).toBe(content.length);
     });
 
-    it("should return null for non-existent object metadata", async () => {
+    it('should return null for non-existent object metadata', async () => {
       const metadataResult = await client.getMetadata({
         bucketName: testBucket,
-        objectName: "does-not-exist-metadata.txt",
+        objectName: 'does-not-exist-metadata.txt',
       });
 
       expect(metadataResult.isOk()).toBe(true);
       expect(metadataResult._unsafeUnwrap()).toBeNull();
     });
 
-    it("should list objects with pagination", async () => {
+    it('should list objects with pagination', async () => {
       // Upload several objects
       for (let i = 0; i < 5; i++) {
         await client.upload({
@@ -544,7 +544,7 @@ describe("GCSClient Integration Tests", () => {
       // List with small page size
       const page1Result = await client.list({
         bucketName: testBucket,
-        prefix: "paginate-",
+        prefix: 'paginate-',
         maxResults: 2,
       });
 
@@ -556,7 +556,7 @@ describe("GCSClient Integration Tests", () => {
       if (page1.nextPageToken) {
         const page2Result = await client.list({
           bucketName: testBucket,
-          prefix: "paginate-",
+          prefix: 'paginate-',
           maxResults: 2,
           pageToken: page1.nextPageToken,
         });
@@ -566,20 +566,20 @@ describe("GCSClient Integration Tests", () => {
       }
     });
 
-    it("should check bucket existence", async () => {
+    it('should check bucket existence', async () => {
       const existsResult = await client.bucketExists(testBucket);
       expect(existsResult.isOk()).toBe(true);
       expect(existsResult._unsafeUnwrap()).toBe(true);
 
       const notExistsResult = await client.bucketExists(
-        "definitely-does-not-exist-12345",
+        'definitely-does-not-exist-12345',
       );
       expect(notExistsResult.isOk()).toBe(true);
       expect(notExistsResult._unsafeUnwrap()).toBe(false);
     });
 
-    it("should create and delete a bucket", async () => {
-      const newBucket = createUniqueBucketName("create-delete-test");
+    it('should create and delete a bucket', async () => {
+      const newBucket = createUniqueBucketName('create-delete-test');
 
       // Create
       const createResult = await client.createBucket({ bucketName: newBucket });
@@ -605,30 +605,30 @@ describe("GCSClient Integration Tests", () => {
   // Signed URL Tests
   // ============================================================================
 
-  describe("Signed URLs", () => {
-    it("should generate a signed read URL", async () => {
-      const objectName = "signed-read-test.txt";
-      const content = "Content for signed URL read test";
+  describe('Signed URLs', () => {
+    it('should generate a signed read URL', async () => {
+      const objectName = 'signed-read-test.txt';
+      const content = 'Content for signed URL read test';
 
       // Upload file first
       await client.upload({
         bucketName: testBucket,
         objectName,
         data: Buffer.from(content),
-        contentType: "text/plain",
+        contentType: 'text/plain',
       });
 
       // Generate signed read URL
       const signedUrlResult = await client.getSignedUrl({
         bucketName: testBucket,
         objectName,
-        action: "read",
+        action: 'read',
         expiresInSeconds: 3600,
       });
 
       expect(signedUrlResult.isOk()).toBe(true);
       const signedUrl = signedUrlResult._unsafeUnwrap();
-      expect(signedUrl).toContain("localhost:4443");
+      expect(signedUrl).toContain('localhost:4443');
       expect(signedUrl).toContain(testBucket);
       expect(signedUrl).toContain(objectName);
 
@@ -639,26 +639,26 @@ describe("GCSClient Integration Tests", () => {
       expect(downloadedContent).toBe(content);
     });
 
-    it("should generate a signed write URL", async () => {
-      const objectName = "signed-write-test.txt";
-      const content = "Content uploaded via signed URL";
+    it('should generate a signed write URL', async () => {
+      const objectName = 'signed-write-test.txt';
+      const content = 'Content uploaded via signed URL';
 
       // Generate signed write URL
       const signedUrlResult = await client.getSignedUrl({
         bucketName: testBucket,
         objectName,
-        action: "write",
+        action: 'write',
         expiresInSeconds: 3600,
       });
 
       expect(signedUrlResult.isOk()).toBe(true);
       const signedUrl = signedUrlResult._unsafeUnwrap();
-      expect(signedUrl).toContain("localhost:4443");
+      expect(signedUrl).toContain('localhost:4443');
 
       // Actually upload via the signed URL
       const uploadResponse = await fetch(signedUrl, {
-        method: "PUT",
-        headers: { "Content-Type": "text/plain" },
+        method: 'PUT',
+        headers: { 'Content-Type': 'text/plain' },
         body: content,
       });
       expect(uploadResponse.ok).toBe(true);
@@ -677,28 +677,28 @@ describe("GCSClient Integration Tests", () => {
   // Error Handling Tests
   // ============================================================================
 
-  describe("Error Handling", () => {
-    it("should return NotFound error when downloading non-existent object", async () => {
+  describe('Error Handling', () => {
+    it('should return NotFound error when downloading non-existent object', async () => {
       const downloadResult = await client.download({
         bucketName: testBucket,
-        objectName: "does-not-exist.txt",
+        objectName: 'does-not-exist.txt',
       });
 
       expect(downloadResult.isErr()).toBe(true);
-      expect(downloadResult._unsafeUnwrapErr().code).toBe("NotFound");
+      expect(downloadResult._unsafeUnwrapErr().code).toBe('NotFound');
     });
 
-    it("should return NotFound error when deleting non-existent object", async () => {
+    it('should return NotFound error when deleting non-existent object', async () => {
       const deleteResult = await client.delete({
         bucketName: testBucket,
-        objectName: "does-not-exist-delete.txt",
+        objectName: 'does-not-exist-delete.txt',
       });
 
       expect(deleteResult.isErr()).toBe(true);
-      expect(deleteResult._unsafeUnwrapErr().code).toBe("NotFound");
+      expect(deleteResult._unsafeUnwrapErr().code).toBe('NotFound');
     });
 
-    it("should return error (not throw) for operations on non-existent bucket", async () => {
+    it('should return error (not throw) for operations on non-existent bucket', async () => {
       // Arbitrary for bucket names that definitely don't exist
       const nonExistentBucketArb = fc
         .stringMatching(/^[a-z][a-z0-9-]{5,20}$/)
@@ -709,7 +709,7 @@ describe("GCSClient Integration Tests", () => {
           // All operations should return Result errors, not throw
           const downloadResult = await client.download({
             bucketName,
-            objectName: "test.txt",
+            objectName: 'test.txt',
           });
           expect(downloadResult.isErr()).toBe(true);
 
@@ -718,7 +718,7 @@ describe("GCSClient Integration Tests", () => {
 
           const existsResult = await client.exists({
             bucketName,
-            objectName: "test.txt",
+            objectName: 'test.txt',
           });
           // exists() may return Ok(false) or Err depending on implementation
           // The key property is it doesn't throw
@@ -728,15 +728,15 @@ describe("GCSClient Integration Tests", () => {
       );
     });
 
-    it("should return error (not throw) for invalid object names", async () => {
+    it('should return error (not throw) for invalid object names', async () => {
       // GCS disallows: null bytes, carriage returns, line feeds
       // Also objects cannot be named "." or ".."
       const invalidObjectNameArb = fc.oneof(
-        fc.constant("."),
-        fc.constant(".."),
-        fc.constant("test\x00file"), // null byte
-        fc.constant("test\nfile"), // newline
-        fc.constant("test\rfile"), // carriage return
+        fc.constant('.'),
+        fc.constant('..'),
+        fc.constant('test\x00file'), // null byte
+        fc.constant('test\nfile'), // newline
+        fc.constant('test\rfile'), // carriage return
       );
 
       await fc.assert(
@@ -744,7 +744,7 @@ describe("GCSClient Integration Tests", () => {
           const uploadResult = await client.upload({
             bucketName: testBucket,
             objectName,
-            data: Buffer.from("test"),
+            data: Buffer.from('test'),
           });
           // Should either succeed (if emulator is lenient) or return error
           // The key property is it doesn't throw an unhandled exception
@@ -759,9 +759,9 @@ describe("GCSClient Integration Tests", () => {
   // Edge Case Tests
   // ============================================================================
 
-  describe("Edge Cases", () => {
-    it("should handle empty file", async () => {
-      const objectName = "empty-file.txt";
+  describe('Edge Cases', () => {
+    it('should handle empty file', async () => {
+      const objectName = 'empty-file.txt';
       const content = Buffer.alloc(0);
 
       const uploadResult = await client.upload({
@@ -780,8 +780,8 @@ describe("GCSClient Integration Tests", () => {
       expect(downloadResult._unsafeUnwrap().length).toBe(0);
     });
 
-    it("should handle binary data with all byte values", async () => {
-      const objectName = "binary-all-bytes.bin";
+    it('should handle binary data with all byte values', async () => {
+      const objectName = 'binary-all-bytes.bin';
       // Create buffer with all 256 byte values
       const content = Buffer.alloc(256);
       for (let i = 0; i < 256; i++) {
@@ -803,9 +803,9 @@ describe("GCSClient Integration Tests", () => {
       expect(downloadResult._unsafeUnwrap().equals(content)).toBe(true);
     });
 
-    it("should handle deeply nested object paths", async () => {
-      const objectName = "level1/level2/level3/level4/level5/deep-file.txt";
-      const content = Buffer.from("Deep content");
+    it('should handle deeply nested object paths', async () => {
+      const objectName = 'level1/level2/level3/level4/level5/deep-file.txt';
+      const content = Buffer.from('Deep content');
 
       const uploadResult = await client.upload({
         bucketName: testBucket,
@@ -819,12 +819,12 @@ describe("GCSClient Integration Tests", () => {
         objectName,
       });
       expect(downloadResult.isOk()).toBe(true);
-      expect(downloadResult._unsafeUnwrap().toString()).toBe("Deep content");
+      expect(downloadResult._unsafeUnwrap().toString()).toBe('Deep content');
 
       // Verify listing with prefix works
       const listResult = await client.list({
         bucketName: testBucket,
-        prefix: "level1/level2/",
+        prefix: 'level1/level2/',
       });
       expect(listResult.isOk()).toBe(true);
       expect(
@@ -832,9 +832,9 @@ describe("GCSClient Integration Tests", () => {
       ).toBe(true);
     });
 
-    it("should handle special characters in object names", async () => {
-      const objectName = "special_chars-file.test.txt";
-      const content = Buffer.from("Special chars content");
+    it('should handle special characters in object names', async () => {
+      const objectName = 'special_chars-file.test.txt';
+      const content = Buffer.from('Special chars content');
 
       const uploadResult = await client.upload({
         bucketName: testBucket,
@@ -851,7 +851,7 @@ describe("GCSClient Integration Tests", () => {
       expect(existsResult._unsafeUnwrap()).toBe(true);
     });
 
-    it("should handle concurrent uploads to different objects", async () => {
+    it('should handle concurrent uploads to different objects', async () => {
       const uploads = Array.from({ length: 10 }, (_, i) => ({
         objectName: `concurrent-${i}.txt`,
         data: Buffer.from(`content-${i}`),
@@ -876,23 +876,23 @@ describe("GCSClient Integration Tests", () => {
       // Verify all exist
       const listResult = await client.list({
         bucketName: testBucket,
-        prefix: "concurrent-",
+        prefix: 'concurrent-',
       });
       expect(listResult.isOk()).toBe(true);
       expect(listResult._unsafeUnwrap().files.length).toBe(10);
     });
 
-    it("should handle large file upload via stream", async () => {
-      const objectName = "large-stream-file.bin";
+    it('should handle large file upload via stream', async () => {
+      const objectName = 'large-stream-file.bin';
       // 1MB file
-      const content = Buffer.alloc(1024 * 1024, "x");
+      const content = Buffer.alloc(1024 * 1024, 'x');
       const stream = Readable.from([content]);
 
       const uploadResult = await client.uploadStream({
         bucketName: testBucket,
         objectName,
         stream,
-        contentType: "application/octet-stream",
+        contentType: 'application/octet-stream',
       });
 
       expect(uploadResult.isOk()).toBe(true);

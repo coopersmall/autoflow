@@ -7,18 +7,18 @@
  * @module storage/actions/deleteFile
  */
 
-import type { Context } from "@backend/infrastructure/context";
-import type { ILogger } from "@backend/infrastructure/logger/Logger";
-import { fileAssetIdSchema } from "@core/domain/file";
-import type { AppError } from "@core/errors/AppError";
-import { notFound } from "@core/errors/factories";
-import { validate } from "@core/validation/validate";
-import { err, ok, type Result } from "neverthrow";
-import { UploadStateId } from "../cache/domain/UploadState";
-import type { IUploadStateCache } from "../cache/domain/UploadStateCache";
-import type { IStorageProvider } from "../domain/StorageProvider";
-import type { DeleteFileRequest } from "../domain/StorageTypes";
-import { buildObjectKey } from "./buildObjectKey";
+import type { Context } from '@backend/infrastructure/context';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import { fileAssetIdSchema } from '@core/domain/file';
+import type { AppError } from '@core/errors/AppError';
+import { notFound } from '@core/errors/factories';
+import { validate } from '@core/validation/validate';
+import { err, ok, type Result } from 'neverthrow';
+import { UploadStateId } from '../cache/domain/UploadState';
+import type { IUploadStateCache } from '../cache/domain/UploadStateCache';
+import type { IStorageProvider } from '../domain/StorageProvider';
+import type { DeleteFileRequest } from '../domain/StorageTypes';
+import { buildObjectKey } from './buildObjectKey';
 
 /**
  * Dependencies required by the deleteFile action.
@@ -80,7 +80,7 @@ export async function deleteFile(
   const fileId = fileIdResult.value;
   const objectKey = buildObjectKey(request.folder, fileId, request.filename);
 
-  logger.debug("Deleting file", { fileId, objectKey });
+  logger.debug('Deleting file', { fileId, objectKey });
 
   // Check if file exists before deleting
   const existsResult = await storageProvider.exists(objectKey);
@@ -90,7 +90,7 @@ export async function deleteFile(
 
   if (!existsResult.value) {
     return err(
-      notFound("File not found", {
+      notFound('File not found', {
         metadata: {
           fileId,
           folder: request.folder,
@@ -111,7 +111,7 @@ export async function deleteFile(
   const uploadStateId = UploadStateId(fileId);
   await uploadStateCache.del(ctx, uploadStateId);
 
-  logger.info("File deleted", { fileId, objectKey });
+  logger.info('File deleted', { fileId, objectKey });
 
   return ok(undefined);
 }

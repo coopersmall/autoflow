@@ -8,18 +8,18 @@
  * @module storage/actions/getFile
  */
 
-import type { Context } from "@backend/infrastructure/context";
-import type { FileAsset } from "@core/domain/file";
-import { fileAssetIdSchema } from "@core/domain/file";
-import { notFound } from "@core/errors";
-import type { AppError } from "@core/errors/AppError";
-import { validate } from "@core/validation/validate";
-import { err, ok, type Result } from "neverthrow";
-import { UploadStateId } from "../cache/domain/UploadState";
-import type { IUploadStateCache } from "../cache/domain/UploadStateCache";
-import type { IStorageProvider } from "../domain/StorageProvider";
-import type { GetFileRequest } from "../domain/StorageTypes";
-import { buildObjectKey, sanitizeFilename } from "./buildObjectKey";
+import type { Context } from '@backend/infrastructure/context';
+import type { FileAsset } from '@core/domain/file';
+import { fileAssetIdSchema } from '@core/domain/file';
+import { notFound } from '@core/errors';
+import type { AppError } from '@core/errors/AppError';
+import { validate } from '@core/validation/validate';
+import { err, ok, type Result } from 'neverthrow';
+import { UploadStateId } from '../cache/domain/UploadState';
+import type { IUploadStateCache } from '../cache/domain/UploadStateCache';
+import type { IStorageProvider } from '../domain/StorageProvider';
+import type { GetFileRequest } from '../domain/StorageTypes';
+import { buildObjectKey, sanitizeFilename } from './buildObjectKey';
 
 /**
  * Dependencies required by the getFile action.
@@ -107,7 +107,7 @@ export async function getFile(
     const storedOriginalFilename = metadata.metadata?.originalFilename;
     return ok({
       id: fileId,
-      state: "ready",
+      state: 'ready',
       filename: sanitizedFilename,
       originalFilename: storedOriginalFilename ?? request.filename,
       mediaType: metadata.contentType,
@@ -122,9 +122,9 @@ export async function getFile(
   const cacheResult = await uploadStateCache.get(ctx, uploadStateId);
 
   if (cacheResult.isErr()) {
-    if (cacheResult.error.code === "NotFound") {
+    if (cacheResult.error.code === 'NotFound') {
       return err(
-        notFound("File not found", {
+        notFound('File not found', {
           metadata: { fileId, objectKey },
         }),
       );
@@ -149,7 +149,7 @@ export async function getFile(
 
   // 3. Not in storage, not in cache
   return err(
-    notFound("File not found", {
+    notFound('File not found', {
       metadata: { fileId, objectKey },
     }),
   );

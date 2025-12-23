@@ -8,18 +8,18 @@
  * @module storage/actions/upload
  */
 
-import type { Context } from "@backend/infrastructure/context";
-import type { ILogger } from "@backend/infrastructure/logger/Logger";
-import type { FileAsset } from "@core/domain/file";
-import type { AppError } from "@core/errors/AppError";
-import { badRequest } from "@core/errors/factories";
-import type { Result } from "neverthrow";
-import { err } from "neverthrow";
-import type { IUploadStateCache } from "../cache/domain/UploadStateCache";
-import type { IStorageProvider } from "../domain/StorageProvider";
-import type { UploadRequest } from "../domain/StorageTypes";
-import { bufferToStream } from "./bufferToStream";
-import { type UploadStreamDeps, uploadStream } from "./uploadStream";
+import type { Context } from '@backend/infrastructure/context';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import type { FileAsset } from '@core/domain/file';
+import type { AppError } from '@core/errors/AppError';
+import { badRequest } from '@core/errors/factories';
+import type { Result } from 'neverthrow';
+import { err } from 'neverthrow';
+import type { IUploadStateCache } from '../cache/domain/UploadStateCache';
+import type { IStorageProvider } from '../domain/StorageProvider';
+import type { UploadRequest } from '../domain/StorageTypes';
+import { bufferToStream } from './bufferToStream';
+import { type UploadStreamDeps, uploadStream } from './uploadStream';
 
 /**
  * Dependencies required by the upload action.
@@ -99,7 +99,7 @@ export async function upload(
     );
   }
 
-  deps.logger.debug("Uploading file (buffered)", {
+  deps.logger.debug('Uploading file (buffered)', {
     correlationId: ctx.correlationId,
     fileId: payload.id,
     size: payload.size,

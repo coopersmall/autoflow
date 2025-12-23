@@ -10,9 +10,9 @@
 import {
   DEFAULT_RETRY_CONFIG,
   type MiddlewareConfig,
-} from "@backend/storage/domain/MiddlewareConfig";
-import type { IStorageProvider } from "../../domain/StorageProvider";
-import { createRetryMiddleware } from "./retry/RetryMiddleware";
+} from '@backend/storage/domain/MiddlewareConfig';
+import type { IStorageProvider } from '../../domain/StorageProvider';
+import { createRetryMiddleware } from './retry/RetryMiddleware';
 
 /**
  * Applies configured middleware to a storage provider.

@@ -7,16 +7,16 @@
  * @module storage/actions/listFiles
  */
 
-import type { Context } from "@backend/infrastructure/context";
-import type { FileAsset } from "@core/domain/file";
-import { validFileAssetId } from "@core/domain/file";
-import type { AppError } from "@core/errors/AppError";
-import { err, ok, type Result } from "neverthrow";
-import type { IStorageProvider } from "../domain/StorageProvider";
+import type { Context } from '@backend/infrastructure/context';
+import type { FileAsset } from '@core/domain/file';
+import { validFileAssetId } from '@core/domain/file';
+import type { AppError } from '@core/errors/AppError';
+import { err, ok, type Result } from 'neverthrow';
+import type { IStorageProvider } from '../domain/StorageProvider';
 import type {
   ListFilesRequest,
   ListFilesResponse,
-} from "../domain/StorageTypes";
+} from '../domain/StorageTypes';
 
 /**
  * Dependencies required by the listFiles action.
@@ -91,7 +91,7 @@ export async function listFiles(
   const files: FileAsset[] = [];
   for (const obj of listResult.value.objects) {
     // Extract fileId and filename from object key: {folder}/{fileId}/{filename}
-    const parts = obj.key.split("/");
+    const parts = obj.key.split('/');
     const fileIdStr = parts.length >= 2 ? parts[parts.length - 2] : obj.key;
     const filename = parts.length >= 1 ? parts[parts.length - 1] : obj.key;
 
@@ -107,7 +107,7 @@ export async function listFiles(
 
     files.push({
       id: fileId,
-      state: "ready",
+      state: 'ready',
       filename,
       originalFilename,
       mediaType: obj.contentType,
