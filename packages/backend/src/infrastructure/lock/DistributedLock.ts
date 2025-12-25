@@ -1,3 +1,4 @@
+import type { Id } from '@autoflow/core';
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
 import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
@@ -25,7 +26,7 @@ export interface DistributedLockConfig {
   readonly defaultTtl?: number;
 }
 
-export type IDistributedLock = Readonly<{
+export type IDistributedLock<ID extends Id<string> = Id<string>> = Readonly<{
   /**
    * Attempt to acquire a lock. Non-blocking - returns immediately.
    *
@@ -39,7 +40,7 @@ export type IDistributedLock = Readonly<{
    */
   acquire(
     ctx: Context,
-    id: string,
+    id: ID,
     options?: LockOptions,
   ): Promise<Result<LockHandle | null, AppError>>;
 
@@ -55,7 +56,7 @@ export type IDistributedLock = Readonly<{
    */
   withLock<T>(
     ctx: Context,
-    id: string,
+    id: ID,
     fn: () => Promise<Result<T, AppError>>,
     options?: LockOptions,
   ): Promise<Result<T, AppError>>;
@@ -63,7 +64,7 @@ export type IDistributedLock = Readonly<{
   /**
    * Check if a lock is currently held.
    */
-  isLocked(ctx: Context, id: string): Promise<Result<boolean, AppError>>;
+  isLocked(ctx: Context, id: ID): Promise<Result<boolean, AppError>>;
 }>;
 
 /**
@@ -72,13 +73,13 @@ export type IDistributedLock = Readonly<{
  * @param namespace - Namespace for lock keys (e.g., 'agent-continuation')
  * @param config - Lock configuration
  */
-export function createDistributedLock(
+export function createDistributedLock<ID extends Id<string> = Id<string>>(
   namespace: string,
   config: DistributedLockConfig,
-): IDistributedLock {
+): IDistributedLock<ID> {
   const provider = config.provider ?? 'redis';
   const adapter = createLockAdapter(provider, config.appConfig);
-  return Object.freeze(new DistributedLock(namespace, config, adapter));
+  return Object.freeze(new DistributedLock<ID>(namespace, config, adapter));
 }
 
 function createLockAdapter(
@@ -96,7 +97,9 @@ function createLockAdapter(
   }
 }
 
-class DistributedLock implements IDistributedLock {
+class DistributedLock<ID extends Id<string> = Id<string>>
+  implements IDistributedLock<ID>
+{
   private readonly defaultTtl: number;
 
   constructor(
@@ -109,7 +112,7 @@ class DistributedLock implements IDistributedLock {
 
   async acquire(
     ctx: Context,
-    id: string,
+    id: ID,
     options?: LockOptions,
   ): Promise<Result<LockHandle | null, AppError>> {
     const key = this.generateKey(id);
@@ -140,7 +143,7 @@ class DistributedLock implements IDistributedLock {
 
   async withLock<T>(
     ctx: Context,
-    id: string,
+    id: ID,
     fn: () => Promise<Result<T, AppError>>,
     options?: LockOptions,
   ): Promise<Result<T, AppError>> {
@@ -171,7 +174,7 @@ class DistributedLock implements IDistributedLock {
     }
   }
 
-  async isLocked(ctx: Context, id: string): Promise<Result<boolean, AppError>> {
+  async isLocked(ctx: Context, id: ID): Promise<Result<boolean, AppError>> {
     const key = this.generateKey(id);
     return this.adapter.isLocked(key);
   }

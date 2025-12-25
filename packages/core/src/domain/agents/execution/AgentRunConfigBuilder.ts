@@ -1,17 +1,20 @@
 import type { AppError } from '@core/errors/AppError';
 import { badRequest } from '@core/errors/factories';
+import type { ExtractMethods } from '@core/types';
 import { err, ok, type Result } from 'neverthrow';
 import type { AgentId } from '../AgentId';
 import type { AgentManifest } from '../config/AgentManifest';
 import type { AgentRunConfigWithHooks } from './AgentRunConfig';
 
+export type IAgentRunConfigBuilder = ExtractMethods<AgentRunConfigBuilder>;
+
+export function createAgentRunConfigBuilder(): IAgentRunConfigBuilder {
+  return new AgentRunConfigBuilder();
+}
+
 export class AgentRunConfigBuilder {
   private rootManifest: AgentManifest | null = null;
   private manifests: AgentManifest[] = [];
-
-  static create(): AgentRunConfigBuilder {
-    return new AgentRunConfigBuilder();
-  }
 
   withRoot(manifest: AgentManifest): this {
     this.rootManifest = manifest;

@@ -24,6 +24,10 @@ export const agentManifestConfigSchema = zod.strictObject({
   id: agentIdSchema.describe('Unique identifier for this agent type'),
   version: zod
     .string()
+    .regex(
+      /^\d+\.\d+\.\d+(-[0-9A-Za-z-.]+)?(\+[0-9A-Za-z-.]+)?$/,
+      'Version must be a valid semantic version (e.g., 1.0.0)',
+    )
     .describe('Semantic version for deployment compatibility'),
   name: zod.string().describe('Human-readable name'),
   description: zod.string().describe('What this agent does'),

@@ -1,9 +1,12 @@
+import type { AgentStateId } from '@autoflow/core';
 import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
 import {
   createDistributedLock,
   type IDistributedLock,
 } from '@backend/infrastructure/lock/DistributedLock';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
+
+export type IAgentLock = IDistributedLock<AgentStateId>;
 
 /**
  * Creates a distributed lock for agent continuation operations.
@@ -19,8 +22,8 @@ import type { ILogger } from '@backend/infrastructure/logger/Logger';
 export function createAgentLock(ctx: {
   logger: ILogger;
   appConfig: IAppConfigurationService;
-}): IDistributedLock {
-  return createDistributedLock('agent-continuation', {
+}): IAgentLock {
+  return createDistributedLock<AgentStateId>('agent-continuation', {
     logger: ctx.logger,
     appConfig: ctx.appConfig,
     provider: 'redis',

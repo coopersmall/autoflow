@@ -1,6 +1,6 @@
 import { jsonSchema } from '@core/domain/json-schema/JsonSchema';
 import zod from 'zod';
-import { executeFunctionSchema } from '../hooks';
+import type { ExecuteFunction } from '../hooks';
 
 export type Tool = zod.infer<typeof toolSchema>;
 
@@ -21,8 +21,6 @@ export const toolSchema = zod
   })
   .describe('A tool definition that can be called by the model.');
 
-export const toolWithExecutionSchema = toolSchema.extend({
-  execute: executeFunctionSchema.optional(),
-});
-
-export type ToolWithExecution = zod.infer<typeof toolWithExecutionSchema>;
+export type ToolWithExecution = Tool & {
+  execute?: ExecuteFunction;
+};

@@ -1,18 +1,10 @@
-import zod from 'zod';
-import { messageSchema } from '../../messages';
+import type { Message } from '../../messages';
 
-export type ExecuteFunction = zod.infer<typeof executeFunctionSchema>;
+export interface ExecuteFunctionOptions {
+  messages: Message[];
+}
 
-const executeFunctionSchemaOptions = zod
-  .strictObject({
-    messages: zod
-      .array(messageSchema)
-      .describe('The messages in the conversation.'),
-  })
-  .describe('The options provided to the execute function.');
-
-export const executeFunctionSchema = zod
-  .function()
-  .args(zod.unknown(), executeFunctionSchemaOptions)
-  .returns(zod.promise(zod.any()))
-  .describe('The function to execute the tool.');
+export type ExecuteFunction = (
+  input: unknown,
+  options: ExecuteFunctionOptions,
+) => Promise<unknown>;

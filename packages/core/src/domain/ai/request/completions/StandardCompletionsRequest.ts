@@ -6,7 +6,7 @@ import {
   prepareStepFunctionSchema,
   stopWhenSchema,
 } from './hooks';
-import { toolWithExecutionSchema } from './tools';
+import { toolSchema } from './tools';
 import { toolChoiceSchema } from './tools/ToolChoice';
 
 export type StandardCompletionsRequest = zod.infer<
@@ -16,7 +16,7 @@ export type StandardCompletionsRequest = zod.infer<
 export const standardCompletionsRequestSchema = baseCompletionsRequestSchema
   .extend({
     tools: zod
-      .array(toolWithExecutionSchema)
+      .array(toolSchema)
       .optional()
       .describe('Tools available for the model to call.'),
     activeTools: zod

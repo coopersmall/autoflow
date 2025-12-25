@@ -9,7 +9,7 @@ export interface ToolExecutionContext {
   /** Request context (satisfies AgentContext interface) */
   readonly ctx: AgentContext;
   /** Current conversation messages */
-  readonly messages: readonly Message[];
+  readonly messages: Message[];
   /** Current step number in the agent loop */
   readonly stepNumber: number;
 }

@@ -2,7 +2,7 @@ import type { Message } from '../../ai/request/completions/messages/Message';
 import type { AgentToolResult } from './AgentToolResult';
 
 export interface AgentExecuteContext {
-  readonly messages: readonly Message[];
+  messages: Message[];
 }
 
 /**
@@ -11,5 +11,5 @@ export interface AgentExecuteContext {
  */
 export type AgentExecuteFunction = (
   input: unknown,
-  context: AgentExecuteContext,
+  options: AgentExecuteContext,
 ) => Promise<AgentToolResult>;
