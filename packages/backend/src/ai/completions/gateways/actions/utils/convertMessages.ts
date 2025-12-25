@@ -246,15 +246,16 @@ function convertFromAssistantMessageContent(
 
   return parts;
 }
-function convertDataContentToString(data: DataContent | URL): string {
+function convertDataContentToString(
+  data: DataContent | URL,
+): Uint8Array<ArrayBufferLike> | string {
   if (data instanceof URL) {
     return data.toString();
   }
   if (typeof data === 'string') {
     return data;
   }
-  const uint8 = data instanceof Uint8Array ? data : new Uint8Array(data);
-  return Buffer.from(uint8).toString('base64');
+  return data instanceof Uint8Array ? data : new Uint8Array(data);
 }
 function convertFromToolMessageContent(
   content: ToolContent,

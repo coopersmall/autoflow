@@ -17,20 +17,20 @@ import {
   describe,
   expect,
   it,
-} from "bun:test";
-import type { IAppConfigurationService } from "@backend/infrastructure/configuration/AppConfigurationService";
-import { createContext } from "@backend/infrastructure/context";
-import { getMockedLogger } from "@backend/infrastructure/logger/__mocks__/Logger.mock";
-import type { ILogger } from "@backend/infrastructure/logger/Logger";
-import { TestCache } from "@backend/testing/integration/setup/TestCache";
-import { createTestConfig } from "@backend/testing/integration/setup/TestConfig";
-import { TestServices } from "@backend/testing/integration/setup/TestServices";
-import { CorrelationId } from "@core/domain/CorrelationId";
-import * as fc from "fast-check";
-import { err, ok } from "neverthrow";
-import { createDistributedLock } from "../DistributedLock";
+} from 'bun:test';
+import type { IAppConfigurationService } from '@backend/infrastructure/configuration/AppConfigurationService';
+import { createContext } from '@backend/infrastructure/context';
+import { getMockedLogger } from '@backend/infrastructure/logger/__mocks__/Logger.mock';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import { TestCache } from '@backend/testing/integration/setup/TestCache';
+import { createTestConfig } from '@backend/testing/integration/setup/TestConfig';
+import { TestServices } from '@backend/testing/integration/setup/TestServices';
+import { CorrelationId } from '@core/domain/CorrelationId';
+import * as fc from 'fast-check';
+import { err, ok } from 'neverthrow';
+import { createDistributedLock } from '../DistributedLock';
 
-describe("DistributedLock Integration", () => {
+describe('DistributedLock Integration', () => {
   let cache: TestCache;
   let config: IAppConfigurationService;
   let logger: ILogger;
@@ -62,13 +62,13 @@ describe("DistributedLock Integration", () => {
     return createContext(correlationId, controller);
   }
 
-  describe("Property Tests", () => {
+  describe('Property Tests', () => {
     // Arbitraries for property-based testing
     // Use raw strings - Redis keys can contain any bytes, so we test
     // that our lock system handles arbitrary input correctly
     const namespaceArb = fc.string({ minLength: 1, maxLength: 50 });
     const resourceIdArb = fc.string({ minLength: 1, maxLength: 100 });
-    it("should always acquire lock when resource is not held", async () => {
+    it('should always acquire lock when resource is not held', async () => {
       await fc.assert(
         fc.asyncProperty(
           namespaceArb,
@@ -93,7 +93,7 @@ describe("DistributedLock Integration", () => {
       );
     });
 
-    it("should generate correct lock key format", async () => {
+    it('should generate correct lock key format', async () => {
       await fc.assert(
         fc.asyncProperty(
           namespaceArb,
@@ -118,7 +118,7 @@ describe("DistributedLock Integration", () => {
       );
     });
 
-    it("should use correlationId as holderId by default", async () => {
+    it('should use correlationId as holderId by default', async () => {
       await fc.assert(
         fc.asyncProperty(
           namespaceArb,
@@ -143,7 +143,7 @@ describe("DistributedLock Integration", () => {
       );
     });
 
-    it("should release lock and allow re-acquisition", async () => {
+    it('should release lock and allow re-acquisition', async () => {
       await fc.assert(
         fc.asyncProperty(
           namespaceArb,
@@ -175,7 +175,7 @@ describe("DistributedLock Integration", () => {
       );
     });
 
-    it("should prevent concurrent acquisition of same resource", async () => {
+    it('should prevent concurrent acquisition of same resource', async () => {
       await fc.assert(
         fc.asyncProperty(
           namespaceArb,
@@ -220,7 +220,7 @@ describe("DistributedLock Integration", () => {
       );
     });
 
-    it("should isolate locks by namespace", async () => {
+    it('should isolate locks by namespace', async () => {
       await fc.assert(
         fc.asyncProperty(
           namespaceArb,
@@ -257,7 +257,7 @@ describe("DistributedLock Integration", () => {
       );
     });
 
-    it("should execute withLock function and release lock", async () => {
+    it('should execute withLock function and release lock', async () => {
       await fc.assert(
         fc.asyncProperty(
           namespaceArb,
@@ -289,7 +289,7 @@ describe("DistributedLock Integration", () => {
       );
     });
 
-    it("should release lock even when withLock function returns error", async () => {
+    it('should release lock even when withLock function returns error', async () => {
       await fc.assert(
         fc.asyncProperty(
           namespaceArb,
@@ -304,9 +304,9 @@ describe("DistributedLock Integration", () => {
 
             const result = await lock.withLock(ctx, resourceId, async () => {
               return err({
-                name: "Error",
+                name: 'Error',
                 message: errorMessage,
-                code: "InternalServer" as const,
+                code: 'InternalServer' as const,
                 metadata: {},
               });
             });
@@ -323,73 +323,73 @@ describe("DistributedLock Integration", () => {
     });
   });
 
-  describe("acquire", () => {
-    it("should acquire lock when not held", async () => {
-      const lock = createDistributedLock("test", { logger, appConfig: config });
+  describe('acquire', () => {
+    it('should acquire lock when not held', async () => {
+      const lock = createDistributedLock('test', { logger, appConfig: config });
       const ctx = createTestContext();
 
-      const result = await lock.acquire(ctx, "resource-1");
+      const result = await lock.acquire(ctx, 'resource-1');
 
       expect(result.isOk()).toBe(true);
       const handle = result._unsafeUnwrap();
       expect(handle).not.toBeNull();
-      expect(handle?.key).toBe("lock:test:resource-1");
+      expect(handle?.key).toBe('lock:test:resource-1');
       expect(handle?.holderId).toBe(String(ctx.correlationId));
     });
 
-    it("should return null when lock is already held by another", async () => {
-      const lock = createDistributedLock("test", { logger, appConfig: config });
+    it('should return null when lock is already held by another', async () => {
+      const lock = createDistributedLock('test', { logger, appConfig: config });
       const ctx1 = createTestContext();
       const ctx2 = createTestContext();
 
       // First request acquires the lock
-      const result1 = await lock.acquire(ctx1, "resource-1");
+      const result1 = await lock.acquire(ctx1, 'resource-1');
       expect(result1.isOk()).toBe(true);
       expect(result1._unsafeUnwrap()).not.toBeNull();
 
       // Second request cannot acquire the lock
-      const result2 = await lock.acquire(ctx2, "resource-1");
+      const result2 = await lock.acquire(ctx2, 'resource-1');
       expect(result2.isOk()).toBe(true);
       expect(result2._unsafeUnwrap()).toBeNull();
     });
 
-    it("should allow same holder to check lock status", async () => {
-      const lock = createDistributedLock("test", { logger, appConfig: config });
+    it('should allow same holder to check lock status', async () => {
+      const lock = createDistributedLock('test', { logger, appConfig: config });
       const ctx = createTestContext();
 
       // Acquire the lock
-      const acquireResult = await lock.acquire(ctx, "resource-1");
+      const acquireResult = await lock.acquire(ctx, 'resource-1');
       expect(acquireResult.isOk()).toBe(true);
 
       // Check if locked
-      const isLockedResult = await lock.isLocked(ctx, "resource-1");
+      const isLockedResult = await lock.isLocked(ctx, 'resource-1');
       expect(isLockedResult.isOk()).toBe(true);
       expect(isLockedResult._unsafeUnwrap()).toBe(true);
     });
 
-    it("should report not locked after release", async () => {
-      const lock = createDistributedLock("test", { logger, appConfig: config });
+    it('should report not locked after release', async () => {
+      const lock = createDistributedLock('test', { logger, appConfig: config });
       const ctx = createTestContext();
 
       // Acquire and release
-      const acquireResult = await lock.acquire(ctx, "resource-1");
+      const acquireResult = await lock.acquire(ctx, 'resource-1');
       const handle = acquireResult._unsafeUnwrap();
       await handle?.release();
 
       // Check if locked
-      const isLockedResult = await lock.isLocked(ctx, "resource-1");
+      const isLockedResult = await lock.isLocked(ctx, 'resource-1');
       expect(isLockedResult.isOk()).toBe(true);
       expect(isLockedResult._unsafeUnwrap()).toBe(false);
     });
   });
 
-  describe("release", () => {
-    it("should release lock successfully", async () => {
-      const lock = createDistributedLock("test", { logger, appConfig: config });
+  describe('release', () => {
+    it('should release lock successfully', async () => {
+      const lock = createDistributedLock('test', { logger, appConfig: config });
       const ctx = createTestContext();
 
       // Acquire
-      const acquireResult = await lock.acquire(ctx, "resource-1");
+      const acquireResult = await lock.acquire(ctx, 'resource-1');
       const handle = acquireResult._unsafeUnwrap();
       expect(handle).not.toBeNull();
 
@@ -400,33 +400,33 @@ describe("DistributedLock Integration", () => {
 
       // Another context can now acquire
       const ctx2 = createTestContext();
-      const result2 = await lock.acquire(ctx2, "resource-1");
+      const result2 = await lock.acquire(ctx2, 'resource-1');
       expect(result2.isOk()).toBe(true);
       expect(result2._unsafeUnwrap()).not.toBeNull();
     });
 
-    it("should not allow other holders to release lock", async () => {
-      const lock = createDistributedLock("test", { logger, appConfig: config });
+    it('should not allow other holders to release lock', async () => {
+      const lock = createDistributedLock('test', { logger, appConfig: config });
       const ctx1 = createTestContext();
       const ctx2 = createTestContext();
 
       // ctx1 acquires the lock
-      const result1 = await lock.acquire(ctx1, "resource-1");
+      const result1 = await lock.acquire(ctx1, 'resource-1');
       expect(result1._unsafeUnwrap()).not.toBeNull();
 
       // ctx2 tries to acquire - should fail since ctx1 holds it
-      const result2 = await lock.acquire(ctx2, "resource-1");
+      const result2 = await lock.acquire(ctx2, 'resource-1');
       expect(result2._unsafeUnwrap()).toBeNull();
 
       // Verify lock is still held by checking ctx1 can't re-acquire
-      const result3 = await lock.acquire(ctx1, "resource-1");
+      const result3 = await lock.acquire(ctx1, 'resource-1');
       expect(result3._unsafeUnwrap()).toBeNull();
     });
   });
 
-  describe("extend", () => {
-    it("should extend lock TTL when held by same holder", async () => {
-      const lock = createDistributedLock("test", {
+  describe('extend', () => {
+    it('should extend lock TTL when held by same holder', async () => {
+      const lock = createDistributedLock('test', {
         logger,
         appConfig: config,
         defaultTtl: 2, // 2 seconds
@@ -434,7 +434,7 @@ describe("DistributedLock Integration", () => {
       const ctx = createTestContext();
 
       // Acquire with short TTL
-      const acquireResult = await lock.acquire(ctx, "resource-1");
+      const acquireResult = await lock.acquire(ctx, 'resource-1');
       const handle = acquireResult._unsafeUnwrap();
       expect(handle).not.toBeNull();
 
@@ -447,41 +447,41 @@ describe("DistributedLock Integration", () => {
       await new Promise((resolve) => setTimeout(resolve, 2100));
 
       // Lock should still be held (because we extended it)
-      const isLockedResult = await lock.isLocked(ctx, "resource-1");
+      const isLockedResult = await lock.isLocked(ctx, 'resource-1');
       expect(isLockedResult.isOk()).toBe(true);
       expect(isLockedResult._unsafeUnwrap()).toBe(true);
     });
   });
 
-  describe("withLock", () => {
-    it("should execute function and release lock on success", async () => {
-      const lock = createDistributedLock("test", { logger, appConfig: config });
+  describe('withLock', () => {
+    it('should execute function and release lock on success', async () => {
+      const lock = createDistributedLock('test', { logger, appConfig: config });
       const ctx = createTestContext();
 
       let executed = false;
-      const result = await lock.withLock(ctx, "resource-1", async () => {
+      const result = await lock.withLock(ctx, 'resource-1', async () => {
         executed = true;
-        return ok("success");
+        return ok('success');
       });
 
       expect(executed).toBe(true);
       expect(result.isOk()).toBe(true);
-      expect(result._unsafeUnwrap()).toBe("success");
+      expect(result._unsafeUnwrap()).toBe('success');
 
       // Lock should be released
-      const isLockedResult = await lock.isLocked(ctx, "resource-1");
+      const isLockedResult = await lock.isLocked(ctx, 'resource-1');
       expect(isLockedResult._unsafeUnwrap()).toBe(false);
     });
 
-    it("should release lock when function returns error", async () => {
-      const lock = createDistributedLock("test", { logger, appConfig: config });
+    it('should release lock when function returns error', async () => {
+      const lock = createDistributedLock('test', { logger, appConfig: config });
       const ctx = createTestContext();
 
-      const result = await lock.withLock(ctx, "resource-1", async () => {
+      const result = await lock.withLock(ctx, 'resource-1', async () => {
         return err({
-          name: "Error",
-          message: "test error",
-          code: "InternalServer" as const,
+          name: 'Error',
+          message: 'test error',
+          code: 'InternalServer' as const,
           metadata: {},
         });
       });
@@ -489,32 +489,32 @@ describe("DistributedLock Integration", () => {
       expect(result.isErr()).toBe(true);
 
       // Lock should still be released
-      const isLockedResult = await lock.isLocked(ctx, "resource-1");
+      const isLockedResult = await lock.isLocked(ctx, 'resource-1');
       expect(isLockedResult._unsafeUnwrap()).toBe(false);
     });
 
-    it("should return lockNotAcquiredError when lock is held", async () => {
-      const lock = createDistributedLock("test", { logger, appConfig: config });
+    it('should return lockNotAcquiredError when lock is held', async () => {
+      const lock = createDistributedLock('test', { logger, appConfig: config });
       const ctx1 = createTestContext();
       const ctx2 = createTestContext();
 
       // ctx1 holds the lock
-      const handle = await lock.acquire(ctx1, "resource-1");
+      const handle = await lock.acquire(ctx1, 'resource-1');
       expect(handle._unsafeUnwrap()).not.toBeNull();
 
       // ctx2 tries to use withLock
-      const result = await lock.withLock(ctx2, "resource-1", async () => {
-        return ok("should not execute");
+      const result = await lock.withLock(ctx2, 'resource-1', async () => {
+        return ok('should not execute');
       });
 
       expect(result.isErr()).toBe(true);
-      expect(result._unsafeUnwrapErr().message).toContain("Lock not acquired");
+      expect(result._unsafeUnwrapErr().message).toContain('Lock not acquired');
     });
   });
 
-  describe("TTL expiration", () => {
-    it("should auto-release lock after TTL expires", async () => {
-      const lock = createDistributedLock("test", {
+  describe('TTL expiration', () => {
+    it('should auto-release lock after TTL expires', async () => {
+      const lock = createDistributedLock('test', {
         logger,
         appConfig: config,
         defaultTtl: 1, // 1 second TTL
@@ -523,30 +523,30 @@ describe("DistributedLock Integration", () => {
       const ctx2 = createTestContext();
 
       // ctx1 acquires with short TTL
-      const result1 = await lock.acquire(ctx1, "resource-1");
+      const result1 = await lock.acquire(ctx1, 'resource-1');
       expect(result1._unsafeUnwrap()).not.toBeNull();
 
       // ctx2 cannot acquire immediately
-      const result2 = await lock.acquire(ctx2, "resource-1");
+      const result2 = await lock.acquire(ctx2, 'resource-1');
       expect(result2._unsafeUnwrap()).toBeNull();
 
       // Wait for TTL to expire
       await new Promise((resolve) => setTimeout(resolve, 1100));
 
       // ctx2 can now acquire
-      const result3 = await lock.acquire(ctx2, "resource-1");
+      const result3 = await lock.acquire(ctx2, 'resource-1');
       expect(result3.isOk()).toBe(true);
       expect(result3._unsafeUnwrap()).not.toBeNull();
     });
   });
 
-  describe("concurrent access", () => {
-    it("should only allow one of concurrent requests to acquire lock", async () => {
-      const lock = createDistributedLock("test", { logger, appConfig: config });
+  describe('concurrent access', () => {
+    it('should only allow one of concurrent requests to acquire lock', async () => {
+      const lock = createDistributedLock('test', { logger, appConfig: config });
 
       // Fire multiple acquire attempts simultaneously
       const contexts = Array.from({ length: 5 }, () => createTestContext());
-      const promises = contexts.map((ctx) => lock.acquire(ctx, "resource-1"));
+      const promises = contexts.map((ctx) => lock.acquire(ctx, 'resource-1'));
 
       const results = await Promise.all(promises);
 
@@ -564,24 +564,24 @@ describe("DistributedLock Integration", () => {
     });
   });
 
-  describe("namespace isolation", () => {
-    it("should isolate locks by namespace", async () => {
-      const lock1 = createDistributedLock("namespace-a", {
+  describe('namespace isolation', () => {
+    it('should isolate locks by namespace', async () => {
+      const lock1 = createDistributedLock('namespace-a', {
         logger,
         appConfig: config,
       });
-      const lock2 = createDistributedLock("namespace-b", {
+      const lock2 = createDistributedLock('namespace-b', {
         logger,
         appConfig: config,
       });
       const ctx = createTestContext();
 
       // Acquire lock in namespace-a
-      const result1 = await lock1.acquire(ctx, "resource-1");
+      const result1 = await lock1.acquire(ctx, 'resource-1');
       expect(result1._unsafeUnwrap()).not.toBeNull();
 
       // Can still acquire same resource in namespace-b
-      const result2 = await lock2.acquire(ctx, "resource-1");
+      const result2 = await lock2.acquire(ctx, 'resource-1');
       expect(result2._unsafeUnwrap()).not.toBeNull();
     });
   });
