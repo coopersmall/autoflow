@@ -19,6 +19,7 @@ import {
   startStepPartSchema,
 } from './LifecycleParts';
 import {
+  toolApprovalRequestPartSchema,
   toolCallPartSchema,
   toolErrorPartSchema,
   toolInputDeltaPartSchema,
@@ -42,7 +43,7 @@ export const streamPartSchema = zod.union([
   reasoningDeltaPartSchema,
   sourcePartSchema, // This is already a union of url and document
   filePartSchema,
-  // Tool parts (7)
+  // Tool parts (8)
   toolInputStartPartSchema,
   toolInputEndPartSchema,
   toolInputDeltaPartSchema,
@@ -50,6 +51,7 @@ export const streamPartSchema = zod.union([
   toolResultPartSchema,
   toolErrorPartSchema,
   toolOutputDeniedPartSchema,
+  toolApprovalRequestPartSchema,
   // Lifecycle parts (7)
   startPartSchema,
   startStepPartSchema,

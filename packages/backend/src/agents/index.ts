@@ -1,12 +1,8 @@
-// Domain types
-
 // Actions
 export * from './actions';
 
-// Cache
-export * from './cache';
-// Constants
-export * from './constants';
+// Domain types, schemas, and constants
 export * from './domain';
-// Lock
-export * from './lock';
+
+// Infrastructure (cache, lock, harness)
+export * from './infrastructure';

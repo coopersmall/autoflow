@@ -16,7 +16,7 @@ import { ok, type Result } from 'neverthrow';
 import {
   AGENT_CONTENT_FOLDER,
   AGENT_DOWNLOAD_URL_EXPIRY_SECONDS,
-} from '../../constants';
+} from '../../domain';
 
 export interface DeserializeMessagesDeps {
   readonly storageService: IStorageService;

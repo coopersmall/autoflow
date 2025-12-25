@@ -1,12 +1,12 @@
 import { z as zod } from 'zod';
 import { agentIdSchema } from '../AgentId';
-import { agentStateIdSchema } from '../AgentStateId';
+import { agentRunIdSchema } from '../AgentRunId';
 import { toolApprovalSuspensionSchema } from './Suspension';
 
 export const suspensionStackEntrySchema = zod.strictObject({
   manifestId: agentIdSchema,
   manifestVersion: zod.string(),
-  stateId: agentStateIdSchema,
+  stateId: agentRunIdSchema,
   pendingToolCallId: zod
     .string()
     .describe('The tool call waiting for sub-agent result'),

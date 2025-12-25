@@ -1,19 +1,10 @@
 import {
   type AssistantMessage,
   type Message,
-  type RequestToolResultPart,
   type ToolMessage,
-  type UserMessage,
   unreachable,
 } from '@autoflow/core';
-import type {
-  AssistantContent,
-  DataContent,
-  ModelMessage,
-  ToolContent,
-  ToolResultPart,
-  UserContent,
-} from 'ai';
+import type { AssistantContent, ModelMessage, ToolContent } from 'ai';
 
 export function convertToModelMessages(messages: Message[]): ModelMessage[] {
   return messages.map((msg) => {
@@ -50,62 +41,88 @@ function convertAssistantMessageContent(
   if (typeof content === 'string') {
     return content;
   }
-  return content.map((part) => {
+
+  const parts: AssistantContent = [];
+
+  for (const part of content) {
     switch (part.type) {
       case 'text':
       case 'file':
       case 'reasoning':
-        return part;
+        parts.push(part);
+        break;
       case 'tool-call':
-        return {
+        parts.push({
           type: 'tool-call',
           toolCallId: part.toolCallId,
           toolName: part.toolName,
           input: JSON.parse(part.input),
-        };
+        });
+        break;
+      case 'tool-approval-request':
+        parts.push({
+          type: 'tool-approval-request',
+          approvalId: part.approvalId,
+          toolCallId: part.toolCall.toolCallId,
+        });
+        break;
+      case 'source':
+        // Source parts are response-only, skip when sending to SDK
+        break;
+      case 'tool-error':
+        // Tool error parts are response-only, skip when sending to SDK
+        break;
       case 'tool-result':
         switch (part.output.type) {
           case 'text':
-            return {
+            parts.push({
               ...part,
               output: {
                 type: 'text',
                 value: part.output.value,
               },
-            };
+            });
+            break;
           case 'json':
-            return {
+            parts.push({
               ...part,
               output: {
                 type: 'json',
                 value: JSON.parse(part.output.value),
               },
-            };
+            });
+            break;
           case 'error-text':
-            return {
+            parts.push({
               ...part,
               output: {
                 type: 'error-text',
                 value: part.output.value,
               },
-            };
+            });
+            break;
           case 'error-json':
-            return {
+            parts.push({
               ...part,
               output: {
                 type: 'error-json',
                 value: JSON.parse(part.output.value),
               },
-            };
+            });
+            break;
           case 'content':
-            return part;
+            parts.push(part);
+            break;
           default:
-            return unreachable(part.output);
+            unreachable(part.output);
         }
+        break;
       default:
-        return unreachable(part);
+        unreachable(part);
     }
-  });
+  }
+
+  return parts;
 }
 
 function convertToolMessageContent(
@@ -131,206 +148,15 @@ function convertToolMessageContent(
           default:
             return unreachable(part.output);
         }
-      default:
-        return unreachable(part.type);
-    }
-  });
-}
-
-export function convertFromModelMessages(messages: ModelMessage[]): Message[] {
-  return messages.map((msg) => {
-    switch (msg.role) {
-      case 'user':
+      case 'tool-approval-response':
         return {
-          role: msg.role,
-          content: convertFromUserMessageContent(msg.content),
-        };
-      case 'assistant':
-        return {
-          role: msg.role,
-          content: convertFromAssistantMessageContent(msg.content),
-        };
-      case 'system':
-        return {
-          role: msg.role,
-          content: msg.content,
-        };
-      case 'tool':
-        return {
-          role: 'tool',
-          content: convertFromToolMessageContent(msg.content),
-        };
-      default:
-        return unreachable(msg);
-    }
-  });
-}
-
-function convertFromUserMessageContent(
-  content: UserContent,
-): UserMessage['content'] {
-  if (typeof content === 'string') {
-    return content;
-  }
-  return content.map((part) => {
-    switch (part.type) {
-      case 'text':
-        return { type: 'text', text: part.text };
-      case 'image':
-        return {
-          type: 'image',
-          image: convertDataContentToString(part.image),
-          mediaType: part.mediaType,
-        };
-      case 'file':
-        return {
-          type: 'file',
-          data: convertDataContentToString(part.data),
-          mediaType: part.mediaType,
-          filename: part.filename,
+          type: 'tool-approval-response',
+          approvalId: part.approvalId,
+          approved: part.approved,
+          reason: part.reason,
         };
       default:
         return unreachable(part);
     }
   });
-}
-
-function convertFromAssistantMessageContent(
-  content: AssistantContent,
-): AssistantMessage['content'] {
-  if (typeof content === 'string') {
-    return content;
-  }
-
-  const parts: AssistantMessage['content'] = [];
-
-  for (const part of content) {
-    switch (part.type) {
-      case 'text':
-        parts.push({ type: 'text', text: part.text });
-        break;
-      case 'reasoning':
-        parts.push({ type: 'reasoning', text: part.text });
-        break;
-      case 'file':
-        parts.push({
-          type: 'file',
-          data: convertDataContentToString(part.data),
-          mediaType: part.mediaType,
-          filename: part.filename,
-        });
-        break;
-      case 'tool-call':
-        parts.push({
-          type: 'tool-call',
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          input: JSON.stringify(part.input),
-        });
-        break;
-      case 'tool-result':
-        parts.push({
-          type: 'tool-result',
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          output: convertToolResultOutput(part.output),
-        });
-        break;
-      case 'tool-approval-request':
-        // Skip tool approval requests - not yet supported in domain types
-        break;
-      default:
-        unreachable(part);
-    }
-  }
-
-  return parts;
-}
-function convertDataContentToString(
-  data: DataContent | URL,
-): Uint8Array<ArrayBufferLike> | string {
-  if (data instanceof URL) {
-    return data.toString();
-  }
-  if (typeof data === 'string') {
-    return data;
-  }
-  return data instanceof Uint8Array ? data : new Uint8Array(data);
-}
-function convertFromToolMessageContent(
-  content: ToolContent,
-): ToolMessage['content'] {
-  const parts: ToolMessage['content'] = [];
-
-  for (const part of content) {
-    switch (part.type) {
-      case 'tool-result':
-        parts.push({
-          type: 'tool-result',
-          toolCallId: part.toolCallId,
-          toolName: part.toolName,
-          output: convertToolResultOutput(part.output),
-          isError:
-            part.output.type === 'error-text' ||
-            part.output.type === 'error-json'
-              ? true
-              : undefined,
-        });
-        break;
-      case 'tool-approval-response':
-        // Skip tool approval responses - not yet supported in domain types
-        break;
-      default:
-        unreachable(part);
-    }
-  }
-
-  return parts;
-}
-function convertToolResultOutput(
-  output: ToolResultPart['output'],
-): RequestToolResultPart['output'] {
-  switch (output.type) {
-    case 'text':
-      return { type: 'text', value: output.value };
-    case 'json':
-      return { type: 'json', value: JSON.stringify(output.value) };
-    case 'error-text':
-      return { type: 'error-text', value: output.value };
-    case 'error-json':
-      return { type: 'error-json', value: JSON.stringify(output.value) };
-    case 'content':
-      // Filter out unsupported content types (file-data, execution-denied, etc.)
-      // and only keep text and media
-      return {
-        type: 'content',
-        value: output.value
-          .filter(
-            (
-              item,
-            ): item is
-              | { type: 'text'; text: string }
-              | { type: 'media'; data: string; mediaType: string } =>
-              item.type === 'text' || item.type === 'media',
-          )
-          .map((item) => {
-            if (item.type === 'text') {
-              return { type: 'text' as const, text: item.text };
-            }
-            return {
-              type: 'media' as const,
-              data: item.data,
-              mediaType: item.mediaType,
-            };
-          }),
-      };
-    case 'execution-denied':
-      // Convert execution-denied to error-text for domain compatibility
-      return {
-        type: 'error-text',
-        value: output.reason ?? 'Tool execution was denied',
-      };
-    default:
-      unreachable(output);
-  }
 }

@@ -1,4 +1,4 @@
-import { agentIdSchema, agentStateIdSchema } from '@core/domain/agents';
+import { agentIdSchema, agentRunIdSchema } from '@core/domain/agents';
 import {
   suspensionStackSchema,
   toolApprovalSuspensionSchema,
@@ -12,7 +12,7 @@ import { z as zod } from 'zod';
  * Stored in AgentStateCache during suspension.
  */
 export const agentStateSchema = zod.strictObject({
-  id: agentStateIdSchema,
+  id: agentRunIdSchema,
 
   // Root manifest identity (for the entire run)
   rootManifestId: agentIdSchema,
@@ -22,10 +22,10 @@ export const agentStateSchema = zod.strictObject({
   manifestVersion: zod.string(),
 
   // Parent state for nested agents (enables cleanup)
-  parentStateId: agentStateIdSchema.optional(),
+  parentStateId: agentRunIdSchema.optional(),
 
   // Child state IDs for cleanup on completion/cancellation
-  childStateIds: zod.array(agentStateIdSchema).default([]),
+  childStateIds: zod.array(agentRunIdSchema).default([]),
 
   // Execution state
   messages: zod
@@ -35,7 +35,9 @@ export const agentStateSchema = zod.strictObject({
   currentStepNumber: zod.number(),
 
   // Suspension info
-  pendingSuspension: toolApprovalSuspensionSchema.optional(),
+  suspensions: zod
+    .array(toolApprovalSuspensionSchema)
+    .describe('Pending suspensions for this agent'),
   suspensionStack: suspensionStackSchema
     .optional()
     .describe('For sub-agent suspensions'),

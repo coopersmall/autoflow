@@ -1,6 +1,12 @@
 import type { MCPClient } from '@ai-sdk/mcp';
-import type { AppError, ExecuteFunction, MCPClientId } from '@autoflow/core';
-import { asSchema, type JSONSchema7, type ModelMessage } from 'ai';
+import type {
+  AppError,
+  ExecuteFunction,
+  MCPClientId,
+  Message,
+} from '@autoflow/core';
+import { convertToModelMessages } from '@backend/ai/completions/gateways/actions/utils/convertMessages';
+import { asSchema, type JSONSchema7 } from 'ai';
 import { err, ok, type Result } from 'neverthrow';
 import type { MCPTool } from '../../domain/MCPClient';
 import { mcpToolExecutionError } from '../../errors/mcpErrors';
@@ -99,7 +105,7 @@ function createExecuteWrapper(
   toolName: string,
   sdkTool: AISDKMCPTool,
 ): ExecuteFunction {
-  return async (input: unknown, options: { messages: ModelMessage[] }) => {
+  return async (input: unknown, options: { messages: Message[] }) => {
     // Generate a unique tool call ID for this execution
     // The MCP server uses this for tracking but doesn't require a specific format
     const toolCallId = `mcp_${toolName}_${Date.now()}`;
@@ -107,7 +113,7 @@ function createExecuteWrapper(
     // Call the SDK tool's execute with required ToolExecutionOptions
     const result = await sdkTool.execute(input, {
       toolCallId,
-      messages: options.messages,
+      messages: convertToModelMessages(options.messages),
     });
 
     return result;

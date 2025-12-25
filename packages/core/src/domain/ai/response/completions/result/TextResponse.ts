@@ -1,3 +1,4 @@
+import { requestAssistantContentPartSchema } from '@core/domain/ai/request';
 import zod from 'zod';
 import { finishReasonSchema } from '../shared/FinishReason';
 import { generatedFileSchema } from '../shared/GeneratedFile';
@@ -18,6 +19,9 @@ export const textResponseSchema = zod
   .strictObject({
     // Content
     text: zod.string().describe('The generated text.'),
+    content: zod
+      .array(requestAssistantContentPartSchema)
+      .describe('The generated content parts.'),
     reasoning: zod
       .array(reasoningOutputSchema)
       .describe('The reasoning from the last step.'),

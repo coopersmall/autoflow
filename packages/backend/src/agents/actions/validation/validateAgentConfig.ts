@@ -1,7 +1,7 @@
 import type { AgentManifest } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
-import { buildManifestMap } from '../helpers/buildManifestMap';
+import { buildManifestMap } from '../execution/helpers/buildManifestMap';
 import { validateSubAgentReferences } from './validateSubAgentReferences';
 
 /**

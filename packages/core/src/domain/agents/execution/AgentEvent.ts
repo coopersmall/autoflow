@@ -7,7 +7,7 @@ import {
 } from '@core/domain/conversation/events';
 import { z as zod } from 'zod';
 import { agentIdSchema } from '../AgentId';
-import { agentStateIdSchema } from '../AgentStateId';
+import { agentRunIdSchema } from '../AgentRunId';
 import { suspensionSchema } from '../suspension/Suspension';
 import { agentResultSchema } from './AgentResult';
 
@@ -63,7 +63,7 @@ export const agentDoneEventSchema = agentEventBaseSchema.extend({
 export const agentSuspendedEventSchema = agentEventBaseSchema.extend({
   type: zod.literal('agent-suspended'),
   suspension: suspensionSchema,
-  stateId: agentStateIdSchema,
+  stateId: agentRunIdSchema,
 });
 
 export const agentErrorEventSchema = agentEventBaseSchema.extend({

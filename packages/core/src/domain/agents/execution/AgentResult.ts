@@ -5,7 +5,7 @@ import { finishReasonSchema } from '../../ai/response/completions/shared/FinishR
 import { usageSchema } from '../../ai/response/completions/shared/Usage';
 import type { AgentId } from '../AgentId';
 import { agentIdSchema } from '../AgentId';
-import { agentStateIdSchema } from '../AgentStateId';
+import { agentRunIdSchema } from '../AgentRunId';
 import { suspensionSchema } from '../suspension/Suspension';
 
 // Reuses existing StepResult, Usage, FinishReason from completions
@@ -31,7 +31,7 @@ export const agentSuspendedResultSchema = zod.strictObject({
   model: zod.string(),
   steps: zod.array(stepResultSchema),
   suspension: suspensionSchema,
-  stateId: agentStateIdSchema,
+  stateId: agentRunIdSchema,
 });
 
 export const agentErrorResultSchema = zod.strictObject({

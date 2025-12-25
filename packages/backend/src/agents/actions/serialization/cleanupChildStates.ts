@@ -1,9 +1,9 @@
 import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
-import type { AgentStateId } from '@core/domain/agents';
+import type { AgentRunId } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
 import { ok, type Result } from 'neverthrow';
-import type { IAgentStateCache } from '../../cache/AgentStateCache';
+import type { IAgentStateCache } from '../../infrastructure/cache';
 
 export interface CleanupChildStatesDeps {
   readonly stateCache: IAgentStateCache;
@@ -21,7 +21,7 @@ export interface CleanupChildStatesDeps {
  */
 export async function cleanupChildStates(
   ctx: Context,
-  stateId: AgentStateId,
+  stateId: AgentRunId,
   deps: CleanupChildStatesDeps,
 ): Promise<Result<void, AppError>> {
   const stateResult = await deps.stateCache.get(ctx, stateId);

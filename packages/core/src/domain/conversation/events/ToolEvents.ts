@@ -58,3 +58,17 @@ export const toolErrorEventDataSchema = zod.strictObject({
   input: zod.unknown(),
   error: zod.unknown(),
 });
+
+// === TOOL APPROVAL REQUEST EVENT DATA ===
+
+export const toolApprovalRequestEventDataSchema = zod.strictObject({
+  type: zod.literal('tool-approval-request'),
+  approvalId: zod.string(),
+  toolCall: zod.strictObject({
+    toolCallId: zod.string(),
+    toolName: zod.string(),
+    input: zod.unknown(),
+    providerExecuted: zod.boolean().optional(),
+    dynamic: zod.boolean().optional(),
+  }),
+});

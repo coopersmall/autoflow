@@ -7,7 +7,7 @@ import type {
 } from '@core/domain/ai';
 import type { AppError } from '@core/errors/AppError';
 import { internalError } from '@core/errors/factories';
-import { validateOutputToolResult } from '../validation/validateOutputToolResult';
+import { validateOutputToolResult } from '../../validation/validateOutputToolResult';
 
 /**
  * Parameters for handling output tool validation.

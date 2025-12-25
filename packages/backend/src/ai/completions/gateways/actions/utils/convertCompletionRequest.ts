@@ -1,15 +1,7 @@
 import type { StandardCompletionsRequest } from '@autoflow/core';
-import type {
-  GenerateTextOnStepFinishCallback,
-  JSONValue,
-  ModelMessage,
-  PrepareStepFunction,
-  StopCondition,
-  ToolSet,
-} from 'ai';
+import type { JSONValue, ModelMessage, StopCondition, ToolSet } from 'ai';
 import type { CompletionsProvider } from '../../../providers/CompletionsProviders';
 import { convertBuiltinTools } from './convertBuiltinTools';
-import { convertOnStepFinish, convertPrepareStep } from './convertHooks';
 import { convertToModelMessages } from './convertMessages';
 import { convertProviderOptions } from './convertProviderOptions';
 import { convertStopWhen } from './convertStopWhen';
@@ -23,8 +15,6 @@ type CompletionRequest = {
   messages: ModelMessage[];
   tools?: ToolSet;
   stopWhen?: StopCondition<ToolSet>[];
-  prepareStep?: PrepareStepFunction<ToolSet>;
-  onStepFinish?: GenerateTextOnStepFinishCallback<ToolSet>;
   providerOptions?: Record<string, Record<string, JSONValue>>;
 };
 
@@ -43,8 +33,6 @@ export function convertCompletionRequest(
     messages: convertToModelMessages(messages),
     tools: finalTools,
     stopWhen: convertStopWhen(request.stopWhen),
-    prepareStep: convertPrepareStep(request.prepareStep),
-    onStepFinish: convertOnStepFinish(request.onStepFinish),
     providerOptions: convertProviderOptions(provider),
   };
 }

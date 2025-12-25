@@ -82,3 +82,20 @@ export const toolOutputDeniedPartSchema = zod.strictObject({
   providerExecuted: zod.boolean().optional(),
   dynamic: zod.boolean().optional(),
 });
+
+// === TOOL APPROVAL REQUEST PART ===
+
+export type ToolApprovalRequestPart = zod.infer<
+  typeof toolApprovalRequestPartSchema
+>;
+export const toolApprovalRequestPartSchema = zod.strictObject({
+  type: zod.literal('tool-approval-request'),
+  approvalId: zod.string(),
+  toolCall: zod.strictObject({
+    toolCallId: zod.string(),
+    toolName: zod.string(),
+    input: zod.unknown(),
+    providerExecuted: zod.boolean().optional(),
+    dynamic: zod.boolean().optional(),
+  }),
+});

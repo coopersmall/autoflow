@@ -1,6 +1,5 @@
 import { z as zod } from 'zod';
-import type { AgentStateId } from '../AgentStateId';
-import { agentStateIdSchema } from '../AgentStateId';
+import { type AgentRunId, agentRunIdSchema } from '../AgentRunId';
 import type { Suspension } from '../suspension/Suspension';
 import { suspensionSchema } from '../suspension/Suspension';
 
@@ -19,7 +18,7 @@ export const agentToolResultErrorSchema = zod.strictObject({
 export const agentToolResultSuspendedSchema = zod.strictObject({
   type: zod.literal('suspended'),
   suspension: suspensionSchema,
-  stateId: agentStateIdSchema,
+  stateId: agentRunIdSchema,
 });
 
 export const agentToolResultSchema = zod.discriminatedUnion('type', [
@@ -62,7 +61,7 @@ export const AgentToolResult = {
   }),
   suspended: (
     suspension: Suspension,
-    stateId: AgentStateId,
+    stateId: AgentRunId,
   ): AgentToolResultSuspended => ({
     type: 'suspended',
     suspension,

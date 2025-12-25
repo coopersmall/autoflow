@@ -22,6 +22,7 @@ import {
   textStartEventDataSchema,
 } from './TextEvents';
 import {
+  toolApprovalRequestEventDataSchema,
   toolCallEventDataSchema,
   toolErrorEventDataSchema,
   toolInputDeltaEventDataSchema,
@@ -53,6 +54,7 @@ export const itemEventDataSchema = zod.discriminatedUnion('type', [
   toolCallEventDataSchema,
   toolResultEventDataSchema,
   toolErrorEventDataSchema,
+  toolApprovalRequestEventDataSchema,
   // Lifecycle events
   startEventDataSchema,
   finishEventDataSchema,

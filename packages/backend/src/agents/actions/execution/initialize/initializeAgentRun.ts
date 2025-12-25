@@ -1,34 +1,27 @@
-import { DEFAULT_AGENT_TIMEOUT } from '@backend/agents/constants';
+import {
+  type AgentRunState,
+  type AgentState,
+  DEFAULT_AGENT_TIMEOUT,
+} from '@backend/agents/domain';
 import type { IMCPService } from '@backend/ai/mcp/domain/MCPService';
 import type { Context } from '@backend/infrastructure/context/Context';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import type { IStorageService } from '@backend/storage/domain/StorageService';
 import type { AgentManifest, AgentRequest } from '@core/domain/agents';
-import type { Message, StepResult, ToolWithExecution } from '@core/domain/ai';
 import type { AppError } from '@core/errors/AppError';
-import { internalError } from '@core/errors/factories';
 import { err, ok, type Result } from 'neverthrow';
-import { buildToolExecutionHarness } from '../../tools/harness/buildToolExecutionHarness';
-import type { ToolExecutionHarness } from '../../tools/harness/createToolExecutionHarness';
-import { buildAgentTools } from '../tools/buildAgentTools';
+import { deserializeMessages } from '../../serialization/deserializeMessages';
+import { buildAgentTools } from '../../tools/buildAgentTools';
 import { buildInitialMessages } from './buildInitialMessages';
 
 export interface InitializeAgentRunDeps {
   readonly mcpService: IMCPService;
 }
 
-/**
- * Mutable state object for agent execution.
- * The agent loop modifies messages, steps, stepNumber, and outputValidationRetries.
- */
-export interface AgentRunState {
-  readonly startTime: number;
-  readonly timeoutMs: number;
-  readonly tools: ToolWithExecution[];
-  readonly toolsMap: Map<string, ToolWithExecution>;
-  readonly harness: ToolExecutionHarness;
-  messages: Message[];
-  steps: StepResult[];
-  stepNumber: number;
-  outputValidationRetries: number;
+export interface RestoreAgentRunDeps {
+  readonly mcpService: IMCPService;
+  readonly storageService: IStorageService;
+  readonly logger: ILogger;
 }
 
 /**
@@ -63,15 +56,11 @@ export async function initializeAgentRun(
 
   const { tools, toolsMap } = toolsResult.value;
 
-  // Build tool execution harness
-  const harness = buildToolExecutionHarness(manifest.config);
-
   return ok({
     startTime,
     timeoutMs,
     tools,
     toolsMap,
-    harness,
     messages,
     steps: [],
     stepNumber: 0,
@@ -87,31 +76,45 @@ export async function initializeAgentRun(
  * - Steps history
  * - Current step number
  * - Adjusts timeout for already-elapsed time
- *
- * TODO: Implement in Phase 4 (HITL)
- * - Add AgentState type to @core/domain/agents
- * - Deserialize messages (refresh signed URLs for binary content)
- * - Restore pending suspension if exists
- * - Handle approval responses
- *
- * @param savedState - Type will be `AgentState` from @core/domain/agents (Phase 4)
  */
 export async function restoreAgentRun(
   ctx: Context,
   manifest: AgentManifest,
-  savedState: unknown, // Will be AgentState in Phase 4
-  deps: InitializeAgentRunDeps,
+  savedState: AgentState,
+  deps: RestoreAgentRunDeps,
 ): Promise<Result<AgentRunState, AppError>> {
-  // TODO: Phase 4 implementation
-  // const messagesResult = await deserializeMessages(ctx, savedState.messages, deps);
-  // if (messagesResult.isErr()) return err(messagesResult.error);
+  const startTime = Date.now();
+  const timeoutMs = manifest.config.timeout ?? DEFAULT_AGENT_TIMEOUT;
 
-  // For now, return not implemented error
-  return err(
-    internalError('restoreAgentRun not yet implemented (Phase 4)', {
-      metadata: {
-        manifestId: manifest.config.id,
-      },
-    }),
-  );
+  // Deserialize messages (refresh signed URLs for binary content)
+  const messagesResult = await deserializeMessages(ctx, savedState.messages, {
+    storageService: deps.storageService,
+    logger: deps.logger,
+  });
+
+  if (messagesResult.isErr()) {
+    return err(messagesResult.error);
+  }
+
+  // Build tools (not persisted, must be rebuilt)
+  const toolsResult = await buildAgentTools(ctx, manifest, {
+    mcpService: deps.mcpService,
+  });
+
+  if (toolsResult.isErr()) {
+    return err(toolsResult.error);
+  }
+
+  const { tools, toolsMap } = toolsResult.value;
+
+  return ok({
+    startTime,
+    timeoutMs,
+    tools,
+    toolsMap,
+    messages: messagesResult.value,
+    steps: savedState.steps,
+    stepNumber: savedState.currentStepNumber,
+    outputValidationRetries: 0, // Reset on continue
+  });
 }

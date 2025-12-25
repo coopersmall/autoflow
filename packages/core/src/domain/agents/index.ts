@@ -1,7 +1,7 @@
 // Root-level types
 export * from './AgentContext';
 export * from './AgentId';
-export * from './AgentStateId';
+export * from './AgentRunId';
 
 // Config types
 export * from './config';
