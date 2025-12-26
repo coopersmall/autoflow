@@ -26,10 +26,6 @@ export interface ExecuteAgentLoopParams {
   readonly ctx: Context;
   readonly manifest: AgentManifest;
   readonly state: AgentRunState;
-  /**
-   * Elapsed execution time from previous runs (for continued agents).
-   * Added to current elapsed time for timeout checks.
-   */
   readonly previousElapsedMs?: number;
 }
 
@@ -121,22 +117,16 @@ export async function executeAgentLoop(
     // 4. Check for tool-approval-request in response (current agent's HITL)
     const approvalRequests = filterApprovalRequest(response);
     if (approvalRequests && approvalRequests.length > 0) {
-      const assistantMessage = buildIterationMessages(response, []);
-      const allMessages = [...messages, ...assistantMessage];
-
-      // Return suspended state with updated messages
-      const finalState: AgentRunState = {
-        ...state,
-        messages: allMessages,
-        steps,
-        stepNumber,
-        outputValidationRetries,
-      };
-
       return ok({
         status: 'suspended',
         suspensions: approvalRequests,
-        finalState,
+        finalState: {
+          ...state,
+          messages: [...messages, ...buildIterationMessages(response, [])],
+          steps,
+          stepNumber,
+          outputValidationRetries,
+        },
       });
     }
 
@@ -152,22 +142,16 @@ export async function executeAgentLoop(
 
     // 6. Handle sub-agent suspension (recursive signal from nested runAgent)
     if (execResult.type === 'suspended') {
-      const assistantMessage = buildIterationMessages(response, []);
-      const allMessages = [...messages, ...assistantMessage];
-
-      // Return suspended state with updated messages
-      const finalState: AgentRunState = {
-        ...state,
-        messages: allMessages,
-        steps,
-        stepNumber,
-        outputValidationRetries,
-      };
-
       return ok({
         status: 'suspended',
         suspensions: execResult.suspensions,
-        finalState,
+        finalState: {
+          ...state,
+          messages: [...messages, ...buildIterationMessages(response, [])],
+          steps,
+          stepNumber,
+          outputValidationRetries,
+        },
       });
     }
 
@@ -211,18 +195,19 @@ export async function executeAgentLoop(
         currentStepNumber: stepNumber,
       })
     ) {
-      const finalState: AgentRunState = {
-        ...state,
-        messages,
-        steps,
-        stepNumber,
-        outputValidationRetries,
-      };
-
       return ok({
         status: 'complete',
         result: buildAgentResult(manifest, steps, response.finishReason),
-        finalState,
+        finalState: {
+          ...state,
+          messages: [
+            ...messages,
+            ...buildIterationMessages(response, toolResultParts),
+          ],
+          steps,
+          stepNumber,
+          outputValidationRetries,
+        },
       });
     }
 

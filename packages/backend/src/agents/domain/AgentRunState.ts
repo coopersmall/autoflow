@@ -1,4 +1,5 @@
-import type { Message, StepResult, ToolWithExecution } from '@core/domain/ai';
+import type { AgentTool } from '@core/domain/agents';
+import type { Message, StepResult } from '@core/domain/ai';
 
 /**
  * Mutable runtime state object for agent execution.
@@ -15,14 +16,14 @@ import type { Message, StepResult, ToolWithExecution } from '@core/domain/ai';
  * Immutable fields are set during initialization and don't change:
  * - startTime: When this execution started (for timeout calculation)
  * - timeoutMs: Maximum execution time allowed
- * - tools: Available tools for this agent
+ * - tools: Available tools for this agent (includes both standard and context-aware tools)
  * - toolsMap: Quick lookup map for tools
  */
 export interface AgentRunState {
   readonly startTime: number;
   readonly timeoutMs: number;
-  readonly tools: ToolWithExecution[];
-  readonly toolsMap: Map<string, ToolWithExecution>;
+  readonly tools: AgentTool[];
+  readonly toolsMap: Map<string, AgentTool>;
   messages: Message[];
   steps: StepResult[];
   stepNumber: number;

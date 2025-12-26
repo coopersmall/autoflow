@@ -8,9 +8,7 @@ export {
 export { buildInitialMessages } from './initialize/buildInitialMessages';
 export { buildIterationMessages } from './initialize/buildIterationMessages';
 export {
-  type InitializeAgentRunDeps,
   initializeAgentRun,
-  type RestoreAgentRunDeps,
   restoreAgentRun,
 } from './initialize/initializeAgentRun';
 export {

@@ -11,6 +11,7 @@ import type {
 } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
 import { err, type Result } from 'neverthrow';
+import { buildAgentTools } from '../tools/buildAgentTools';
 import { buildAgentRunResult, executeAgentLoop, saveAgentState } from './loop';
 import { prepareRunState } from './prepare';
 
@@ -46,8 +47,29 @@ export async function runAgent(
   input: AgentInput,
   deps: RunAgentDeps,
 ): Promise<Result<AgentRunResult, AppError>> {
-  // 1. Prepare agent run state based on input type
-  const prepareResult = await prepareRunState(ctx, manifest, input, deps);
+  // 1. Build tools first (needs manifestMap from input)
+  const toolsResult = await buildAgentTools(
+    ctx,
+    manifest,
+    input.manifestMap,
+    deps,
+  );
+
+  if (toolsResult.isErr()) {
+    return err(toolsResult.error);
+  }
+
+  const { tools, toolsMap } = toolsResult.value;
+
+  // 2. Prepare agent run state based on input type
+  const prepareResult = await prepareRunState(
+    ctx,
+    manifest,
+    input,
+    tools,
+    toolsMap,
+    deps,
+  );
 
   if (prepareResult.isErr()) {
     return err(prepareResult.error);

@@ -1,5 +1,5 @@
 import type { Context } from '@backend/infrastructure/context/Context';
-import type { AgentInput, AgentManifest } from '@core/domain/agents';
+import type { AgentInput, AgentManifest, AgentTool } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
 import { unreachable } from '@core/unreachable';
 import type { Result } from 'neverthrow';
@@ -11,7 +11,7 @@ import { prepareFromRequest } from './prepareFromRequest';
 /**
  * Prepares agent run state based on input type.
  *
- * Routes to the appropriate preparation function:
+ * Tools are pre-built and passed in. Routes to the appropriate preparation function:
  * - request: Fresh start from AgentRequest
  * - reply: Reply to completed agent with additional message
  * - approval: Resume suspended agent after tool approval
@@ -20,29 +20,35 @@ export async function prepareRunState(
   ctx: Context,
   manifest: AgentManifest,
   input: AgentInput,
+  tools: AgentTool[],
+  toolsMap: Map<string, AgentTool>,
   deps: PrepareAgentRunDeps,
 ): Promise<Result<PrepareResult, AppError>> {
   switch (input.type) {
     case 'request': {
-      return await prepareFromRequest(ctx, manifest, input.request, deps);
+      return prepareFromRequest(ctx, manifest, input.request, tools, toolsMap);
     }
 
     case 'reply': {
-      return await prepareFromReply(
+      return prepareFromReply(
         ctx,
         manifest,
         input.runId,
         input.message,
+        tools,
+        toolsMap,
         deps,
       );
     }
 
     case 'approval': {
-      return await prepareFromApproval(
+      return prepareFromApproval(
         ctx,
         manifest,
         input.runId,
         input.response,
+        tools,
+        toolsMap,
         deps,
       );
     }

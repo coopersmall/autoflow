@@ -1,5 +1,5 @@
 import type { Context } from '@backend/infrastructure/context/Context';
-import type { AgentManifest, AgentRunId } from '@core/domain/agents';
+import type { AgentManifest, AgentRunId, AgentTool } from '@core/domain/agents';
 import type { Message } from '@core/domain/ai';
 import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
@@ -10,13 +10,16 @@ import type { PrepareAgentRunDeps, PrepareResult } from './PrepareResult';
 /**
  * Prepares agent run state from a reply to a completed agent.
  * Loads the completed state and adds the user's message.
+ * Tools are pre-built and passed in.
  */
 export async function prepareFromReply(
   ctx: Context,
   manifest: AgentManifest,
   stateId: AgentRunId,
   message: string | Message,
-  deps: PrepareAgentRunDeps,
+  tools: AgentTool[],
+  toolsMap: Map<string, AgentTool>,
+  deps: Pick<PrepareAgentRunDeps, 'stateCache' | 'storageService' | 'logger'>,
 ): Promise<Result<PrepareResult, AppError>> {
   // 1. Load and validate saved state
   const stateResult = await loadAndValidateState(
@@ -33,12 +36,18 @@ export async function prepareFromReply(
 
   const savedState = stateResult.value;
 
-  // 2. Restore agent run state (deserialize messages, rebuild tools)
-  const restoreResult = await restoreAgentRun(ctx, manifest, savedState, {
-    mcpService: deps.mcpService,
-    storageService: deps.storageService,
-    logger: deps.logger,
-  });
+  // 2. Restore agent run state (deserialize messages, use pre-built tools)
+  const restoreResult = await restoreAgentRun(
+    ctx,
+    manifest,
+    savedState,
+    tools,
+    toolsMap,
+    {
+      storageService: deps.storageService,
+      logger: deps.logger,
+    },
+  );
 
   if (restoreResult.isErr()) {
     return err(restoreResult.error);

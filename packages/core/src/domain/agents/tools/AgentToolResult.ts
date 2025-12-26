@@ -17,8 +17,8 @@ export const agentToolResultErrorSchema = zod.strictObject({
 
 export const agentToolResultSuspendedSchema = zod.strictObject({
   type: zod.literal('suspended'),
-  suspension: suspensionSchema,
-  stateId: agentRunIdSchema,
+  suspensions: zod.array(suspensionSchema),
+  runId: agentRunIdSchema,
 });
 
 export const agentToolResultSchema = zod.discriminatedUnion('type', [
@@ -60,11 +60,11 @@ export const AgentToolResult = {
     retryable,
   }),
   suspended: (
-    suspension: Suspension,
-    stateId: AgentRunId,
+    suspensions: Suspension[],
+    runId: AgentRunId,
   ): AgentToolResultSuspended => ({
     type: 'suspended',
-    suspension,
-    stateId,
+    suspensions,
+    runId,
   }),
 };

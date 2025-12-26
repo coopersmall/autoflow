@@ -80,7 +80,7 @@ type CompletedToolCallResult = {
 
 type SuspendedToolCallResult = {
   type: 'suspended';
-  suspension: Suspension;
+  suspensions: Suspension[];
 };
 
 type UnknownToolCallResult = {
@@ -115,7 +115,7 @@ async function executeToolCall(params: {
   if (toolResult.type === 'suspended') {
     return {
       type: 'suspended',
-      suspension: toolResult.suspension,
+      suspensions: toolResult.suspensions,
     };
   }
 
@@ -147,7 +147,7 @@ function buildExecutionResults(
         });
         break;
       case 'suspended':
-        suspensions.push(result.suspension);
+        suspensions.push(...result.suspensions);
         break;
       default:
         toolResultParts.push(

@@ -1,35 +1,38 @@
-import type { IMCPService } from '@backend/ai/mcp/domain/MCPService';
+import type { RunAgentDeps } from '@backend/agents/actions/execution/runAgent';
 import type { Context } from '@backend/infrastructure/context/Context';
 import {
   type AgentExecuteFunction,
   type AgentManifest,
+  type AgentTool,
   AgentToolResult,
 } from '@core/domain/agents';
-import type { ToolWithExecution } from '@core/domain/ai';
 import type { AppError } from '@core/errors/AppError';
+import { notFound } from '@core/errors/factories';
 import { err, ok, type Result } from 'neverthrow';
 import { createOutputTool } from './createOutputTool';
+import { createSubAgentTool } from './createSubAgentTool';
 
-export interface BuildAgentToolsDeps {
-  readonly mcpService: IMCPService;
+export interface BuildAgentToolsDeps extends RunAgentDeps {
+  // All RunAgentDeps needed for sub-agent recursive calls
 }
 
 export interface BuildAgentToolsResult {
-  readonly tools: ToolWithExecution[];
-  readonly toolsMap: Map<string, ToolWithExecution>;
+  readonly tools: AgentTool[];
+  readonly toolsMap: Map<string, AgentTool>;
 }
 
 /**
  * Builds the complete tool set for an agent execution.
- * Merges manifest tools, MCP tools (wrapped), and output tool.
+ * Merges manifest tools, MCP tools (wrapped), sub-agent tools, and output tool.
  * Returns both array and map for efficient lookup.
  */
 export async function buildAgentTools(
   ctx: Context,
   manifest: AgentManifest,
+  manifestMap: Map<string, AgentManifest>,
   deps: BuildAgentToolsDeps,
 ): Promise<Result<BuildAgentToolsResult, AppError>> {
-  const tools: ToolWithExecution[] = [];
+  const tools: AgentTool[] = [];
 
   // Add manifest tools with executors from hooks
   for (const tool of manifest.config.tools ?? []) {
@@ -84,6 +87,33 @@ export async function buildAgentTools(
     // For now, we'll leave it to the caller to manage lifecycle
   }
 
+  // Add sub-agent tools (framework-managed)
+  for (const subAgentConfig of manifest.config.subAgents ?? []) {
+    const subAgentKey = `${subAgentConfig.manifestId}:${subAgentConfig.manifestVersion}`;
+    const subAgentManifest = manifestMap.get(subAgentKey);
+
+    if (!subAgentManifest) {
+      return err(
+        notFound(`Sub-agent manifest not found: ${subAgentKey}`, {
+          metadata: {
+            manifestId: subAgentConfig.manifestId,
+            manifestVersion: subAgentConfig.manifestVersion,
+          },
+        }),
+      );
+    }
+
+    const mapper = manifest.hooks.subAgentMappers?.get(subAgentConfig.name);
+    const subAgentTool = createSubAgentTool(
+      subAgentConfig,
+      subAgentManifest,
+      mapper,
+      manifestMap,
+      deps,
+    );
+    tools.push(subAgentTool);
+  }
+
   // Add output tool if configured
   if (manifest.config.outputTool) {
     const outputTool = createOutputTool(manifest.config.outputTool);
@@ -91,7 +121,7 @@ export async function buildAgentTools(
   }
 
   // Build map for efficient lookup
-  const toolsMap = new Map<string, ToolWithExecution>();
+  const toolsMap = new Map<string, AgentTool>();
   for (const tool of tools) {
     toolsMap.set(tool.function.name, tool);
   }
