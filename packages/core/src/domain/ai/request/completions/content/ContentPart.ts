@@ -2,10 +2,7 @@ import zod from 'zod';
 import { requestFilePartSchema } from './FilePart';
 import { requestImagePartSchema } from './ImagePart';
 import { requestReasoningPartSchema } from './ReasoningPart';
-import {
-  requestDocumentSourcePartSchema,
-  requestUrlSourcePartSchema,
-} from './SourcePart';
+import { requestSourcePartSchema } from './SourcePart';
 import { requestTextPartSchema } from './TextPart';
 import { requestToolApprovalRequestPartSchema } from './ToolApprovalRequestPart';
 import { requestToolApprovalResponsePartSchema } from './ToolApprovalResponsePart';
@@ -41,8 +38,7 @@ export const requestAssistantContentPartSchema = zod.discriminatedUnion(
     requestToolResultPartSchema,
     requestToolApprovalRequestPartSchema,
     requestToolErrorPartSchema,
-    requestUrlSourcePartSchema,
-    requestDocumentSourcePartSchema,
+    requestSourcePartSchema,
   ],
 );
 

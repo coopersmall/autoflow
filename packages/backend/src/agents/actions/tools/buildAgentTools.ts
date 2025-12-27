@@ -1,4 +1,3 @@
-import type { RunAgentDeps } from '@backend/agents/actions/execution/runAgent';
 import type { Context } from '@backend/infrastructure/context/Context';
 import {
   type AgentExecuteFunction,
@@ -9,11 +8,12 @@ import {
 import type { AppError } from '@core/errors/AppError';
 import { notFound } from '@core/errors/factories';
 import { err, ok, type Result } from 'neverthrow';
+import type { StreamAgentDeps } from '../streamAgent';
 import { createOutputTool } from './createOutputTool';
-import { createSubAgentTool } from './createSubAgentTool';
+import { createStreamingSubAgentTool } from './createStreamingSubAgentTool';
 
-export interface BuildAgentToolsDeps extends RunAgentDeps {
-  // All RunAgentDeps needed for sub-agent recursive calls
+export interface BuildAgentToolsDeps extends StreamAgentDeps {
+  // All StreamAgentDeps needed for sub-agent recursive calls
 }
 
 export interface BuildAgentToolsResult {
@@ -94,7 +94,7 @@ export async function buildAgentTools(
 
     if (!subAgentManifest) {
       return err(
-        notFound(`Sub-agent manifest not found: ${subAgentKey}`, {
+        notFound('Sub-agent manifest not found', {
           metadata: {
             manifestId: subAgentConfig.manifestId,
             manifestVersion: subAgentConfig.manifestVersion,
@@ -104,7 +104,7 @@ export async function buildAgentTools(
     }
 
     const mapper = manifest.hooks.subAgentMappers?.get(subAgentConfig.name);
-    const subAgentTool = createSubAgentTool(
+    const subAgentTool = createStreamingSubAgentTool(
       subAgentConfig,
       subAgentManifest,
       mapper,

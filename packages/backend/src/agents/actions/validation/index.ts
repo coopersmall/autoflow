@@ -1,4 +1,5 @@
 export { validateAgentConfig } from './validateAgentConfig';
+export { validateAgentState } from './validateAgentState';
 export { validateOutput } from './validateOutput';
 export {
   type OutputValidationContext,

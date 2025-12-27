@@ -9,7 +9,11 @@ import { stopWhenSchema } from '../../ai/request/completions/hooks/stopWhen/Stop
 import { toolSchema } from '../../ai/request/completions/tools/Tool';
 import { agentIdSchema } from '../AgentId';
 import { outputToolConfigSchema } from './OutputToolConfig';
+import { type StreamingConfig, streamingConfigSchema } from './StreamingConfig';
 import { subAgentConfigSchema } from './SubAgentConfig';
+
+// Re-export for backwards compatibility
+export { streamingConfigSchema, type StreamingConfig };
 
 // Provider config for agents (subset of CompletionsProvider)
 export const agentProviderConfigSchema = zod.discriminatedUnion('provider', [
@@ -92,6 +96,13 @@ export const agentManifestConfigSchema = zod.strictObject({
         .describe('Default timeout for sub-agents (ms)'),
     })
     .optional(),
+
+  // Streaming configuration
+  streaming: streamingConfigSchema
+    .optional()
+    .describe(
+      "Streaming configuration. Defaults to streaming ['tool-call'] events.",
+    ),
 });
 
 export type AgentManifestConfig = zod.infer<typeof agentManifestConfigSchema>;

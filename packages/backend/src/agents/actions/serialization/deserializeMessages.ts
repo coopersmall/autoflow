@@ -1,3 +1,4 @@
+import type { AgentRunOptions } from '@backend/agents/domain';
 import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { IStorageService } from '@backend/storage/domain/StorageService';
@@ -32,11 +33,12 @@ export async function deserializeMessages(
   ctx: Context,
   messages: Message[],
   deps: DeserializeMessagesDeps,
+  options?: AgentRunOptions,
 ): Promise<Result<Message[], AppError>> {
   const deserialized: Message[] = [];
 
   for (const message of messages) {
-    const result = await deserializeMessage(ctx, message, deps);
+    const result = await deserializeMessage(ctx, message, deps, options);
     deserialized.push(result);
   }
 
@@ -47,6 +49,7 @@ async function deserializeMessage(
   ctx: Context,
   message: Message,
   deps: DeserializeMessagesDeps,
+  options?: AgentRunOptions,
 ): Promise<Message> {
   switch (message.role) {
     case 'system':
@@ -54,9 +57,9 @@ async function deserializeMessage(
       // No binary content in these message types
       return message;
     case 'user':
-      return deserializeUserMessage(ctx, message, deps);
+      return deserializeUserMessage(ctx, message, deps, options);
     case 'assistant':
-      return deserializeAssistantMessage(ctx, message, deps);
+      return deserializeAssistantMessage(ctx, message, deps, options);
     default:
       return unreachable(message);
   }
@@ -66,6 +69,7 @@ async function deserializeUserMessage(
   ctx: Context,
   message: UserMessage,
   deps: DeserializeMessagesDeps,
+  options?: AgentRunOptions,
 ): Promise<UserMessage> {
   if (typeof message.content === 'string') {
     return message;
@@ -75,10 +79,10 @@ async function deserializeUserMessage(
 
   for (const part of message.content) {
     if (part.type === 'image') {
-      const result = await deserializeImagePart(ctx, part, deps);
+      const result = await deserializeImagePart(ctx, part, deps, options);
       deserializedParts.push(result);
     } else if (part.type === 'file') {
-      const result = await deserializeFilePart(ctx, part, deps);
+      const result = await deserializeFilePart(ctx, part, deps, options);
       deserializedParts.push(result);
     } else {
       deserializedParts.push(part);
@@ -92,6 +96,7 @@ async function deserializeAssistantMessage(
   ctx: Context,
   message: AssistantMessage,
   deps: DeserializeMessagesDeps,
+  options?: AgentRunOptions,
 ): Promise<AssistantMessage> {
   if (typeof message.content === 'string') {
     return message;
@@ -101,7 +106,7 @@ async function deserializeAssistantMessage(
 
   for (const part of message.content) {
     if (part.type === 'file') {
-      const result = await deserializeFilePart(ctx, part, deps);
+      const result = await deserializeFilePart(ctx, part, deps, options);
       deserializedParts.push(result);
     } else {
       deserializedParts.push(part);
@@ -115,6 +120,7 @@ async function deserializeImagePart(
   ctx: Context,
   part: RequestImagePart,
   deps: DeserializeMessagesDeps,
+  options?: AgentRunOptions,
 ): Promise<RequestImagePart> {
   // No storage tracking - pass through
   if (!part.storageFileId || !part.storageFilename) {
@@ -132,9 +138,11 @@ async function deserializeImagePart(
   // Generate fresh signed URL
   const urlResult = await deps.storageService.getDownloadUrl(ctx, {
     fileId: part.storageFileId,
-    folder: AGENT_CONTENT_FOLDER,
+    folder: options?.agentContentFolder ?? AGENT_CONTENT_FOLDER,
     filename: part.storageFilename,
-    expiresInSeconds: AGENT_DOWNLOAD_URL_EXPIRY_SECONDS,
+    expiresInSeconds:
+      options?.agentDownloadUrlExpirySeconds ??
+      AGENT_DOWNLOAD_URL_EXPIRY_SECONDS,
   });
 
   if (urlResult.isErr()) {
@@ -158,6 +166,7 @@ async function deserializeFilePart(
   ctx: Context,
   part: RequestFilePart,
   deps: DeserializeMessagesDeps,
+  options?: AgentRunOptions,
 ): Promise<RequestFilePart> {
   // No storage tracking - pass through
   if (!part.storageFileId || !part.storageFilename) {
@@ -175,9 +184,11 @@ async function deserializeFilePart(
   // Generate fresh signed URL
   const urlResult = await deps.storageService.getDownloadUrl(ctx, {
     fileId: part.storageFileId,
-    folder: AGENT_CONTENT_FOLDER,
+    folder: options?.agentContentFolder ?? AGENT_CONTENT_FOLDER,
     filename: part.storageFilename,
-    expiresInSeconds: AGENT_DOWNLOAD_URL_EXPIRY_SECONDS,
+    expiresInSeconds:
+      options?.agentDownloadUrlExpirySeconds ??
+      AGENT_DOWNLOAD_URL_EXPIRY_SECONDS,
   });
 
   if (urlResult.isErr()) {

@@ -9,7 +9,10 @@ export const suspensionStackEntrySchema = zod.strictObject({
   stateId: agentRunIdSchema,
   pendingToolCallId: zod
     .string()
-    .describe('The tool call waiting for sub-agent result'),
+    .optional()
+    .describe(
+      'The tool call waiting for sub-agent result (undefined for leaf)',
+    ),
 });
 
 export const suspensionStackSchema = zod.strictObject({

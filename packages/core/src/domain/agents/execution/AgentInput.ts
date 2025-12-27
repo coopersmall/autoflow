@@ -4,6 +4,7 @@ import { agentRunIdSchema } from '../AgentRunId';
 import type { AgentManifest } from '../config/AgentManifest';
 import { continueResponseSchema } from '../suspension/ContinueResponse';
 import { agentRequestSchema } from './AgentRequest';
+import { agentRunOptionsSchema } from './AgentRunOptions';
 
 /**
  * Base schema for all agent input variants.
@@ -11,6 +12,7 @@ import { agentRequestSchema } from './AgentRequest';
  */
 const agentInputBaseSchema = zod.strictObject({
   manifestMap: zod.map(zod.string(), zod.custom<AgentManifest>()),
+  options: agentRunOptionsSchema.optional(),
 });
 
 /**
@@ -21,6 +23,7 @@ const agentInputBaseSchema = zod.strictObject({
  * - `request`: Fresh start with a new agent request
  * - `reply`: Continue a completed agent with additional user message
  * - `approval`: Resume a suspended agent after HITL approval
+ * - `continue`: Resume agent with pending tool results (no approval needed)
  */
 export const agentInputSchema = zod.discriminatedUnion('type', [
   agentInputBaseSchema.extend({
@@ -36,6 +39,10 @@ export const agentInputSchema = zod.discriminatedUnion('type', [
     type: zod.literal('approval'),
     runId: agentRunIdSchema,
     response: continueResponseSchema,
+  }),
+  agentInputBaseSchema.extend({
+    type: zod.literal('continue'),
+    runId: agentRunIdSchema,
   }),
 ]);
 

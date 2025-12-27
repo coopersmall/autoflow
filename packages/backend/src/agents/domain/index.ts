@@ -1,8 +1,10 @@
+export type { AgentRunOptions } from './AgentRunOptions';
 export type { AgentRunState } from './AgentRunState';
 export {
   type AgentState,
   type AgentStateStatus,
   agentStateSchema,
+  type ContinuableStateStatus,
 } from './AgentState';
 export {
   AGENT_CONTENT_FOLDER,
@@ -11,3 +13,7 @@ export {
   DEFAULT_AGENT_STATE_TTL,
   DEFAULT_AGENT_TIMEOUT,
 } from './constants';
+// Dependency composition
+export * from './dependencies';
+// Execution domain objects
+export * from './execution';

@@ -1,6 +1,7 @@
 import { jsonSchema } from '@core/domain/json-schema/JsonSchema';
 import { z as zod } from 'zod';
 import { agentIdSchema } from '../AgentId';
+import { streamingConfigSchema } from './StreamingConfig';
 
 export const subAgentConfigSchema = zod.strictObject({
   manifestId: agentIdSchema.describe('Reference to sub-agent manifest by ID'),
@@ -14,6 +15,12 @@ export const subAgentConfigSchema = zod.strictObject({
     .number()
     .optional()
     .describe('Timeout in ms (independent of parent)'),
+  // Override sub-agent's streaming config for this invocation
+  streaming: streamingConfigSchema
+    .optional()
+    .describe(
+      "Override sub-agent's streaming configuration for this invocation",
+    ),
 });
 
 // Note: mapToRequest is in hooks, not config (it's a function)

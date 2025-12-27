@@ -1,13 +1,18 @@
 import type { ToolWithExecution } from '../../ai/request/completions/tools/Tool';
 import type { AgentToolWithContext } from './AgentToolWithContext';
+import type { AgentToolWithStreamingContext } from './AgentToolWithStreamingContext';
 
 /**
  * Union of all tool types the agent framework can handle.
  *
  * - ToolWithExecution: Standard tools with execute(input, { messages })
  * - AgentToolWithContext: Context-aware tools with executeWithContext(tool, toolCall, execCtx)
+ * - AgentToolWithStreamingContext: Streaming tools with executeStreamingWithContext(tool, toolCall, execCtx)
  */
-export type AgentTool = ToolWithExecution | AgentToolWithContext;
+export type AgentTool =
+  | ToolWithExecution
+  | AgentToolWithContext
+  | AgentToolWithStreamingContext;
 
 /**
  * Type guard to check if a tool needs full execution context.

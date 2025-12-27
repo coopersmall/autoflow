@@ -40,19 +40,23 @@ export function convertFromContentParts(
         if (part.sourceType === 'url') {
           parts.push({
             type: 'source',
-            sourceType: 'url',
-            id: part.id,
-            url: part.url,
-            title: part.title,
+            source: {
+              sourceType: 'url',
+              id: part.id,
+              url: part.url,
+              title: part.title,
+            },
           });
         } else if (part.sourceType === 'document') {
           parts.push({
             type: 'source',
-            sourceType: 'document',
-            id: part.id,
-            mediaType: part.mediaType,
-            title: part.title,
-            filename: part.filename,
+            source: {
+              sourceType: 'document',
+              id: part.id,
+              mediaType: part.mediaType,
+              title: part.title,
+              filename: part.filename,
+            },
           });
         } else {
           unreachable(part);

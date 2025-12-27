@@ -1,3 +1,4 @@
+import type { AgentRunOptions } from '@backend/agents/domain';
 import type { Context } from '@backend/infrastructure/context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { IStorageService } from '@backend/storage/domain/StorageService';
@@ -37,11 +38,12 @@ export async function serializeMessages(
   ctx: Context,
   messages: Message[],
   deps: SerializeMessagesDeps,
+  options?: AgentRunOptions,
 ): Promise<Result<Message[], AppError>> {
   const serialized: Message[] = [];
 
   for (const message of messages) {
-    const result = await serializeMessage(ctx, message, deps);
+    const result = await serializeMessage(ctx, message, deps, options);
     if (result.isErr()) {
       return err(result.error);
     }
@@ -55,6 +57,7 @@ async function serializeMessage(
   ctx: Context,
   message: Message,
   deps: SerializeMessagesDeps,
+  options?: AgentRunOptions,
 ): Promise<Result<Message, AppError>> {
   switch (message.role) {
     case 'system':
@@ -62,9 +65,9 @@ async function serializeMessage(
       // No binary content in these message types
       return ok(message);
     case 'user':
-      return serializeUserMessage(ctx, message, deps);
+      return serializeUserMessage(ctx, message, deps, options);
     case 'assistant':
-      return serializeAssistantMessage(ctx, message, deps);
+      return serializeAssistantMessage(ctx, message, deps, options);
     default:
       return unreachable(message);
   }
@@ -74,6 +77,7 @@ async function serializeUserMessage(
   ctx: Context,
   message: UserMessage,
   deps: SerializeMessagesDeps,
+  options?: AgentRunOptions,
 ): Promise<Result<UserMessage, AppError>> {
   if (typeof message.content === 'string') {
     return ok(message);
@@ -83,13 +87,13 @@ async function serializeUserMessage(
 
   for (const part of message.content) {
     if (part.type === 'image') {
-      const result = await serializeImagePart(ctx, part, deps);
+      const result = await serializeImagePart(ctx, part, deps, options);
       if (result.isErr()) {
         return err(result.error);
       }
       serializedParts.push(result.value);
     } else if (part.type === 'file') {
-      const result = await serializeFilePart(ctx, part, deps);
+      const result = await serializeFilePart(ctx, part, deps, options);
       if (result.isErr()) {
         return err(result.error);
       }
@@ -106,6 +110,7 @@ async function serializeAssistantMessage(
   ctx: Context,
   message: AssistantMessage,
   deps: SerializeMessagesDeps,
+  options?: AgentRunOptions,
 ): Promise<Result<AssistantMessage, AppError>> {
   if (typeof message.content === 'string') {
     return ok(message);
@@ -115,7 +120,7 @@ async function serializeAssistantMessage(
 
   for (const part of message.content) {
     if (part.type === 'file') {
-      const result = await serializeFilePart(ctx, part, deps);
+      const result = await serializeFilePart(ctx, part, deps, options);
       if (result.isErr()) {
         return err(result.error);
       }
@@ -132,6 +137,7 @@ async function serializeImagePart(
   ctx: Context,
   part: RequestImagePart,
   deps: SerializeMessagesDeps,
+  options?: AgentRunOptions,
 ): Promise<Result<RequestImagePart, AppError>> {
   // Already a string (URL or base64) - pass through
   if (typeof part.image === 'string') {
@@ -153,7 +159,7 @@ async function serializeImagePart(
 
   // Upload binary content
   const uploadResult = await deps.storageService.uploadStream(ctx, {
-    folder: AGENT_CONTENT_FOLDER,
+    folder: options?.agentContentFolder ?? AGENT_CONTENT_FOLDER,
     payload: {
       id: fileId,
       filename,
@@ -184,9 +190,11 @@ async function serializeImagePart(
   // Get signed download URL (uploadStream doesn't return URL)
   const downloadUrlResult = await deps.storageService.getDownloadUrl(ctx, {
     fileId,
-    folder: AGENT_CONTENT_FOLDER,
+    folder: options?.agentContentFolder ?? AGENT_CONTENT_FOLDER,
     filename,
-    expiresInSeconds: AGENT_DOWNLOAD_URL_EXPIRY_SECONDS,
+    expiresInSeconds:
+      options?.agentDownloadUrlExpirySeconds ??
+      AGENT_DOWNLOAD_URL_EXPIRY_SECONDS,
   });
 
   if (downloadUrlResult.isErr()) {
@@ -209,6 +217,7 @@ async function serializeFilePart(
   ctx: Context,
   part: RequestFilePart,
   deps: SerializeMessagesDeps,
+  options?: AgentRunOptions,
 ): Promise<Result<RequestFilePart, AppError>> {
   // Already a string (URL or base64) - pass through
   if (typeof part.data === 'string') {
@@ -230,7 +239,7 @@ async function serializeFilePart(
 
   // Upload binary content
   const uploadResult = await deps.storageService.uploadStream(ctx, {
-    folder: AGENT_CONTENT_FOLDER,
+    folder: options?.agentContentFolder ?? AGENT_CONTENT_FOLDER,
     payload: {
       id: fileId,
       filename,
@@ -261,9 +270,11 @@ async function serializeFilePart(
   // Get signed download URL (uploadStream doesn't return URL)
   const downloadUrlResult = await deps.storageService.getDownloadUrl(ctx, {
     fileId,
-    folder: AGENT_CONTENT_FOLDER,
+    folder: options?.agentContentFolder ?? AGENT_CONTENT_FOLDER,
     filename,
-    expiresInSeconds: AGENT_DOWNLOAD_URL_EXPIRY_SECONDS,
+    expiresInSeconds:
+      options?.agentDownloadUrlExpirySeconds ??
+      AGENT_DOWNLOAD_URL_EXPIRY_SECONDS,
   });
 
   if (downloadUrlResult.isErr()) {

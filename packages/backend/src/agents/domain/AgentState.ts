@@ -4,6 +4,7 @@ import {
   toolApprovalSuspensionSchema,
 } from '@core/domain/agents/suspension';
 import { messageSchema } from '@core/domain/ai/request/completions';
+import { requestToolResultPartSchema } from '@core/domain/ai/request/completions/content';
 import { stepResultSchema } from '@core/domain/ai/response/completions/result';
 import { z as zod } from 'zod';
 
@@ -37,10 +38,19 @@ export const agentStateSchema = zod.strictObject({
   // Suspension info
   suspensions: zod
     .array(toolApprovalSuspensionSchema)
-    .describe('Pending suspensions for this agent'),
-  suspensionStack: suspensionStackSchema
-    .optional()
-    .describe('For sub-agent suspensions'),
+    .describe('Pending suspensions for THIS agent (flat HITL)'),
+  suspensionStacks: zod
+    .array(suspensionStackSchema)
+    .default([])
+    .describe(
+      'Stacks for nested sub-agent suspensions (one per parallel branch)',
+    ),
+  pendingToolResults: zod
+    .array(requestToolResultPartSchema)
+    .default([])
+    .describe(
+      'Completed tool results waiting for sibling suspensions to resolve',
+    ),
 
   // Lifecycle
   status: zod.enum([
@@ -67,3 +77,18 @@ export const agentStateSchema = zod.strictObject({
 
 export type AgentState = zod.infer<typeof agentStateSchema>;
 export type AgentStateStatus = AgentState['status'];
+
+/**
+ * Agent states that support continuation via reply or approval.
+ * - 'completed': Can receive a reply to continue conversation
+ * - 'suspended': Can receive an approval response to resume
+ *
+ * Excludes:
+ * - 'running': Transient state (not persisted for continuation)
+ * - 'failed': Terminal state (cannot continue)
+ * - 'cancelled': Terminal state (cannot continue)
+ */
+export type ContinuableStateStatus = Extract<
+  AgentStateStatus,
+  'completed' | 'suspended'
+>;

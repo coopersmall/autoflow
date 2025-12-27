@@ -1,4 +1,3 @@
-import type { RunAgentDeps } from '@backend/agents/actions/execution/runAgent';
 import {
   type AgentManifest,
   type AgentRequest,
@@ -9,7 +8,7 @@ import {
 } from '@core/domain/agents';
 import { validate } from '@core/validation/validate';
 import type { JSONSchema7 } from 'ai';
-import { runAgent } from '../execution/runAgent';
+import { type RunAgentDeps, runAgent } from '../runAgent';
 import { createSubAgentContext } from './createSubAgentContext';
 
 export interface CreateSubAgentToolDeps extends RunAgentDeps {}
@@ -89,11 +88,14 @@ export function createSubAgentTool(
         return AgentToolResult.error(result.error.message, result.error.code);
       }
 
-      // Sub-agent suspended - return as AgentToolResult.suspended
+      // Sub-agent suspended - return as AgentToolResult.suspended with stacks
       if (result.value.status === 'suspended') {
         return AgentToolResult.suspended(
           result.value.suspensions,
           result.value.runId,
+          subAgentManifest.config.id,
+          subAgentManifest.config.version,
+          result.value.suspensionStacks,
         );
       }
 

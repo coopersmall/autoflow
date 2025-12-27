@@ -1,7 +1,8 @@
 import { z as zod } from 'zod';
+import { type AgentId, agentIdSchema } from '../AgentId';
 import { type AgentRunId, agentRunIdSchema } from '../AgentRunId';
-import type { Suspension } from '../suspension/Suspension';
-import { suspensionSchema } from '../suspension/Suspension';
+import type { Suspension, SuspensionStack } from '../suspension';
+import { suspensionSchema, suspensionStackSchema } from '../suspension';
 
 export const agentToolResultSuccessSchema = zod.strictObject({
   type: zod.literal('success'),
@@ -19,6 +20,13 @@ export const agentToolResultSuspendedSchema = zod.strictObject({
   type: zod.literal('suspended'),
   suspensions: zod.array(suspensionSchema),
   runId: agentRunIdSchema,
+  manifestId: agentIdSchema,
+  manifestVersion: zod.string(),
+  childStacks: zod
+    .array(suspensionStackSchema)
+    .describe(
+      'Suspension stacks from nested sub-agents (for building parent stack)',
+    ),
 });
 
 export const agentToolResultSchema = zod.discriminatedUnion('type', [
@@ -62,9 +70,15 @@ export const AgentToolResult = {
   suspended: (
     suspensions: Suspension[],
     runId: AgentRunId,
+    manifestId: AgentId,
+    manifestVersion: string,
+    childStacks?: SuspensionStack[],
   ): AgentToolResultSuspended => ({
     type: 'suspended',
     suspensions,
     runId,
+    manifestId,
+    manifestVersion,
+    childStacks: childStacks ?? [],
   }),
 };
