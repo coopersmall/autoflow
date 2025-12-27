@@ -32,14 +32,7 @@ export async function prepareRunState(
 
   switch (input.type) {
     case 'request': {
-      return prepareFromRequest(
-        ctx,
-        manifest,
-        input.request,
-        tools,
-        toolsMap,
-        options,
-      );
+      return prepareFromRequest(ctx, manifest, input, tools, toolsMap, options);
     }
 
     case 'reply': {

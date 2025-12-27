@@ -2,10 +2,12 @@ import type { AgentManifest, AgentRunConfig } from '@autoflow/core';
 import type { AppError } from '@core/errors/AppError';
 import { badRequest } from '@core/errors/factories';
 import { err, ok, type Result } from 'neverthrow';
+import { buildManifestMap } from '../actions';
 import { validateReferences } from './validateReferences';
 
 type ValidateAgentRunResponse = {
   rootManifest: AgentManifest;
+  manifestMap: Map<string, AgentManifest>;
 };
 
 export function validateAgentRunConfig(
@@ -22,12 +24,14 @@ export function validateAgentRunConfig(
     );
   }
 
-  const validationResult = validateReferences(manifests);
+  const manifestMap = buildManifestMap(manifests);
+  const validationResult = validateReferences(manifests, manifestMap);
   if (validationResult.isErr()) {
     return err(validationResult.error);
   }
 
   return ok({
     rootManifest,
+    manifestMap,
   });
 }

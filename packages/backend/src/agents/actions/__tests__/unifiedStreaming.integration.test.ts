@@ -193,7 +193,7 @@ describe('Unified Streaming Architecture Integration Tests', () => {
         manifest,
         {
           type: 'request',
-          request: { prompt: 'Say hello' },
+          prompt: 'Say hello',
           manifestMap: new Map(),
         },
         deps,
@@ -253,7 +253,7 @@ describe('Unified Streaming Architecture Integration Tests', () => {
         manifest,
         {
           type: 'request',
-          request: { prompt: 'Use the tool' },
+          prompt: 'Use the tool',
           manifestMap: new Map(),
         },
         deps,
@@ -287,7 +287,7 @@ describe('Unified Streaming Architecture Integration Tests', () => {
         manifest,
         {
           type: 'request',
-          request: { prompt: 'Hello' },
+          prompt: 'Hello',
           manifestMap: new Map(),
         },
         deps,
@@ -320,7 +320,7 @@ describe('Unified Streaming Architecture Integration Tests', () => {
         manifest,
         {
           type: 'request',
-          request: { prompt: 'Complete the task' },
+          prompt: 'Complete the task',
           manifestMap: new Map(),
         },
         deps,
@@ -360,7 +360,7 @@ describe('Unified Streaming Architecture Integration Tests', () => {
         manifest,
         {
           type: 'request',
-          request: { prompt: 'Fail please' },
+          prompt: 'This will fail',
           manifestMap: new Map(),
         },
         deps,
@@ -417,7 +417,7 @@ describe('Unified Streaming Architecture Integration Tests', () => {
         manifest,
         {
           type: 'request',
-          request: { prompt: 'Use tool' },
+          prompt: 'Use tool',
           manifestMap: new Map(),
         },
         deps,
@@ -457,7 +457,7 @@ describe('Unified Streaming Architecture Integration Tests', () => {
         manifest,
         {
           type: 'request',
-          request: { prompt: 'Hello' },
+          prompt: 'Hello',
           manifestMap: new Map(),
         },
         deps,
@@ -524,7 +524,7 @@ describe('Unified Streaming Architecture Integration Tests', () => {
         manifest,
         {
           type: 'request',
-          request: { prompt: 'Multi-step task' },
+          prompt: 'Multi-step task',
           manifestMap: new Map(),
         },
         deps,
@@ -587,7 +587,7 @@ describe('Unified Streaming Architecture Integration Tests', () => {
         parentManifest,
         {
           type: 'request',
-          request: { prompt: 'Start the task' },
+          prompt: 'Start the task',
           manifestMap,
         },
         deps,
@@ -656,7 +656,7 @@ describe('Unified Streaming Architecture Integration Tests', () => {
         parentManifest,
         {
           type: 'request',
-          request: { prompt: 'Go' },
+          prompt: 'Start',
           manifestMap,
         },
         deps,
@@ -744,7 +744,7 @@ describe('Unified Streaming Architecture Integration Tests', () => {
         rootManifest,
         {
           type: 'request',
-          request: { prompt: 'Start' },
+          prompt: 'Start',
           manifestMap,
         },
         deps,
@@ -787,7 +787,7 @@ describe('Unified Streaming Architecture Integration Tests', () => {
         manifest,
         {
           type: 'request',
-          request: { prompt: 'Do something sensitive' },
+          prompt: 'Perform sensitive action',
           manifestMap: new Map(),
         },
         deps,
@@ -895,7 +895,7 @@ describe('Unified Streaming Architecture Integration Tests', () => {
         manifest,
         {
           type: 'request',
-          request: { prompt: 'Call both tools' },
+          prompt: 'Call both tools',
           manifestMap: new Map(),
         },
         deps,
@@ -949,7 +949,7 @@ describe('Unified Streaming Architecture Integration Tests', () => {
               manifest,
               {
                 type: 'request',
-                request: { prompt: 'Test' },
+                prompt: 'Test',
                 manifestMap: new Map(),
               },
               deps,
@@ -993,7 +993,7 @@ describe('Unified Streaming Architecture Integration Tests', () => {
               manifest,
               {
                 type: 'request',
-                request: { prompt: 'Test' },
+                prompt: 'Test',
                 manifestMap: new Map(),
               },
               deps,
@@ -1032,7 +1032,7 @@ describe('Unified Streaming Architecture Integration Tests', () => {
               manifest,
               {
                 type: 'request',
-                request: { prompt: 'Test' },
+                prompt: 'Test',
                 manifestMap: new Map(),
               },
               deps,
@@ -1100,7 +1100,7 @@ describe('Unified Streaming Architecture Integration Tests', () => {
             parent,
             {
               type: 'request',
-              request: { prompt: 'Go' },
+              prompt: 'Go',
               manifestMap,
             },
             deps,
@@ -1170,7 +1170,7 @@ describe('Unified Streaming Architecture Integration Tests', () => {
             manifest,
             {
               type: 'request',
-              request: { prompt: 'Use tool' },
+              prompt: 'Use tool',
               manifestMap: new Map(),
             },
             deps,

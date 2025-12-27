@@ -2,6 +2,7 @@ import type { AgentManifest } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 import { buildManifestMap } from '../utils/buildManifestMap';
+import { validateCircularReferences } from './validateCircularDependencies';
 import { validateSubAgentReferences } from './validateSubAgentReferences';
 
 /**
@@ -30,6 +31,16 @@ export function validateAgentConfig(
   const subAgentValidation = validateSubAgentReferences(manifest, manifestMap);
   if (subAgentValidation.isErr()) {
     return subAgentValidation;
+  }
+
+  // Validate circular dependencies among all manifests
+  const dependenciesValidation = validateCircularReferences(
+    manifests,
+    manifestMap,
+  );
+
+  if (dependenciesValidation.isErr()) {
+    return dependenciesValidation;
   }
 
   // Future validations can be added here:

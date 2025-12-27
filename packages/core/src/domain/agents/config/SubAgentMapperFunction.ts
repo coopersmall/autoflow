@@ -1,4 +1,4 @@
-import type { AgentRequest } from '../execution/AgentRequest';
+import type { AgentRequest } from '../execution/AgentInput';
 
 /**
  * Maps sub-agent tool arguments to AgentRequest.

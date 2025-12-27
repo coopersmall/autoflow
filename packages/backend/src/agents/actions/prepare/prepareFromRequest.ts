@@ -23,11 +23,12 @@ export function prepareFromRequest(
   options?: AgentRunOptions,
 ): Result<PrepareResult, AppError> {
   const state = initializeAgentRun(manifest, request, tools, toolsMap, options);
+  const context = 'context' in request ? request.context : undefined;
 
   return ok({
     type: 'ready',
     state,
-    context: request.context,
+    context,
     previousElapsedMs: 0,
   });
 }

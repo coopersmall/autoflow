@@ -6,8 +6,11 @@ import {
 
 /**
  * Creates a sub-agent context with independent timeout.
- * If timeout is specified, creates a new AbortController that will abort after the timeout.
- * Otherwise, returns the parent context unchanged.
+ *
+ * The sub-agent's abort signal is linked to the parent's abort signal,
+ * so cancelling the parent will also cancel all sub-agents.
+ *
+ * If timeout is specified, the sub-agent will also abort after the timeout.
  */
 export function createSubAgentContext(
   parentCtx: AgentContext,
@@ -16,35 +19,25 @@ export function createSubAgentContext(
   const { correlationId } = parentCtx;
   const controller = new AbortController();
 
-  controller.signal.addEventListener(
-    'abort',
-    () => {
-      parentCtx.signal.aborted;
-    },
-    { once: true },
-  );
+  // Optional timeout
+  const timeoutHandle = timeoutMs
+    ? setTimeout(() => controller.abort(), timeoutMs)
+    : undefined;
 
-  if (!timeoutMs) {
-    return createContext(correlationId, controller);
-  }
-
-  // Create a new AbortController for sub-agent timeout
-  const timeoutHandle = setTimeout(() => controller.abort(), timeoutMs);
-
-  // Link parent's abort signal to child's controller
+  // ALWAYS link parent's abort signal to child's controller
+  // This ensures sub-agent cancellation propagates from parent
   if (parentCtx.signal.aborted) {
-    controller.abort();
+    controller.abort(parentCtx.signal.reason);
   } else {
     parentCtx.signal.addEventListener(
       'abort',
       () => {
-        clearTimeout(timeoutHandle);
-        controller.abort();
+        if (timeoutHandle) clearTimeout(timeoutHandle);
+        controller.abort(parentCtx.signal.reason);
       },
-      { once: true },
+      { once: true }, // Prevents memory leak
     );
   }
 
-  // Return new context with the sub-agent's AbortSignal
   return createContext(correlationId, controller);
 }

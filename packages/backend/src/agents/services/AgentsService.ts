@@ -1,22 +1,37 @@
-import type {
-  AgentEvent,
-  AgentRequest,
-  AgentRunConfig,
-  AgentRunId,
-  AgentRunOptions,
-  AgentRunResult,
-  AppError,
-  ContinueResponse,
+import {
+  type AgentManifest,
+  type AgentRequest,
+  type AgentRunConfig,
+  type AgentRunId,
+  type AgentRunResult,
+  type AppError,
+  badRequest,
 } from '@autoflow/core';
-import { createMCPService } from '@backend/ai';
-import { createCompletionsService } from '@backend/ai/completions';
-import type { ILogger } from '@backend/infrastructure';
+import { createMCPService, type IMCPService } from '@backend/ai';
+import {
+  createCompletionsService,
+  type ICompletionsGateway,
+} from '@backend/ai/completions';
+import type {
+  IAppConfigurationService,
+  ILogger,
+} from '@backend/infrastructure';
 import type { Context } from '@backend/infrastructure/context';
+import type { StorageProviderConfig } from '@backend/storage/adapters/createStorageProvider';
+import type { IStorageService } from '@backend/storage/domain/StorageService';
 import { createStorageService } from '@backend/storage/services/StorageService';
-import { err, type Result } from 'neverthrow';
-import { runAgent, type StreamAgentItem, streamAgent } from '../actions';
+import { err, ok, type Result } from 'neverthrow';
+import {
+  buildManifestMap,
+  runAgent,
+  type StreamAgentItem,
+  streamAgent,
+} from '../actions';
 import { validateAgentRunConfig } from '../builder/buildAgentRunConfig';
-import { createAgentStateCache } from '../infrastructure';
+import {
+  createAgentStateCache,
+  type IAgentStateCache,
+} from '../infrastructure';
 
 export type IAgentService = Readonly<{
   /**
@@ -29,20 +44,6 @@ export type IAgentService = Readonly<{
     ctx: Context,
     config: AgentRunConfig,
     request: AgentRequest,
-    options?: AgentRunOptions,
-  ): Promise<Result<AgentRunResult, AppError>>;
-
-  /**
-   * Continue a suspended agent run.
-   *
-   * Provide the same config used for run(). The framework validates that
-   * manifest IDs and versions match the saved state.
-   */
-  continue(
-    ctx: Context,
-    config: AgentRunConfig,
-    stateId: AgentRunId,
-    options?: AgentRunOptions,
   ): Promise<Result<AgentRunResult, AppError>>;
 
   /**
@@ -55,19 +56,7 @@ export type IAgentService = Readonly<{
     ctx: Context,
     config: AgentRunConfig,
     request: AgentRequest,
-    options?: AgentRunOptions,
-  ): AsyncGenerator<Result<AgentEvent, AppError>>;
-
-  /**
-   * Continue streaming a suspended agent run.
-   */
-  continueStream(
-    ctx: Context,
-    config: AgentRunConfig,
-    stateId: AgentRunId,
-    response: ContinueResponse,
-    options?: AgentRunOptions,
-  ): AsyncGenerator<Result<AgentEvent, AppError>>;
+  ): AsyncGenerator<StreamAgentItem>;
 
   /**
    * Cancel a suspended agent run.
@@ -85,7 +74,9 @@ export function createAgentsService(
 }
 
 type AgentServiceContext = {
+  appConfig: IAppConfigurationService;
   logger: ILogger;
+  storageProviderConfig: StorageProviderConfig;
 };
 
 type AgentsServiceDeps = {
@@ -105,65 +96,53 @@ const defaultDeps: AgentsServiceDeps = {
 type AgentsServiceActions = {
   runAgent: typeof runAgent;
   streamAgent: typeof streamAgent;
-  validateAgentRunConfig: typeof validateAgentRunConfig;
 };
 
 const defaultActions: AgentsServiceActions = {
   runAgent,
   streamAgent,
-  validateAgentRunConfig,
 };
 
 class AgentsService implements IAgentService {
+  private readonly completionsService: ICompletionsGateway;
+  private readonly mcpService: IMCPService;
+  private readonly storageService: IStorageService;
+  private readonly stateCache: IAgentStateCache;
+
   constructor(
     private readonly context: AgentServiceContext,
     private readonly deps: AgentsServiceDeps = defaultDeps,
     private readonly actions: AgentsServiceActions = defaultActions,
-  ) {}
+  ) {
+    this.completionsService = deps.createCompletionsService();
+    this.mcpService = deps.createMCPService();
+    this.storageService = deps.createStorageService(context);
+    this.stateCache = deps.createAgentStateCache(context);
+  }
 
   async run(
     ctx: Context,
     config: AgentRunConfig,
     request: AgentRequest,
-    options?: AgentRunOptions,
   ): Promise<Result<AgentRunResult, AppError>> {
-    const validateResult = this.actions.validateAgentRunConfig(config);
+    const validateResult = validateAgentRunConfig(config);
     if (validateResult.isErr()) {
       return err(validateResult.error);
     }
-    const { rootManifest } = validateResult.value;
-    return this.actions.runAgent(
-      ctx,
-      rootManifest,
-      {
-        type: 'request',
-        request,
-        options,
-      },
-      this.deps,
-    );
-  }
 
-  async continue(
-    ctx: Context,
-    config: AgentRunConfig,
-    runId: AgentRunId,
-    options?: AgentRunOptions,
-  ): Promise<Result<AgentRunResult, AppError>> {
-    const validateResult = this.actions.validateAgentRunConfig(config);
-    if (validateResult.isErr()) {
-      return err(validateResult.error);
+    const rootManifestResult = this.getRootManifest(config);
+    if (rootManifestResult.isErr()) {
+      return err(rootManifestResult.error);
     }
-    const { rootManifest } = validateResult.value;
+
+    const rootManifest = rootManifestResult.value;
+    const manifestMap = buildManifestMap(config.manifests);
+
     return this.actions.runAgent(
       ctx,
       rootManifest,
-      {
-        type: 'continue',
-        runId,
-        options,
-      },
-      this.deps,
+      { ...request, manifestMap },
+      this.buildDeps(),
     );
   }
 
@@ -171,53 +150,60 @@ class AgentsService implements IAgentService {
     ctx: Context,
     config: AgentRunConfig,
     request: AgentRequest,
-    options?: AgentRunOptions,
   ): AsyncGenerator<StreamAgentItem> {
-    const validateResult = this.actions.validateAgentRunConfig(config);
+    const validateResult = validateAgentRunConfig(config);
     if (validateResult.isErr()) {
-      yield err(validateResult.error);
-      return;
+      return err(validateResult.error);
     }
-    const { rootManifest } = validateResult.value;
+
+    const rootManifestResult = this.getRootManifest(config);
+    if (rootManifestResult.isErr()) {
+      return err(rootManifestResult.error);
+    }
+
+    const rootManifest = rootManifestResult.value;
+    const manifestMap = buildManifestMap(config.manifests);
+
     for await (const item of this.actions.streamAgent(
       ctx,
       rootManifest,
-      {
-        type: 'request',
-        request,
-        options,
-      },
-      this.deps,
+      { ...request, manifestMap },
+      this.buildDeps(),
     )) {
       yield item;
     }
   }
 
-  async *continueStream(
+  async cancel(
     ctx: Context,
+    stateId: AgentRunId,
+  ): Promise<Result<void, AppError>> {
+    return ok(undefined);
+  }
+
+  private getRootManifest(
     config: AgentRunConfig,
-    runId: AgentRunId,
-    response: ContinueResponse,
-    options?: AgentRunOptions,
-  ): AsyncGenerator<StreamAgentItem> {
-    const validateResult = this.actions.validateAgentRunConfig(config);
-    if (validateResult.isErr()) {
-      yield err(validateResult.error);
-      return;
+  ): Result<AgentManifest, AppError> {
+    const manifest = config.manifests.find(
+      (m) => m.config.id === config.rootManifestId,
+    );
+    if (!manifest) {
+      return err(
+        badRequest('Root manifest ID not found in manifests array', {
+          metadata: { manifestId: config.rootManifestId },
+        }),
+      );
     }
-    const { rootManifest } = validateResult.value;
-    for await (const item of this.actions.streamAgent(
-      ctx,
-      rootManifest,
-      {
-        type: 'continue',
-        runId,
-        response,
-        options,
-      },
-      this.deps,
-    )) {
-      yield item;
-    }
+    return ok(manifest);
+  }
+
+  private buildDeps() {
+    return {
+      completionsGateway: this.completionsService,
+      mcpService: this.mcpService,
+      stateCache: this.stateCache,
+      storageService: this.storageService,
+      logger: this.context.logger,
+    };
   }
 }

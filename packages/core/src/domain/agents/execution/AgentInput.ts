@@ -3,7 +3,6 @@ import { messageSchema } from '../../ai/request/completions/messages/Message';
 import { agentRunIdSchema } from '../AgentRunId';
 import type { AgentManifest } from '../config/AgentManifest';
 import { continueResponseSchema } from '../suspension/ContinueResponse';
-import { agentRequestSchema } from './AgentRequest';
 import { agentRunOptionsSchema } from './AgentRunOptions';
 
 /**
@@ -11,7 +10,6 @@ import { agentRunOptionsSchema } from './AgentRunOptions';
  * Contains the manifestMap needed for sub-agent lookup.
  */
 const agentInputBaseSchema = zod.strictObject({
-  manifestMap: zod.map(zod.string(), zod.custom<AgentManifest>()),
   options: agentRunOptionsSchema.optional(),
 });
 
@@ -25,10 +23,11 @@ const agentInputBaseSchema = zod.strictObject({
  * - `approval`: Resume a suspended agent after HITL approval
  * - `continue`: Resume agent with pending tool results (no approval needed)
  */
-export const agentInputSchema = zod.discriminatedUnion('type', [
+export const agentRequestSchema = zod.discriminatedUnion('type', [
   agentInputBaseSchema.extend({
     type: zod.literal('request'),
-    request: agentRequestSchema,
+    prompt: zod.union([zod.string(), zod.array(messageSchema)]),
+    context: zod.record(zod.string(), zod.unknown()).optional(),
   }),
   agentInputBaseSchema.extend({
     type: zod.literal('reply'),
@@ -46,4 +45,7 @@ export const agentInputSchema = zod.discriminatedUnion('type', [
   }),
 ]);
 
-export type AgentInput = zod.infer<typeof agentInputSchema>;
+export type AgentRequest = zod.infer<typeof agentRequestSchema>;
+export type AgentInput = AgentRequest & {
+  manifestMap: Map<string, AgentManifest>;
+};

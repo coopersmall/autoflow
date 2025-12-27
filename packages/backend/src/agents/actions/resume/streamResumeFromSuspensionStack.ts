@@ -2,6 +2,7 @@ import type { AgentRunOptions, AgentState } from '@backend/agents/domain';
 import type { Context } from '@backend/infrastructure/context/Context';
 import type {
   AgentEvent,
+  AgentInput,
   AgentManifest,
   AgentRunResult,
   ContinueResponse,
@@ -281,7 +282,7 @@ export async function* streamResumeFromSuspensionStack(
 async function* runStreamAgentAndYieldEvents(
   ctx: Context,
   manifest: AgentManifest,
-  input: Parameters<typeof streamAgent>[2],
+  input: AgentInput,
   deps: StreamAgentDeps,
   actions: StreamResumeFromStackActions = { streamAgent },
 ): AsyncGenerator<

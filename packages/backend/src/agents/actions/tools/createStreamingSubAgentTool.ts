@@ -1,4 +1,5 @@
 import {
+  type AgentInput,
   type AgentManifest,
   type AgentRequest,
   AgentToolResult,
@@ -89,6 +90,7 @@ export function createStreamingSubAgentTool(
           );
         }
         agentRequest = {
+          type: 'request',
           prompt: argsResult.value.prompt,
           context: argsResult.value.context,
         };
@@ -110,10 +112,12 @@ export function createStreamingSubAgentTool(
       // 4. Stream sub-agent execution, yielding events as they arrive
       let finalResult: ReturnType<typeof AgentToolResult.success> | undefined;
 
+      const input: AgentInput = { ...agentRequest, manifestMap };
+
       for await (const item of streamAgent(
         subCtx,
         subAgentManifest,
-        { type: 'request', request: agentRequest, manifestMap },
+        input,
         deps,
       )) {
         // Check for final result (StreamAgentFinalResult)

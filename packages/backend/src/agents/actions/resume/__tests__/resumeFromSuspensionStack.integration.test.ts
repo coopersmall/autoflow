@@ -1144,6 +1144,7 @@ describe('resumeFromSuspensionStack Integration Tests', () => {
             stack,
             response,
             deps,
+            undefined, // options
             { streamAgent: streamAgentMock },
           );
 
@@ -1205,6 +1206,7 @@ describe('resumeFromSuspensionStack Integration Tests', () => {
               stack,
               response,
               deps,
+              undefined, // options
               { streamAgent: streamAgentMock },
             );
 
@@ -1251,6 +1253,7 @@ describe('resumeFromSuspensionStack Integration Tests', () => {
             stack,
             response,
             deps,
+            undefined, // options
             { streamAgent: streamAgentMock },
           );
 

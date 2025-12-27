@@ -168,7 +168,6 @@ export async function* streamAgent(
     },
   );
 
-  // Consume the generator, yielding events and capturing the final result
   while (true) {
     const next = await generator.next();
 

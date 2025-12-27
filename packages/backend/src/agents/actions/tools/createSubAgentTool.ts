@@ -1,4 +1,5 @@
 import {
+  type AgentInput,
   type AgentManifest,
   type AgentRequest,
   AgentToolResult,
@@ -64,6 +65,7 @@ export function createSubAgentTool(
           );
         }
         agentRequest = {
+          type: 'request',
           prompt: argsResult.value.prompt,
           context: argsResult.value.context,
         };
@@ -72,17 +74,10 @@ export function createSubAgentTool(
       // Create sub-agent context with independent timeout
       const subCtx = createSubAgentContext(execCtx.ctx, config.timeout);
 
+      const input: AgentInput = { ...agentRequest, manifestMap };
+
       // Run sub-agent recursively with the same manifestMap
-      const result = await runAgent(
-        subCtx,
-        subAgentManifest,
-        {
-          type: 'request',
-          request: agentRequest,
-          manifestMap,
-        },
-        deps,
-      );
+      const result = await runAgent(subCtx, subAgentManifest, input, deps);
 
       if (result.isErr()) {
         return AgentToolResult.error(result.error.message, result.error.code);
