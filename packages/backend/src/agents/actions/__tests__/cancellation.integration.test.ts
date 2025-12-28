@@ -29,6 +29,7 @@ import { createMockContext } from '@backend/infrastructure/context/__mocks__/Con
 import { createStorageService } from '@backend/storage/services/StorageService';
 import { setupIntegrationTest } from '@backend/testing/integration/integrationTest';
 import { TestServices } from '@backend/testing/integration/setup/TestServices';
+import type { AgentContext } from '@core/domain/agents';
 import {
   type AgentEvent,
   type AgentExecuteFunction,
@@ -38,7 +39,7 @@ import {
 } from '@core/domain/agents';
 import { internalError } from '@core/errors';
 import * as fc from 'fast-check';
-import { err } from 'neverthrow';
+import { err, ok } from 'neverthrow';
 import { signalCancellation } from '../cancellation';
 import { orchestrateAgentRun } from '../orchestrateAgentRun';
 import { cancelAgentState } from '../state/cancelAgentState';
@@ -62,16 +63,8 @@ import {
   findStateIdFromEvents,
 } from './fixtures/helpers';
 
-// =============================================================================
-// Test Configuration
-// =============================================================================
-
 const TEST_POLL_INTERVAL_MS = 50;
 const TEST_LOCK_TTL_SECONDS = 2;
-
-// =============================================================================
-// Test Setup
-// =============================================================================
 
 describe('Agent Cancellation Integration Tests', () => {
   const { getConfig, getLogger } = setupIntegrationTest();
@@ -123,10 +116,6 @@ describe('Agent Cancellation Integration Tests', () => {
       agentRunLock,
     };
   };
-
-  // ===========================================================================
-  // Group 1: Cancel Suspended Agent
-  // ===========================================================================
 
   describe('Cancel Suspended Agent', () => {
     it('should mark suspended agent as cancelled', async () => {
@@ -216,11 +205,214 @@ describe('Agent Cancellation Integration Tests', () => {
       expect(cancelResult.isOk()).toBe(true);
       expect(cancelResult._unsafeUnwrap().type).toBe('marked-cancelled');
     });
-  });
 
-  // ===========================================================================
-  // Group 2: Cancel Running Agent
-  // ===========================================================================
+    it('should cancel any suspended agent with arbitrary tools (property)', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc
+            .string({ minLength: 3, maxLength: 20 })
+            .filter((s) => /^[a-zA-Z][a-zA-Z0-9-]*$/.test(s)),
+          fc.string({ minLength: 1, maxLength: 100 }),
+          async (toolName, prompt) => {
+            const { deps, stateCache } = setup();
+            const ctx = createMockContext();
+
+            const manifest = createTestManifest(`prop-agent-${Date.now()}`, {
+              tools: [createApprovalRequiredTool(toolName)],
+              humanInTheLoop: {
+                alwaysRequireApproval: [toolName],
+                defaultRequiresApproval: false,
+              },
+            });
+
+            deps.completionsGateway.streamCompletion.mockImplementation(
+              createMockStreamCompletion(
+                createToolApprovalParts(`approval-${Date.now()}`, toolName, {}),
+              ),
+            );
+
+            const generator = orchestrateAgentRun(
+              ctx,
+              manifest,
+              {
+                type: 'request',
+                prompt,
+                manifestMap: new Map(),
+              },
+              deps,
+            );
+
+            const { finalResult } = await collectStreamItems(generator);
+
+            if (!finalResult?.result.isOk()) return;
+
+            const result = finalResult.result._unsafeUnwrap();
+            if (result.status !== 'suspended') return;
+
+            const cancelResult = await cancelAgentState(
+              ctx,
+              result.runId,
+              deps,
+            );
+            expect(cancelResult.isOk()).toBe(true);
+            expect(cancelResult._unsafeUnwrap().type).toBe('marked-cancelled');
+
+            const state = await stateCache.get(ctx, result.runId);
+            expect(state._unsafeUnwrap()?.status).toBe('cancelled');
+          },
+        ),
+        { numRuns: 5 },
+      );
+    });
+
+    it.concurrent('should handle late cancellation (after completion starts)', async () => {
+      await fc.assert(
+        fc.asyncProperty(
+          fc.integer({ min: 150, max: 300 }), // cancelAfterMs (late)
+          fc.integer({ min: 100, max: 200 }), // completionDelayMs
+          async (cancelAfterMs, completionDelayMs) => {
+            const { deps } = setup();
+            const ctx = createMockContext();
+            const manifest = createTestManifest(`prop-late-${Date.now()}`);
+
+            deps.completionsGateway.streamCompletion.mockImplementation(
+              createSlowCompletionMock(
+                completionDelayMs,
+                createTextCompletionParts('Done'),
+              ),
+            );
+
+            const generator = orchestrateAgentRun(
+              ctx,
+              manifest,
+              {
+                type: 'request',
+                prompt: 'Work',
+                manifestMap: new Map(),
+                options: { cancellationPollIntervalMs: 20 },
+              },
+              deps,
+            );
+
+            const firstResult = await generator.next();
+            const stateId = extractStateIdFromStartedEvent(
+              firstResult.value as Parameters<
+                typeof extractStateIdFromStartedEvent
+              >[0],
+            );
+
+            // Cancel comes late - might complete normally
+            setTimeout(
+              () => signalCancellation(ctx, stateId, deps),
+              cancelAfterMs,
+            );
+
+            const { finalResult } = await collectRemainingItems(generator);
+            const result = finalResult!.result;
+
+            // Could be either complete or cancelled depending on timing
+            expect(result.isOk()).toBe(true);
+            expect(['complete', 'cancelled']).toContain(
+              result._unsafeUnwrap().status,
+            );
+          },
+        ),
+        { numRuns: 5 },
+      );
+    });
+
+    it('should handle timeout-based cancellation', async () => {
+      const { deps } = setup();
+      const ctx = createMockContext();
+      const manifest = createTestManifest('timeout-agent');
+
+      // Mock completion that takes longer than timeout
+      deps.completionsGateway.streamCompletion.mockImplementation(
+        createSlowCompletionMock(2000, createTextCompletionParts('Done')),
+      );
+
+      const generator = orchestrateAgentRun(
+        ctx,
+        manifest,
+        {
+          type: 'request',
+          prompt: 'This will timeout',
+          manifestMap: new Map(),
+          options: {
+            cancellationPollIntervalMs: TEST_POLL_INTERVAL_MS,
+            agentTimeout: 500, // Short timeout in milliseconds
+          },
+        },
+        deps,
+      );
+
+      const { finalResult } = await collectStreamItems(generator);
+
+      expect(finalResult!.result.isOk()).toBe(true);
+      const result = finalResult!.result._unsafeUnwrap();
+
+      // Should timeout and return error status
+      expect(result.status).toBe('error');
+      if (result.status === 'error') {
+        expect(result.error.message).toContain('timeout');
+      }
+    });
+
+    it('should handle concurrent cancellation signals idempotently', async () => {
+      const { deps, stateCache } = setup();
+      const ctx1 = createMockContext();
+      const ctx2 = createMockContext();
+      const manifest = createTestManifest('concurrent-cancel-agent', {
+        tools: [createApprovalRequiredTool('tool-1')],
+        humanInTheLoop: {
+          alwaysRequireApproval: ['tool-1'],
+          defaultRequiresApproval: false,
+        },
+      });
+
+      deps.completionsGateway.streamCompletion.mockImplementation(
+        createMockStreamCompletion(
+          createToolApprovalParts('approval-1', 'tool-1', {}),
+        ),
+      );
+
+      const generator = orchestrateAgentRun(
+        ctx1,
+        manifest,
+        {
+          type: 'request',
+          prompt: 'Suspend',
+          manifestMap: new Map(),
+        },
+        deps,
+      );
+
+      const { finalResult } = await collectStreamItems(generator);
+      const result = assertFinalResultOk(finalResult);
+      const stateId = result.runId;
+
+      // Signal cancellation from two different contexts concurrently
+      const [cancel1, cancel2] = await Promise.all([
+        cancelAgentState(ctx1, stateId, deps),
+        cancelAgentState(ctx2, stateId, deps),
+      ]);
+
+      // One should succeed, one should return already-cancelled
+      const results = [cancel1._unsafeUnwrap(), cancel2._unsafeUnwrap()];
+      const cancelledCount = results.filter(
+        (r) => r.type === 'marked-cancelled',
+      ).length;
+      const alreadyCancelledCount = results.filter(
+        (r) => r.type === 'already-cancelled',
+      ).length;
+
+      expect(cancelledCount + alreadyCancelledCount).toBe(2);
+      expect(cancelledCount).toBeGreaterThanOrEqual(1);
+
+      const state = await stateCache.get(ctx1, stateId);
+      expect(state._unsafeUnwrap()?.status).toBe('cancelled');
+    });
+  });
 
   describe('Cancel Running Agent', () => {
     it('should cancel running agent via signal and yield agent-cancelled event', async () => {
@@ -354,6 +546,115 @@ describe('Agent Cancellation Integration Tests', () => {
       expect(finalResult!.result._unsafeUnwrap().status).toBe('cancelled');
     });
 
+    it('should abort MCP tool execution when cancelled', async () => {
+      const { deps } = setup();
+      const ctx = createMockContext();
+
+      let mcpToolStarted = false;
+      let mcpToolAborted = false;
+
+      // Create a mock MCP tool that can be cancelled
+      const slowMCPTool = async (toolCtx: AgentContext, input: unknown) => {
+        mcpToolStarted = true;
+        for (let i = 0; i < 30; i++) {
+          if (toolCtx.signal.aborted) {
+            mcpToolAborted = true;
+            throw new Error('MCP tool aborted');
+          }
+          await delay(50);
+        }
+        return { result: 'MCP completed' };
+      };
+
+      // Mock the MCP service to return a client with our slow tool
+      const mockClient = {
+        id: 'test-mcp-client' as any,
+        name: 'test-server',
+        tools: async () =>
+          ok([
+            {
+              type: 'function' as const,
+              function: {
+                name: 'slow-mcp-tool',
+                description: 'A slow MCP tool',
+                parameters: {
+                  type: 'object' as const,
+                  properties: {},
+                },
+              },
+              execute: slowMCPTool,
+            },
+          ]),
+        listResources: async () => ok([]),
+        readResource: async () => ok({ uri: '', mimeType: '', text: '' }),
+        close: async () => ok(undefined),
+      };
+
+      deps.mcpService.createClient.mockResolvedValue(ok(mockClient));
+
+      const manifest = createTestManifest('mcp-agent', {
+        mcpServers: [
+          {
+            name: 'test-server',
+            transport: { type: 'stdio', command: 'test', args: [] },
+          },
+        ],
+      });
+
+      // Mock: LLM calls the MCP tool, then returns text (in case tool completes)
+      deps.completionsGateway.streamCompletion
+        .mockImplementationOnce(
+          createMockStreamCompletion(
+            createToolCallCompletionParts('slow-mcp-tool', 'call-1', {}),
+          ),
+        )
+        .mockImplementation(
+          createMockStreamCompletion(createTextCompletionParts('Done')),
+        );
+
+      const generator = orchestrateAgentRun(
+        ctx,
+        manifest,
+        {
+          type: 'request',
+          prompt: 'Use MCP tool',
+          manifestMap: new Map(),
+          options: {
+            cancellationPollIntervalMs: TEST_POLL_INTERVAL_MS,
+          },
+        },
+        deps,
+      );
+
+      // Get stateId from agent-started
+      const first = await generator.next();
+      const stateId = extractStateIdFromStartedEvent(
+        first.value as Parameters<typeof extractStateIdFromStartedEvent>[0],
+      );
+
+      // Start consuming generator (tool execution begins)
+      const generatorPromise = collectRemainingItems(generator);
+
+      // Wait for MCP tool to start
+      for (let i = 0; i < 50; i++) {
+        if (mcpToolStarted) break;
+        await delay(20);
+      }
+
+      // Signal cancellation
+      await signalCancellation(ctx, stateId, deps);
+
+      // Give the cancellation polling time to detect and propagate the signal
+      await delay(TEST_POLL_INTERVAL_MS * 3);
+
+      // Wait for generator to complete (will be cancelled)
+      const { finalResult } = await generatorPromise;
+
+      expect(mcpToolStarted).toBe(true);
+      expect(mcpToolAborted).toBe(true);
+      expect(finalResult!.result._unsafeUnwrap().status).toBe('cancelled');
+    });
+
     describe.concurrent('Cancellation Timing Properties', () => {
       it.concurrent('should handle early cancellation (before completion)', async () => {
         await fc.assert(
@@ -417,10 +718,6 @@ describe('Agent Cancellation Integration Tests', () => {
       });
     });
   });
-
-  // ===========================================================================
-  // Group 3: Idempotency and Error Cases
-  // ===========================================================================
 
   describe('Idempotency and Error Cases', () => {
     it('should return already-cancelled for cancelled agent', async () => {
@@ -548,10 +845,6 @@ describe('Agent Cancellation Integration Tests', () => {
       );
     });
   });
-
-  // ===========================================================================
-  // Group 4: Concurrency & Lock Behavior
-  // ===========================================================================
 
   describe('Concurrency and Lock Behavior', () => {
     it('should return already-running for concurrent approval attempts', async () => {
@@ -697,10 +990,6 @@ describe('Agent Cancellation Integration Tests', () => {
     });
   });
 
-  // ===========================================================================
-  // Group 5: Crash Detection
-  // ===========================================================================
-
   describe('Crash Detection', () => {
     it('should mark agent as failed when crash detected (duration > TTL)', async () => {
       const { deps, stateCache } = setup();
@@ -790,10 +1079,6 @@ describe('Agent Cancellation Integration Tests', () => {
       expect(signal._unsafeUnwrap()).not.toBeNull();
     });
   });
-
-  // ===========================================================================
-  // Group 6: Running State Management
-  // ===========================================================================
 
   describe('Running State Management', () => {
     it('should create running state with startedAt on fresh request', async () => {
@@ -930,6 +1215,59 @@ describe('Agent Cancellation Integration Tests', () => {
 
       expect(stateValue).not.toBeNull();
       expect(stateValue!.status).toBe('cancelled');
+    });
+
+    it('should allow agent to complete if cancellation signal set after completion', async () => {
+      const { deps, stateCache } = setup();
+      const ctx = createMockContext();
+      const manifest = createTestManifest('fast-agent');
+
+      // Create a fast completion
+      deps.completionsGateway.streamCompletion.mockImplementation(
+        createMockStreamCompletion(createTextCompletionParts('Done quickly')),
+      );
+
+      const generator = orchestrateAgentRun(
+        ctx,
+        manifest,
+        {
+          type: 'request',
+          prompt: 'Quick task',
+          manifestMap: new Map(),
+          options: { cancellationPollIntervalMs: TEST_POLL_INTERVAL_MS },
+        },
+        deps,
+      );
+
+      // Get agent-started event
+      const firstResult = await generator.next();
+      const stateId = extractStateIdFromStartedEvent(
+        firstResult.value as Parameters<
+          typeof extractStateIdFromStartedEvent
+        >[0],
+      );
+
+      // Let agent complete naturally (collect all events)
+      const { finalResult } = await collectRemainingItems(generator);
+
+      // Agent should have completed successfully
+      expect(finalResult!.result.isOk()).toBe(true);
+      const result = finalResult!.result._unsafeUnwrap();
+      expect(result.status).toBe('complete');
+
+      // Now try to cancel after completion
+      const cancelResult = await signalCancellation(ctx, stateId, deps);
+
+      // Cancellation signal is set, but agent already completed
+      expect(cancelResult.isOk()).toBe(true);
+
+      // Verify state is still "completed" (not changed to "cancelled")
+      const state = await stateCache.get(ctx, stateId);
+      const stateValue = state._unsafeUnwrap();
+
+      expect(stateValue).not.toBeNull();
+      // State should be completed, not cancelled, because agent finished before signal was detected
+      expect(stateValue!.status).toBe('completed');
     });
   });
 });

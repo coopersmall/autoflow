@@ -3,9 +3,9 @@ import type {
   AgentManifest,
   AgentRunResult,
   StreamableEventType,
-} from '@core/domain/agents';
-import { AgentId, AgentRunId } from '@core/domain/agents';
-import type { StreamPart } from '@core/domain/ai';
+} from "@core/domain/agents";
+import { AgentId, AgentRunId } from "@core/domain/agents";
+import type { StreamPart } from "@core/domain/ai";
 
 /**
  * Creates a minimal agent manifest for testing.
@@ -15,31 +15,33 @@ export function createTestManifest(
   options?: {
     version?: string;
     streamingEvents?: StreamableEventType[];
-    tools?: AgentManifest['config']['tools'];
+    tools?: AgentManifest["config"]["tools"];
     toolExecutors?: Map<string, AgentExecuteFunction>;
-    subAgents?: AgentManifest['config']['subAgents'];
-    humanInTheLoop?: AgentManifest['config']['humanInTheLoop'];
+    subAgents?: AgentManifest["config"]["subAgents"];
+    humanInTheLoop?: AgentManifest["config"]["humanInTheLoop"];
+    mcpServers?: AgentManifest["config"]["mcpServers"];
   },
 ): AgentManifest {
   return {
     config: {
       id: AgentId(id),
-      version: options?.version ?? '1.0.0',
+      version: options?.version ?? "1.0.0",
       name: `Test Agent ${id}`,
-      description: 'Test agent for integration tests',
+      description: "Test agent for integration tests",
       provider: {
-        provider: 'anthropic',
-        model: 'claude-3-5-sonnet-20241022',
+        provider: "anthropic",
+        model: "claude-3-5-sonnet-20241022",
         settings: {},
       },
-      instructions: 'You are a test agent.',
-      onTextOnly: 'stop',
+      instructions: "You are a test agent.",
+      onTextOnly: "stop",
       streaming: options?.streamingEvents
         ? { events: options.streamingEvents }
         : undefined,
       tools: options?.tools,
       subAgents: options?.subAgents,
       humanInTheLoop: options?.humanInTheLoop,
+      mcpServers: options?.mcpServers,
     },
     hooks: {
       toolExecutors: options?.toolExecutors,
@@ -53,28 +55,28 @@ export function createTestManifest(
 export function createTextCompletionParts(text: string): StreamPart[] {
   const now = new Date();
   return [
-    { type: 'start' },
+    { type: "start" },
     {
-      type: 'start-step',
+      type: "start-step",
       request: { body: undefined },
       warnings: [],
     },
-    { type: 'text-start', id: 'text-1' },
-    { type: 'text-delta', id: 'text-1', text },
-    { type: 'text-end', id: 'text-1' },
+    { type: "text-start", id: "text-1" },
+    { type: "text-delta", id: "text-1", text },
+    { type: "text-end", id: "text-1" },
     {
-      type: 'finish-step',
+      type: "finish-step",
       response: {
-        id: 'resp-1',
+        id: "resp-1",
         timestamp: now,
-        modelId: 'claude-3-5-sonnet-20241022',
+        modelId: "claude-3-5-sonnet-20241022",
       },
       usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
-      finishReason: 'stop',
+      finishReason: "stop",
     },
     {
-      type: 'finish',
-      finishReason: 'stop',
+      type: "finish",
+      finishReason: "stop",
       totalUsage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
     },
   ];
@@ -90,31 +92,31 @@ export function createToolCallCompletionParts(
 ): StreamPart[] {
   const now = new Date();
   return [
-    { type: 'start' },
+    { type: "start" },
     {
-      type: 'start-step',
+      type: "start-step",
       request: { body: undefined },
       warnings: [],
     },
     {
-      type: 'tool-call',
+      type: "tool-call",
       toolCallId,
       toolName,
       input,
     },
     {
-      type: 'finish-step',
+      type: "finish-step",
       response: {
-        id: 'resp-1',
+        id: "resp-1",
         timestamp: now,
-        modelId: 'claude-3-5-sonnet-20241022',
+        modelId: "claude-3-5-sonnet-20241022",
       },
       usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
-      finishReason: 'tool-calls',
+      finishReason: "tool-calls",
     },
     {
-      type: 'finish',
-      finishReason: 'tool-calls',
+      type: "finish",
+      finishReason: "tool-calls",
       totalUsage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
     },
   ];
@@ -130,34 +132,34 @@ export function createToolApprovalParts(
 ): StreamPart[] {
   const now = new Date();
   return [
-    { type: 'start' },
+    { type: "start" },
     {
-      type: 'start-step',
+      type: "start-step",
       request: { body: undefined },
       warnings: [],
     },
     {
-      type: 'tool-approval-request',
+      type: "tool-approval-request",
       approvalId,
       toolCall: {
-        toolCallId: 'call-1',
+        toolCallId: "call-1",
         toolName,
         input,
       },
     },
     {
-      type: 'finish-step',
+      type: "finish-step",
       response: {
-        id: 'resp-1',
+        id: "resp-1",
         timestamp: now,
-        modelId: 'claude-3-5-sonnet-20241022',
+        modelId: "claude-3-5-sonnet-20241022",
       },
       usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
-      finishReason: 'tool-calls',
+      finishReason: "tool-calls",
     },
     {
-      type: 'finish',
-      finishReason: 'tool-calls',
+      type: "finish",
+      finishReason: "tool-calls",
       totalUsage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
     },
   ];
@@ -168,18 +170,18 @@ export function createToolApprovalParts(
  */
 export function createCompleteResult(
   runId?: string,
-): Extract<AgentRunResult, { status: 'complete' }> {
+): Extract<AgentRunResult, { status: "complete" }> {
   return {
-    status: 'complete',
+    status: "complete",
     result: {
-      manifestId: AgentId('test-agent'),
-      status: 'complete',
-      text: 'Task completed successfully',
+      manifestId: AgentId("test-agent"),
+      status: "complete",
+      text: "Task completed successfully",
       output: { success: true },
-      provider: 'anthropic',
-      model: 'claude-3-5-sonnet-20241022',
+      provider: "anthropic",
+      model: "claude-3-5-sonnet-20241022",
       steps: [],
-      finishReason: 'stop',
+      finishReason: "stop",
       totalUsage: {},
     },
     runId: AgentRunId(runId) ?? AgentRunId(),
@@ -206,13 +208,13 @@ export function createManifestMap(
  */
 export function createApprovalRequiredTool(
   name: string,
-): NonNullable<AgentManifest['config']['tools']>[number] {
+): NonNullable<AgentManifest["config"]["tools"]>[number] {
   return {
-    type: 'function',
+    type: "function",
     function: {
       name,
       description: `Tool ${name} that requires approval`,
-      parameters: { type: 'object', properties: {} },
+      parameters: { type: "object", properties: {} },
     },
   };
 }
@@ -222,13 +224,13 @@ export function createApprovalRequiredTool(
  */
 export function createToolDefinition(
   name: string,
-): NonNullable<AgentManifest['config']['tools']>[number] {
+): NonNullable<AgentManifest["config"]["tools"]>[number] {
   return {
-    type: 'function',
+    type: "function",
     function: {
       name,
       description: `Tool ${name}`,
-      parameters: { type: 'object', properties: {} },
+      parameters: { type: "object", properties: {} },
     },
   };
 }
@@ -241,33 +243,33 @@ export function createParallelToolCallParts(
 ): StreamPart[] {
   const now = new Date();
   const toolCalls: StreamPart[] = tools.map((t) => ({
-    type: 'tool-call' as const,
+    type: "tool-call" as const,
     toolCallId: t.id,
     toolName: t.name,
     input: t.input,
   }));
 
   return [
-    { type: 'start' },
+    { type: "start" },
     {
-      type: 'start-step',
+      type: "start-step",
       request: { body: undefined },
       warnings: [],
     },
     ...toolCalls,
     {
-      type: 'finish-step',
+      type: "finish-step",
       response: {
-        id: 'resp-1',
+        id: "resp-1",
         timestamp: now,
-        modelId: 'claude-3-5-sonnet-20241022',
+        modelId: "claude-3-5-sonnet-20241022",
       },
       usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
-      finishReason: 'tool-calls',
+      finishReason: "tool-calls",
     },
     {
-      type: 'finish',
-      finishReason: 'tool-calls',
+      type: "finish",
+      finishReason: "tool-calls",
       totalUsage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
     },
   ];
