@@ -170,3 +170,26 @@ export const parentChildManifestArb: fc.Arbitrary<{
 
     return { parent, child };
   });
+
+/**
+ * Arbitrary for prompts (non-empty strings).
+ */
+export const promptArb: fc.Arbitrary<string> = fc.string({
+  minLength: 1,
+  maxLength: 200,
+});
+
+/**
+ * Arbitrary for cancellation timing scenarios.
+ * Values are tuned to work with polling-based cancellation detection:
+ * - Polling interval is 20ms in tests
+ * - Need enough completion time to allow poll + signal propagation
+ * Keep values small to avoid test timeouts.
+ */
+export const cancellationTimingArb: fc.Arbitrary<{
+  cancelAfterMs: number;
+  completionDelayMs: number;
+}> = fc.record({
+  cancelAfterMs: fc.integer({ min: 10, max: 30 }),
+  completionDelayMs: fc.integer({ min: 150, max: 250 }),
+});

@@ -26,4 +26,5 @@ export type LoopResult =
       completedToolResults: RequestToolResultPart[];
       finalState: AgentRunState;
     }
-  | { status: 'error'; error: AppError; finalState: AgentRunState };
+  | { status: 'error'; error: AppError; finalState: AgentRunState }
+  | { status: 'cancelled'; finalState: AgentRunState };

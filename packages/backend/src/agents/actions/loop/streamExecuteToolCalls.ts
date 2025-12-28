@@ -141,11 +141,11 @@ export async function* streamExecuteToolCalls(
     }
   }
 
-  // Interleave events from all generators
-  yield* interleaveGenerators(states);
+  // Interleave events from all generators, passing ctx for abort detection
+  const { aborted } = yield* interleaveGenerators(states, ctx);
 
-  // Build results from completed generators
-  return buildStreamingResults(states);
+  // Build results from completed generators, marking incomplete ones as cancelled if aborted
+  return buildStreamingResults(states, aborted);
 }
 
 /**
@@ -165,21 +165,45 @@ async function* createUnknownToolGenerator(): AsyncGenerator<
   };
 }
 
+// Sentinel symbol to identify abort - cannot be confused with real results
+const ABORTED = Symbol('aborted');
+
+/**
+ * Creates a promise that resolves when the abort signal fires.
+ * Returns a sentinel value instead of rejecting for graceful handling.
+ */
+function createAbortPromise<T>(signal: AbortSignal, sentinel: T): Promise<T> {
+  return new Promise((resolve) => {
+    if (signal.aborted) {
+      resolve(sentinel);
+    } else {
+      signal.addEventListener('abort', () => resolve(sentinel), { once: true });
+    }
+  });
+}
+
 /**
  * Interleaves events from multiple generators, yielding as they arrive.
  *
  * Uses Promise.race to poll all active generators simultaneously,
  * yielding events from whichever generator produces one first.
- * Continues until all generators are done.
+ * Continues until all generators are done or abort is signaled.
+ *
+ * Abort detection is immediate via an abort promise in the race,
+ * not polling-based. When abort is signaled:
+ * 1. This function returns immediately with { aborted: true }
+ * 2. Sub-agent contexts are aborted via linked abort signals
+ * 3. In-flight tool operations continue until they check their signal
  */
 async function* interleaveGenerators(
   states: GeneratorState[],
-): AsyncGenerator<Result<AgentEvent, AppError>, void> {
+  ctx: Context,
+): AsyncGenerator<Result<AgentEvent, AppError>, { aborted: boolean }> {
   // Get initial active states (not already done)
   const activeStates = states.filter((s) => !s.done);
 
   if (activeStates.length === 0) {
-    return;
+    return { aborted: false };
   }
 
   // Map to track pending promises for each state
@@ -187,6 +211,9 @@ async function* interleaveGenerators(
     state: GeneratorState;
     result: IteratorResult<Result<AgentEvent, AppError>, AgentToolResult>;
   };
+
+  // Create abort promise that resolves (not rejects) with sentinel
+  const abortPromise = createAbortPromise(ctx.signal, ABORTED);
 
   // Create initial promises for all active generators
   const pendingPromises = new Map<GeneratorState, Promise<PendingResult>>();
@@ -200,8 +227,20 @@ async function* interleaveGenerators(
 
   // Continue while there are pending promises
   while (pendingPromises.size > 0) {
-    // Wait for any generator to produce a value
-    const { state, result } = await Promise.race(pendingPromises.values());
+    // Race between tool generators and abort signal
+    const raceResult = await Promise.race([
+      ...pendingPromises.values(),
+      abortPromise,
+    ]);
+
+    // Check for abort sentinel
+    if (raceResult === ABORTED) {
+      // Exit immediately - sub-agents will detect abort via linked signals
+      return { aborted: true };
+    }
+
+    // TypeScript narrowing: raceResult is PendingResult
+    const { state, result } = raceResult;
 
     // Remove the completed promise
     pendingPromises.delete(state);
@@ -221,16 +260,36 @@ async function* interleaveGenerators(
       );
     }
   }
+
+  return { aborted: false };
 }
 
 /**
  * Builds ExecuteToolCallsResult from the completed generator states.
+ *
+ * @param states - Generator states with results
+ * @param aborted - Whether execution was aborted (incomplete generators marked as cancelled)
  */
 function buildStreamingResults(
   states: GeneratorState[],
+  aborted: boolean,
 ): ExecuteToolCallsResult {
   const results: StreamToolCallResult[] = states.map((state) => {
     const { toolCall, result } = state;
+
+    // Handle generators that didn't complete due to abort
+    if (!state.done && aborted) {
+      return {
+        type: 'completed',
+        toolCall,
+        result: {
+          type: 'error',
+          error: 'Operation cancelled',
+          code: 'Cancelled',
+          retryable: false,
+        } satisfies CompletedAgentToolResult,
+      };
+    }
 
     // Handle unknown tool case (generator was never started)
     if (result === undefined) {

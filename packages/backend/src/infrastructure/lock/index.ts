@@ -9,4 +9,8 @@ export type {
   LockHandle,
   LockOptions,
 } from './domain/Lock';
-export { lockNotAcquiredError, lockOperationError } from './errors/lockErrors';
+export {
+  isLockNotAcquiredError,
+  lockNotAcquiredError,
+  lockOperationError,
+} from './errors/lockErrors';

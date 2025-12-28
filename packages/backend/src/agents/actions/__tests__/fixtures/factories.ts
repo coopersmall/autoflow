@@ -18,6 +18,7 @@ export function createTestManifest(
     tools?: AgentManifest['config']['tools'];
     toolExecutors?: Map<string, AgentExecuteFunction>;
     subAgents?: AgentManifest['config']['subAgents'];
+    humanInTheLoop?: AgentManifest['config']['humanInTheLoop'];
   },
 ): AgentManifest {
   return {
@@ -38,6 +39,7 @@ export function createTestManifest(
         : undefined,
       tools: options?.tools,
       subAgents: options?.subAgents,
+      humanInTheLoop: options?.humanInTheLoop,
     },
     hooks: {
       toolExecutors: options?.toolExecutors,
@@ -196,4 +198,77 @@ export function createManifestMap(
     map.set(key, manifest);
   }
   return map;
+}
+
+/**
+ * Creates a tool definition (for use with humanInTheLoop config).
+ * To require approval, add the tool name to manifest's humanInTheLoop.alwaysRequireApproval.
+ */
+export function createApprovalRequiredTool(
+  name: string,
+): NonNullable<AgentManifest['config']['tools']>[number] {
+  return {
+    type: 'function',
+    function: {
+      name,
+      description: `Tool ${name} that requires approval`,
+      parameters: { type: 'object', properties: {} },
+    },
+  };
+}
+
+/**
+ * Creates a basic tool definition (no approval required).
+ */
+export function createToolDefinition(
+  name: string,
+): NonNullable<AgentManifest['config']['tools']>[number] {
+  return {
+    type: 'function',
+    function: {
+      name,
+      description: `Tool ${name}`,
+      parameters: { type: 'object', properties: {} },
+    },
+  };
+}
+
+/**
+ * Creates parallel tool call completion parts (multiple tool calls in one response).
+ */
+export function createParallelToolCallParts(
+  tools: Array<{ name: string; id: string; input: unknown }>,
+): StreamPart[] {
+  const now = new Date();
+  const toolCalls: StreamPart[] = tools.map((t) => ({
+    type: 'tool-call' as const,
+    toolCallId: t.id,
+    toolName: t.name,
+    input: t.input,
+  }));
+
+  return [
+    { type: 'start' },
+    {
+      type: 'start-step',
+      request: { body: undefined },
+      warnings: [],
+    },
+    ...toolCalls,
+    {
+      type: 'finish-step',
+      response: {
+        id: 'resp-1',
+        timestamp: now,
+        modelId: 'claude-3-5-sonnet-20241022',
+      },
+      usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+      finishReason: 'tool-calls',
+    },
+    {
+      type: 'finish',
+      finishReason: 'tool-calls',
+      totalUsage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+    },
+  ];
 }

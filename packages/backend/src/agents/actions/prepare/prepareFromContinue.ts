@@ -12,6 +12,7 @@ import { loadAndValidateState } from '../state/loadAndValidateState';
 /**
  * Prepares agent state for continuation after sub-agent suspensions resolved.
  * Used when a parent agent's sub-agents have completed and results are pending.
+ * Uses EXISTING stateId from savedState.id.
  */
 export async function prepareFromContinue(
   ctx: Context,
@@ -76,7 +77,8 @@ export async function prepareFromContinue(
   state.messages = [...state.messages, toolResultMessage];
 
   return ok({
-    type: 'ready',
+    type: 'continue', // Signals: UPDATE existing state to running
+    stateId: savedState.id, // Use EXISTING stateId
     state,
     context: savedState.context,
     previousElapsedMs: savedState.elapsedExecutionMs,

@@ -31,4 +31,22 @@ export type AgentRunOptions = {
    * Defaults to DEFAULT_AGENT_TIMEOUT.
    */
   agentTimeout?: number;
+
+  /**
+   * Custom TTL for agent run lock in seconds.
+   * Defaults to DEFAULT_AGENT_RUN_LOCK_TTL.
+   */
+  agentRunLockTtl?: number;
+
+  /**
+   * Custom TTL for cancellation signals in seconds.
+   * Defaults to DEFAULT_CANCELLATION_SIGNAL_TTL.
+   */
+  cancellationSignalTtl?: number;
+
+  /**
+   * Custom polling interval for cancellation checks in milliseconds.
+   * Defaults to DEFAULT_CANCELLATION_POLL_INTERVAL_MS.
+   */
+  cancellationPollIntervalMs?: number;
 };

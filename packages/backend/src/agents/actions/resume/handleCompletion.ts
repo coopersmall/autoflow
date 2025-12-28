@@ -1,5 +1,9 @@
 import type { AgentState } from '@backend/agents/domain';
-import type { IAgentStateCache } from '@backend/agents/infrastructure/cache';
+import type {
+  IAgentCancellationCache,
+  IAgentStateCache,
+} from '@backend/agents/infrastructure/cache';
+import type { IAgentRunLock } from '@backend/agents/infrastructure/lock';
 import type { IMCPService } from '@backend/ai';
 import type { ICompletionsGateway } from '@backend/ai/completions';
 import type { Context } from '@backend/infrastructure/context/Context';
@@ -25,6 +29,8 @@ export interface HandleCompletionDeps {
   readonly stateCache: IAgentStateCache;
   readonly storageService: IStorageService;
   readonly logger: ILogger;
+  readonly agentRunLock: IAgentRunLock;
+  readonly cancellationCache: IAgentCancellationCache;
 }
 
 /**

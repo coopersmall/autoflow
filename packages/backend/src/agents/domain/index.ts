@@ -7,11 +7,18 @@ export {
   type ContinuableStateStatus,
 } from './AgentState';
 export {
+  type CancellationSignal,
+  cancellationSignalSchema,
+} from './CancellationSignal';
+export {
   AGENT_CONTENT_FOLDER,
   AGENT_CONTENT_TTL_SECONDS,
   AGENT_DOWNLOAD_URL_EXPIRY_SECONDS,
+  DEFAULT_AGENT_RUN_LOCK_TTL,
   DEFAULT_AGENT_STATE_TTL,
   DEFAULT_AGENT_TIMEOUT,
+  DEFAULT_CANCELLATION_POLL_INTERVAL_MS,
+  DEFAULT_CANCELLATION_SIGNAL_TTL,
 } from './constants';
 // Dependency composition
 export * from './dependencies';

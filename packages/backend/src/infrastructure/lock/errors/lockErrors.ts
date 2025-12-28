@@ -5,8 +5,15 @@ import { type AppError, badRequest, internalError } from '@core/errors';
  */
 export function lockNotAcquiredError(namespace: string, id: string): AppError {
   return badRequest(`Lock not acquired: ${namespace}:${id} is already held`, {
-    metadata: { namespace, id },
+    metadata: { namespace, id, errorType: 'lock-not-acquired' },
   });
+}
+
+/**
+ * Type guard to check if an error is a lock-not-acquired error.
+ */
+export function isLockNotAcquiredError(error: AppError): boolean {
+  return error.metadata.errorType === 'lock-not-acquired';
 }
 
 /**

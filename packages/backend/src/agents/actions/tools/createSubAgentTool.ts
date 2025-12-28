@@ -101,6 +101,22 @@ export function createSubAgentTool(
         );
       }
 
+      // Sub-agent was cancelled
+      if (result.value.status === 'cancelled') {
+        return AgentToolResult.error(
+          'Sub-agent execution was cancelled',
+          'Cancelled',
+        );
+      }
+
+      // Sub-agent is already running
+      if (result.value.status === 'already-running') {
+        return AgentToolResult.error(
+          'Sub-agent is already running',
+          'AlreadyRunning',
+        );
+      }
+
       // Success
       return AgentToolResult.success({
         text: result.value.result.text,

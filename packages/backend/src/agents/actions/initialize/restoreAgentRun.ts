@@ -48,6 +48,7 @@ export async function restoreAgentRun(
   }
 
   return ok({
+    runId: savedState.id, // Use existing state ID
     startTime,
     timeoutMs,
     tools,

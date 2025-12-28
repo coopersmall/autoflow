@@ -2,7 +2,11 @@ import type { ICompletionsGateway } from '@backend/ai/completions/domain/Complet
 import type { IMCPService } from '@backend/ai/mcp/domain/MCPService';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { IStorageService } from '@backend/storage/domain/StorageService';
-import type { IAgentStateCache } from '../infrastructure/cache';
+import type {
+  IAgentCancellationCache,
+  IAgentStateCache,
+} from '../infrastructure/cache';
+import type { IAgentRunLock } from '../infrastructure/lock';
 
 /**
  * Composable dependency interfaces for agent execution.
@@ -39,13 +43,20 @@ export interface LoggingDeps {
   readonly logger: ILogger;
 }
 
+/** Cancellation dependencies */
+export interface CancellationDeps {
+  readonly agentRunLock: IAgentRunLock;
+  readonly cancellationCache: IAgentCancellationCache;
+}
+
 /** Full agent execution dependencies */
 export interface AgentExecutionDeps
   extends CompletionDeps,
     MCPDeps,
     StateDeps,
     StorageDeps,
-    LoggingDeps {}
+    LoggingDeps,
+    CancellationDeps {}
 
 /** Dependencies for serialization operations */
 export interface SerializationDeps extends StorageDeps, LoggingDeps {}

@@ -15,7 +15,11 @@
  */
 
 import { describe, expect, it } from 'bun:test';
-import { createAgentStateCache } from '@backend/agents/infrastructure/cache';
+import {
+  createAgentCancellationCache,
+  createAgentStateCache,
+} from '@backend/agents/infrastructure/cache';
+import { createAgentRunLock } from '@backend/agents/infrastructure/lock';
 import { getMockedCompletionsGateway } from '@backend/ai/completions/__mocks__/CompletionsGateway.mock';
 import { getMockedMCPService } from '@backend/ai/mcp/services/__mocks__/MCPService.mock';
 import { createMockContext } from '@backend/infrastructure/context/__mocks__/Context.mock';
@@ -68,6 +72,11 @@ describe('Unified Streaming Architecture Integration Tests', () => {
 
     // Real infrastructure
     const stateCache = createAgentStateCache({ appConfig: config, logger });
+    const agentRunLock = createAgentRunLock({ appConfig: config, logger });
+    const cancellationCache = createAgentCancellationCache({
+      appConfig: config,
+      logger,
+    });
     const storageService = createStorageService({
       logger,
       appConfig: config,
@@ -89,6 +98,8 @@ describe('Unified Streaming Architecture Integration Tests', () => {
         stateCache,
         storageService,
         logger,
+        agentRunLock,
+        cancellationCache,
       },
     };
   };
@@ -1045,9 +1056,11 @@ describe('Unified Streaming Architecture Integration Tests', () => {
 
             // Lifecycle events are always emitted regardless of config
             const lifecycleEventTypes: string[] = [
+              'agent-started',
               'agent-done',
               'agent-error',
               'agent-suspended',
+              'agent-cancelled',
               'sub-agent-start',
               'sub-agent-end',
             ];

@@ -1,5 +1,6 @@
 import type { MCPClient } from '@ai-sdk/mcp';
 import type {
+  AgentContext,
   AppError,
   ExecuteFunction,
   MCPClientId,
@@ -94,18 +95,25 @@ async function convertTool(
 /**
  * Creates an execute wrapper that adapts the SDK tool's execute to our domain signature.
  *
- * Our domain ExecuteFunction: (input, { messages }) => Promise<any>
+ * Our domain ExecuteFunction: (ctx, input, { messages }) => Promise<any>
  * SDK tool execute: (input, ToolExecutionOptions) => Promise<CallToolResult>
  *
  * We create an adapter that:
- * 1. Accepts our simpler domain signature
+ * 1. Accepts our simpler domain signature with context
  * 2. Calls the SDK execute with the required ToolExecutionOptions
+ *
+ * Note: MCP tools don't currently use the abort signal from ctx,
+ * but the signature is updated for consistency with other tools.
  */
 function createExecuteWrapper(
   toolName: string,
   sdkTool: AISDKMCPTool,
 ): ExecuteFunction {
-  return async (input: unknown, options: { messages: Message[] }) => {
+  return async (
+    _ctx: AgentContext,
+    input: unknown,
+    options: { messages: Message[] },
+  ) => {
     // Generate a unique tool call ID for this execution
     // The MCP server uses this for tracking but doesn't require a specific format
     const toolCallId = `mcp_${toolName}_${Date.now()}`;

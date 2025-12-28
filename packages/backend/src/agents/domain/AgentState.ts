@@ -61,6 +61,11 @@ export const agentStateSchema = zod.strictObject({
     'cancelled',
   ]),
 
+  // When execution started (set when status transitions to 'running')
+  // Used for crash detection: if we can acquire lock but state is 'running'
+  // and execution duration > lock TTL, the agent crashed
+  startedAt: zod.date().optional(),
+
   // Context from original request
   context: zod.record(zod.string(), zod.unknown()).optional(),
 

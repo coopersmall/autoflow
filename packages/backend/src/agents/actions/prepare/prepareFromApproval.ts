@@ -17,9 +17,10 @@ import { loadAndValidateState } from '../state/loadAndValidateState';
 /**
  * Prepares agent run state from an approval response.
  * Loads the suspended state, validates the approval ID, and either:
- * - Returns needsResume for suspension stacks (nested sub-agent)
- * - Adds the approval response directly (flat HITL)
+ * - Returns 'delegate' for suspension stacks (nested sub-agent)
+ * - Returns 'continue' for flat HITL (current agent's own suspension)
  *
+ * Uses EXISTING stateId from savedState.id.
  * Tools are pre-built and passed in.
  */
 export async function prepareFromApproval(
@@ -53,10 +54,9 @@ export async function prepareFromApproval(
   );
 
   if (matchingStack) {
-    // This is a nested sub-agent suspension - return needsResume
-    // runAgent will handle the actual resume
+    // This is a nested sub-agent suspension - delegate to resumeFromSuspensionStack
     return ok({
-      type: 'resume',
+      type: 'delegate',
       savedState,
       matchingStack,
       response,
@@ -107,7 +107,8 @@ export async function prepareFromApproval(
   state.messages = [...state.messages, approvalMessage];
 
   return ok({
-    type: 'ready',
+    type: 'continue', // Signals: UPDATE existing state to running
+    stateId: savedState.id, // Use EXISTING stateId
     state,
     context: savedState.context,
     previousElapsedMs: savedState.elapsedExecutionMs,

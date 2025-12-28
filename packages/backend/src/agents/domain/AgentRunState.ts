@@ -1,4 +1,4 @@
-import type { AgentTool } from '@core/domain/agents';
+import type { AgentRunId, AgentTool } from '@core/domain/agents';
 import type { Message, StepResult } from '@core/domain/ai';
 
 /**
@@ -14,12 +14,14 @@ import type { Message, StepResult } from '@core/domain/ai';
  * - outputValidationRetries: Tracks validation retry attempts
  *
  * Immutable fields are set during initialization and don't change:
+ * - runId: The state ID for this execution (used for cancellation checks)
  * - startTime: When this execution started (for timeout calculation)
  * - timeoutMs: Maximum execution time allowed
  * - tools: Available tools for this agent (includes both standard and context-aware tools)
  * - toolsMap: Quick lookup map for tools
  */
 export interface AgentRunState {
+  readonly runId: AgentRunId;
   readonly startTime: number;
   readonly timeoutMs: number;
   readonly tools: AgentTool[];

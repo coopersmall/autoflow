@@ -1,23 +1,15 @@
 import type {
   AgentRunOptions,
   AgentState,
-  AgentStateStatus,
   LoggingDeps,
   StateDeps,
   StorageDeps,
 } from '@backend/agents/domain';
-import type { LoopResult } from '@backend/agents/domain/execution';
 import type { Context } from '@backend/infrastructure/context/Context';
-import {
-  type AgentManifest,
-  AgentRunId,
-  type SuspensionStack,
-  type ToolApprovalSuspension,
-} from '@core/domain/agents';
-import type { RequestToolResultPart } from '@core/domain/ai';
+import type { AgentManifest, AgentRunId } from '@core/domain/agents';
+import type { Message } from '@core/domain/ai';
 import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
-import { buildSuspensionStacks } from '../loop/buildSuspensionStacks';
 import { serializeMessages } from '../serialization/serializeMessages';
 
 export interface CreateAgentStateDeps
@@ -27,80 +19,44 @@ export interface CreateAgentStateDeps
 
 export interface CreateAgentStateParams {
   readonly ctx: Context;
+  readonly stateId: AgentRunId;
   readonly manifest: AgentManifest;
-  readonly loopResult: LoopResult;
+  readonly messages: Message[];
   readonly context?: Record<string, unknown>;
-  readonly previousElapsedMs?: number;
 }
 
 /**
- * Creates a new agent state from loop result and saves to cache.
+ * Creates a new agent state with 'running' status.
+ *
+ * This is called at the START of execution to create the initial state
+ * before the loop begins. The state is persisted to enable:
+ * - Running state visibility
+ * - Crash recovery (future)
  *
  * Responsibilities:
  * - Serializes messages (uploads binary content to storage)
- * - Builds suspension stacks from sub-agent branches
- * - Calculates elapsed time
- * - Generates new state ID
+ * - Creates state with 'running' status
+ * - Sets startedAt timestamp for crash detection
  * - Saves to cache
  *
  * Caller is responsible for:
+ * - Generating the stateId (only in prepareFromRequest)
  * - Logging success/errors
- * - Handling the returned state ID
  */
 export async function createAgentState(
   params: CreateAgentStateParams,
   deps: CreateAgentStateDeps,
   options?: AgentRunOptions,
-): Promise<Result<AgentRunId, AppError>> {
-  const { ctx, manifest, loopResult, context, previousElapsedMs = 0 } = params;
+): Promise<Result<void, AppError>> {
+  const { ctx, stateId, manifest, messages, context } = params;
 
-  // Calculate total elapsed time
-  const currentElapsedMs = Date.now() - loopResult.finalState.startTime;
-  const totalElapsedMs = previousElapsedMs + currentElapsedMs;
-
-  // Serialize messages (upload binary content to storage)
-  const serializeResult = await serializeMessages(
-    ctx,
-    loopResult.finalState.messages,
-    deps,
-    options,
-  );
-
+  // Serialize messages for crash recovery
+  const serializeResult = await serializeMessages(ctx, messages, deps, options);
   if (serializeResult.isErr()) {
     return err(serializeResult.error);
   }
 
-  const stateId = AgentRunId();
   const now = new Date();
-
-  // Determine status, suspensions, stacks, and pending results based on loop result
-  let status: AgentStateStatus;
-  let suspensions: ToolApprovalSuspension[] = [];
-  let suspensionStacks: SuspensionStack[] = [];
-  let pendingToolResults: RequestToolResultPart[] = [];
-
-  if (loopResult.status === 'complete') {
-    status = 'completed';
-  } else if (loopResult.status === 'suspended') {
-    status = 'suspended';
-
-    // Current agent's own HITL suspensions
-    suspensions = loopResult.suspensions;
-
-    // Build stacks from sub-agent branches
-    if (loopResult.subAgentBranches.length > 0) {
-      suspensionStacks = buildSuspensionStacks({
-        manifest,
-        stateId,
-        branches: loopResult.subAgentBranches,
-      });
-    }
-
-    // Store completed results from parallel tool calls
-    pendingToolResults = loopResult.completedToolResults;
-  } else {
-    status = 'failed';
-  }
 
   const agentState: AgentState = {
     id: stateId,
@@ -108,16 +64,17 @@ export async function createAgentState(
     manifestId: manifest.config.id,
     manifestVersion: manifest.config.version,
     messages: serializeResult.value,
-    steps: loopResult.finalState.steps,
-    currentStepNumber: loopResult.finalState.stepNumber,
-    suspensions,
-    suspensionStacks,
-    pendingToolResults,
-    status,
+    steps: [],
+    currentStepNumber: 0,
+    suspensions: [],
+    suspensionStacks: [],
+    pendingToolResults: [],
+    status: 'running',
+    startedAt: now, // For crash detection
     context,
     createdAt: now,
     updatedAt: now,
-    elapsedExecutionMs: totalElapsedMs,
+    elapsedExecutionMs: 0,
     childStateIds: [],
     schemaVersion: 1,
   };
@@ -132,5 +89,5 @@ export async function createAgentState(
     return err(setResult.error);
   }
 
-  return ok(stateId);
+  return ok(undefined);
 }

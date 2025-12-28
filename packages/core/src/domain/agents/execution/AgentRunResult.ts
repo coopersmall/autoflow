@@ -23,10 +23,22 @@ const agentRunResultErrorSchema = zod.strictObject({
   runId: agentRunIdSchema,
 });
 
+const agentRunResultCancelledSchema = zod.strictObject({
+  status: zod.literal('cancelled'),
+  runId: agentRunIdSchema,
+});
+
+const agentRunResultAlreadyRunningSchema = zod.strictObject({
+  status: zod.literal('already-running'),
+  runId: agentRunIdSchema,
+});
+
 export const agentRunResultSchema = zod.discriminatedUnion('status', [
   agentRunResultCompleteSchema,
   agentRunResultSuspendedSchema,
   agentRunResultErrorSchema,
+  agentRunResultCancelledSchema,
+  agentRunResultAlreadyRunningSchema,
 ]);
 
 export const agentRunResultNonSuspendedSchema = zod.discriminatedUnion(

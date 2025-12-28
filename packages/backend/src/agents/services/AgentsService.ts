@@ -23,13 +23,19 @@ import { createStorageService } from '@backend/storage/services/StorageService';
 import { err, ok, type Result } from 'neverthrow';
 import {
   buildManifestMap,
+  type CancelResult,
+  cancelAgentState,
   runAgent,
   type StreamAgentItem,
   streamAgent,
 } from '../actions';
 import { validateAgentRunConfig } from '../builder/buildAgentRunConfig';
 import {
+  createAgentCancellationCache,
+  createAgentRunLock,
   createAgentStateCache,
+  type IAgentCancellationCache,
+  type IAgentRunLock,
   type IAgentStateCache,
 } from '../infrastructure';
 
@@ -59,12 +65,16 @@ export type IAgentService = Readonly<{
   ): AsyncGenerator<StreamAgentItem>;
 
   /**
-   * Cancel a suspended agent run.
+   * Cancel an agent run.
    *
-   * Marks the state as 'cancelled' and prevents future continuation.
-   * Does not affect already-running continuations.
+   * For suspended agents: Marks the state as cancelled directly.
+   * For running agents: Signals cancellation via cache for the polling wrapper to detect.
+   * Uses lock-based verification to determine if an agent is truly running or has crashed.
    */
-  cancel(ctx: Context, stateId: AgentRunId): Promise<Result<void, AppError>>;
+  cancel(
+    ctx: Context,
+    stateId: AgentRunId,
+  ): Promise<Result<CancelResult, AppError>>;
 }>;
 
 export function createAgentsService(
@@ -80,6 +90,8 @@ type AgentServiceContext = {
 };
 
 type AgentsServiceDeps = {
+  createAgentCancellationCache: typeof createAgentCancellationCache;
+  createAgentRunLock: typeof createAgentRunLock;
   createAgentStateCache: typeof createAgentStateCache;
   createCompletionsService: typeof createCompletionsService;
   createMCPService: typeof createMCPService;
@@ -87,6 +99,8 @@ type AgentsServiceDeps = {
 };
 
 const defaultDeps: AgentsServiceDeps = {
+  createAgentCancellationCache,
+  createAgentRunLock,
   createAgentStateCache,
   createCompletionsService,
   createMCPService,
@@ -104,6 +118,8 @@ const defaultActions: AgentsServiceActions = {
 };
 
 class AgentsService implements IAgentService {
+  private readonly cancellationCache: IAgentCancellationCache;
+  private readonly agentRunLock: IAgentRunLock;
   private readonly completionsService: ICompletionsGateway;
   private readonly mcpService: IMCPService;
   private readonly storageService: IStorageService;
@@ -114,6 +130,8 @@ class AgentsService implements IAgentService {
     private readonly deps: AgentsServiceDeps = defaultDeps,
     private readonly actions: AgentsServiceActions = defaultActions,
   ) {
+    this.cancellationCache = deps.createAgentCancellationCache(context);
+    this.agentRunLock = deps.createAgentRunLock(context);
     this.completionsService = deps.createCompletionsService();
     this.mcpService = deps.createMCPService();
     this.storageService = deps.createStorageService(context);
@@ -177,8 +195,17 @@ class AgentsService implements IAgentService {
   async cancel(
     ctx: Context,
     stateId: AgentRunId,
-  ): Promise<Result<void, AppError>> {
-    return ok(undefined);
+  ): Promise<Result<CancelResult, AppError>> {
+    return cancelAgentState(
+      ctx,
+      stateId,
+      {
+        stateCache: this.stateCache,
+        cancellationCache: this.cancellationCache,
+        agentRunLock: this.agentRunLock,
+      },
+      { recursive: true },
+    );
   }
 
   private getRootManifest(
@@ -204,6 +231,8 @@ class AgentsService implements IAgentService {
       stateCache: this.stateCache,
       storageService: this.storageService,
       logger: this.context.logger,
+      agentRunLock: this.agentRunLock,
+      cancellationCache: this.cancellationCache,
     };
   }
 }

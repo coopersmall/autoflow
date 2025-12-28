@@ -60,6 +60,12 @@ export function buildAgentRunResult(
         runId,
       });
 
+    case 'cancelled':
+      return ok({
+        status: 'cancelled',
+        runId,
+      });
+
     default:
       return unreachable(loopResult);
   }

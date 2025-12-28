@@ -11,6 +11,7 @@ import { loadAndValidateState } from '../state/loadAndValidateState';
 /**
  * Prepares agent run state from a reply to a completed agent.
  * Loads the completed state and adds the user's message.
+ * Uses EXISTING stateId from savedState.id.
  * Tools are pre-built and passed in.
  */
 export async function prepareFromReply(
@@ -67,7 +68,8 @@ export async function prepareFromReply(
   state.messages = [...state.messages, userMessage];
 
   return ok({
-    type: 'ready',
+    type: 'continue', // Signals: UPDATE existing state to running
+    stateId: savedState.id, // Use EXISTING stateId
     state,
     context: savedState.context,
     previousElapsedMs: savedState.elapsedExecutionMs,

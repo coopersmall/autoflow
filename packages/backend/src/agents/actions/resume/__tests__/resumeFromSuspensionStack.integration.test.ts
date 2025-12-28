@@ -19,7 +19,11 @@ import type {
   StreamAgentFinalResult,
   StreamAgentItem,
 } from '@backend/agents/actions/streamAgent';
-import { createAgentStateCache } from '@backend/agents/infrastructure/cache';
+import {
+  createAgentCancellationCache,
+  createAgentStateCache,
+} from '@backend/agents/infrastructure/cache';
+import { createAgentRunLock } from '@backend/agents/infrastructure/lock';
 import { getMockedCompletionsGateway } from '@backend/ai/completions/__mocks__/CompletionsGateway.mock';
 import { getMockedMCPService } from '@backend/ai/mcp/services/__mocks__/MCPService.mock';
 import { createMockContext } from '@backend/infrastructure/context/__mocks__/Context.mock';
@@ -56,6 +60,11 @@ describe('resumeFromSuspensionStack Integration Tests', () => {
 
     // Real infrastructure
     const stateCache = createAgentStateCache({ appConfig: config, logger });
+    const agentRunLock = createAgentRunLock({ appConfig: config, logger });
+    const cancellationCache = createAgentCancellationCache({
+      appConfig: config,
+      logger,
+    });
     const storageService = createStorageService({
       logger,
       appConfig: config,
@@ -77,6 +86,8 @@ describe('resumeFromSuspensionStack Integration Tests', () => {
         completionsGateway,
         mcpService,
         logger,
+        agentRunLock,
+        cancellationCache,
       },
     };
   };

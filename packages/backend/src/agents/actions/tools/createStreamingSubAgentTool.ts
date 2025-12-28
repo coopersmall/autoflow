@@ -181,6 +181,42 @@ export function createStreamingSubAgentTool(
             );
           }
 
+          // Sub-agent was cancelled
+          if (agentRunResult.status === 'cancelled') {
+            yield ok({
+              type: 'sub-agent-end',
+              manifestId: execCtx.manifestId,
+              parentManifestId: execCtx.parentManifestId,
+              timestamp: Date.now(),
+              subAgentManifestId: subAgentManifest.config.id,
+              subAgentToolName: config.name,
+              status: 'error',
+            });
+
+            return AgentToolResult.error(
+              'Sub-agent execution was cancelled',
+              'Cancelled',
+            );
+          }
+
+          // Sub-agent is already running
+          if (agentRunResult.status === 'already-running') {
+            yield ok({
+              type: 'sub-agent-end',
+              manifestId: execCtx.manifestId,
+              parentManifestId: execCtx.parentManifestId,
+              timestamp: Date.now(),
+              subAgentManifestId: subAgentManifest.config.id,
+              subAgentToolName: config.name,
+              status: 'error',
+            });
+
+            return AgentToolResult.error(
+              'Sub-agent is already running',
+              'AlreadyRunning',
+            );
+          }
+
           // Sub-agent completed successfully
           finalResult = AgentToolResult.success({
             text: agentRunResult.result.text,

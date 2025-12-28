@@ -1,6 +1,11 @@
-export { createAgentStateCache, type IAgentStateCache } from './cache';
+export {
+  createAgentCancellationCache,
+  createAgentStateCache,
+  type IAgentCancellationCache,
+  type IAgentStateCache,
+} from './cache';
 export {
   buildToolExecutionHarness,
   type ToolExecutionHarness,
 } from './harness';
-export { createAgentLock, type IAgentLock } from './lock';
+export { createAgentRunLock, type IAgentRunLock } from './lock';

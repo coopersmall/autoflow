@@ -55,6 +55,11 @@ export const agentStepFinishEventSchema = stepFinishEventDataSchema.extend(
 );
 
 // Agent-specific lifecycle events (always emitted, not configurable)
+export const agentStartedEventSchema = agentEventBaseSchema.extend({
+  type: zod.literal('agent-started'),
+  stateId: agentRunIdSchema,
+});
+
 export const agentDoneEventSchema = agentEventBaseSchema.extend({
   type: zod.literal('agent-done'),
   result: agentResultSchema,
@@ -72,6 +77,11 @@ export const agentErrorEventSchema = agentEventBaseSchema.extend({
     code: zod.string(),
     message: zod.string(),
   }),
+});
+
+export const agentCancelledEventSchema = agentEventBaseSchema.extend({
+  type: zod.literal('agent-cancelled'),
+  reason: zod.string().optional(),
 });
 
 // Sub-agent lifecycle events (emitted when sub-agents start/end)
@@ -97,9 +107,11 @@ export const agentEventSchema = zod.discriminatedUnion('type', [
   agentStepStartEventSchema,
   agentStepFinishEventSchema,
   // Lifecycle events (always emitted)
+  agentStartedEventSchema,
   agentDoneEventSchema,
   agentSuspendedEventSchema,
   agentErrorEventSchema,
+  agentCancelledEventSchema,
   subAgentStartEventSchema,
   subAgentEndEventSchema,
 ]);

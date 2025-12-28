@@ -1,4 +1,10 @@
+import type { IAgentCancellationCache } from '@backend/agents/infrastructure/cache';
+import type { IAgentRunLock } from '@backend/agents/infrastructure/lock';
+import type { ICompletionsGateway } from '@backend/ai/completions/domain/CompletionsGateway';
+import type { IMCPService } from '@backend/ai/mcp/domain/MCPService';
 import type { Context } from '@backend/infrastructure/context/Context';
+import type { ILogger } from '@backend/infrastructure/logger/Logger';
+import type { IStorageService } from '@backend/storage/domain/StorageService';
 import {
   type AgentExecuteFunction,
   type AgentManifest,
@@ -8,12 +14,22 @@ import {
 import type { AppError } from '@core/errors/AppError';
 import { notFound } from '@core/errors/factories';
 import { err, ok, type Result } from 'neverthrow';
-import type { StreamAgentDeps } from '../streamAgent';
+import type { IAgentStateCache } from '../../infrastructure/cache';
 import { createOutputTool } from './createOutputTool';
 import { createStreamingSubAgentTool } from './createStreamingSubAgentTool';
 
-export interface BuildAgentToolsDeps extends StreamAgentDeps {
-  // All StreamAgentDeps needed for sub-agent recursive calls
+/**
+ * Dependencies required for building agent tools.
+ * Defined explicitly to avoid circular dependency with StreamAgentDeps.
+ */
+export interface BuildAgentToolsDeps {
+  readonly completionsGateway: ICompletionsGateway;
+  readonly mcpService: IMCPService;
+  readonly stateCache: IAgentStateCache;
+  readonly storageService: IStorageService;
+  readonly logger: ILogger;
+  readonly agentRunLock: IAgentRunLock;
+  readonly cancellationCache: IAgentCancellationCache;
 }
 
 export interface BuildAgentToolsResult {
@@ -58,10 +74,14 @@ export async function buildAgentTools(
     // Wrap each MCP tool to return AgentToolResult
     const wrappedMcpTools = mcpToolsResult.value.map((mcpTool) => {
       const originalExecute = mcpTool.execute;
-      const wrappedExecute: AgentExecuteFunction = async (input, context) => {
+      const wrappedExecute: AgentExecuteFunction = async (
+        ctx,
+        input,
+        context,
+      ) => {
         try {
-          // Cast context.messages to the type expected by ExecuteFunction
-          const result = await originalExecute(input, {
+          // Pass ctx to the original execute for consistency
+          const result = await originalExecute(ctx, input, {
             messages: context.messages,
           });
           // MCP tools always return success, never suspended

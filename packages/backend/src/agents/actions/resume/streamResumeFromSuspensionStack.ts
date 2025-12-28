@@ -126,6 +126,16 @@ export async function* streamResumeFromSuspensionStack(
       return err(internalError('Parent stack entry missing pendingToolCallId'));
     }
 
+    // Handle cancellation - treat as error for resume purposes
+    if (currentResult.value.status === 'cancelled') {
+      return err(internalError('Agent execution was cancelled'));
+    }
+
+    // Handle already-running - treat as error for resume purposes
+    if (currentResult.value.status === 'already-running') {
+      return err(internalError('Agent is already running'));
+    }
+
     // Convert child result to tool result
     // Use PARENT's pendingToolCallId (the tool call waiting for this result)
     // Use CHILD's manifestId (for tool naming)
@@ -248,6 +258,16 @@ export async function* streamResumeFromSuspensionStack(
   const ourToolCallId = ourEntry.pendingToolCallId;
   if (!ourToolCallId) {
     return err(internalError('Root stack entry missing pendingToolCallId'));
+  }
+
+  // Handle cancellation - treat as error for resume purposes
+  if (currentResult.value.status === 'cancelled') {
+    return err(internalError('Agent execution was cancelled'));
+  }
+
+  // Handle already-running - treat as error for resume purposes
+  if (currentResult.value.status === 'already-running') {
+    return err(internalError('Agent is already running'));
   }
 
   // Convert to tool result

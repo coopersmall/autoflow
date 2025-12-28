@@ -90,6 +90,20 @@ export async function* unifiedAgentLoop(
 
   // Main agent execution loop
   while (true) {
+    // 0. Check for cancellation via abort signal
+    if (ctx.signal.aborted) {
+      return ok({
+        status: 'cancelled',
+        finalState: buildFinalState(
+          state,
+          messages,
+          steps,
+          stepNumber,
+          outputValidationRetries,
+        ),
+      });
+    }
+
     // 1. Check timeout (includes elapsed time from previous runs)
     const currentElapsed = previousElapsedMs + (Date.now() - startTime);
     if (currentElapsed > timeoutMs) {
@@ -140,6 +154,20 @@ export async function* unifiedAgentLoop(
     });
 
     if (streamResult.isErr()) {
+      // Check if error was due to cancellation (abort)
+      if (ctx.signal.aborted) {
+        return ok({
+          status: 'cancelled',
+          finalState: buildFinalState(
+            state,
+            messages,
+            steps,
+            stepNumber,
+            outputValidationRetries,
+          ),
+        });
+      }
+
       return ok({
         status: 'error',
         error: streamResult.error,

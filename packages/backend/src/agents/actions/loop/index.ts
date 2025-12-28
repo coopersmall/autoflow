@@ -13,6 +13,11 @@ export {
   buildSuspensionStacks,
 } from './buildSuspensionStacks';
 export {
+  type ExecuteAgentDeps,
+  type ExecuteAgentParams,
+  executeAgent,
+} from './executeAgent';
+export {
   type ExecuteAgentLoopDeps,
   type ExecuteAgentLoopParams,
   executeAgentLoop,

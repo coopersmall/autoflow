@@ -13,9 +13,17 @@ import {
  *
  * This is the lowest level of the streaming harness, responsible for
  * dispatching to the correct execution path based on tool type.
+ *
+ * Checks abort signal before starting tool execution to ensure
+ * cancellation is respected between LLM completion and tool execution.
  */
 export function createStreamingBaseToolExecutor(): StreamingToolExecutor {
   return async function* (tool, toolCall, execCtx) {
+    // Check if already cancelled before starting tool execution
+    if (execCtx.ctx.signal.aborted) {
+      return AgentToolResult.error('Operation cancelled', 'Cancelled', false);
+    }
+
     try {
       // 1. Streaming context tool (e.g., streaming sub-agent)
       // These tools yield events during execution
@@ -37,8 +45,8 @@ export function createStreamingBaseToolExecutor(): StreamingToolExecutor {
         );
       }
 
-      // Call the tool's execute function
-      const result = await tool.execute(toolCall.input, {
+      // Call the tool's execute function with context
+      const result = await tool.execute(execCtx.ctx, toolCall.input, {
         messages: execCtx.messages,
       });
       return AgentToolResult.success(result);

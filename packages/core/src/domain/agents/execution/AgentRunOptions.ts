@@ -33,6 +33,24 @@ export const agentRunOptionsSchema = zod.object({
     .positive()
     .optional()
     .describe('Default timeout for agent execution in milliseconds.'),
+  agentRunLockTtl: zod
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('TTL for agent run lock in seconds.'),
+  cancellationSignalTtl: zod
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('TTL for cancellation signals in seconds.'),
+  cancellationPollIntervalMs: zod
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('Polling interval for cancellation checks in milliseconds.'),
 });
 
 export type AgentRunOptions = zod.infer<typeof agentRunOptionsSchema>;

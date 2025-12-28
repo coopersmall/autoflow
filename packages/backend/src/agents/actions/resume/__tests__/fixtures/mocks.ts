@@ -4,7 +4,9 @@ import type {
   StreamAgentItem,
 } from '@backend/agents/actions/streamAgent';
 import type { AgentState } from '@backend/agents/domain';
+import { getMockedAgentCancellationCache } from '@backend/agents/infrastructure/cache/__mocks__/AgentCancellationCache.mock';
 import { getMockedAgentStateCache } from '@backend/agents/infrastructure/cache/__mocks__/AgentStateCache.mock';
+import { getMockedAgentRunLock } from '@backend/agents/infrastructure/lock/__mocks__/AgentRunLock.mock';
 import { getMockedCompletionsGateway } from '@backend/ai/completions/__mocks__/CompletionsGateway.mock';
 import { getMockedMCPService } from '@backend/ai/mcp/services/__mocks__/MCPService.mock';
 import { getMockedLogger } from '@backend/infrastructure/logger/__mocks__/Logger.mock';
@@ -23,6 +25,8 @@ export function createMockDeps() {
     logger: getMockedLogger(),
     completionsGateway: getMockedCompletionsGateway(),
     mcpService: getMockedMCPService(),
+    agentRunLock: getMockedAgentRunLock(),
+    cancellationCache: getMockedAgentCancellationCache(),
   };
 }
 

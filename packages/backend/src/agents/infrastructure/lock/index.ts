@@ -1,1 +1,1 @@
-export { createAgentLock, type IAgentLock } from './AgentLock';
+export { createAgentRunLock, type IAgentRunLock } from './AgentRunLock';
