@@ -1,18 +1,17 @@
-import type { AgentRunState } from '@backend/agents/domain';
+import type { AgentManifest, AgentRunState } from '@backend/agents/domain';
 import type { LoopResult } from '@backend/agents/domain/execution';
+import type { OnStepStartResult } from '@backend/agents/hooks';
 import { buildStreamingToolExecutionHarness } from '@backend/agents/infrastructure/harness';
 import type { ICompletionsGateway } from '@backend/ai/completions/domain/CompletionsGateway';
 import type { Context } from '@backend/infrastructure/context/Context';
 import type {
   AgentEvent,
   AgentId,
-  AgentManifest,
   StreamableEventType,
   ToolApprovalSuspension,
 } from '@core/domain/agents';
 import type {
   FinishReason,
-  PrepareStepResult,
   RequestToolResultPart,
   StepResult,
   StreamPart,
@@ -76,7 +75,7 @@ export async function* unifiedAgentLoop(
     parentManifestId,
   } = params;
 
-  const { startTime, timeoutMs, tools, toolsMap } = state;
+  const { runId: stateId, startTime, timeoutMs, tools, toolsMap } = state;
   let { messages, steps, stepNumber, outputValidationRetries } = state;
 
   // Build streaming harness (handles all tool types including streaming sub-agents)
@@ -124,18 +123,35 @@ export async function* unifiedAgentLoop(
 
     stepNumber++;
 
-    // 2. Call prepareStep hook (can modify messages, toolChoice, activeTools)
-    let prepareResult: PrepareStepResult | undefined;
-    if (manifest.hooks.prepareStep) {
-      prepareResult = await manifest.hooks.prepareStep({
+    // 2. Call onStepStart hook (can modify messages, toolChoice, activeTools)
+    let stepStartResult: OnStepStartResult | undefined;
+    if (manifest.hooks?.onStepStart) {
+      const hookResult = await manifest.hooks.onStepStart(ctx, {
         stepNumber,
         steps,
         messages,
         provider: manifest.config.provider.provider,
         model: manifest.config.provider.model,
       });
-      if (prepareResult?.messages) {
-        messages = prepareResult.messages;
+
+      // Handle Result return - errors abort the run
+      if (hookResult.isErr()) {
+        return ok({
+          status: 'error',
+          error: hookResult.error,
+          finalState: buildFinalState(
+            state,
+            messages,
+            steps,
+            stepNumber,
+            outputValidationRetries,
+          ),
+        });
+      }
+
+      stepStartResult = hookResult.value;
+      if (stepStartResult?.messages) {
+        messages = [...stepStartResult.messages];
       }
     }
 
@@ -148,7 +164,7 @@ export async function* unifiedAgentLoop(
       stepNumber,
       messages,
       tools,
-      prepareResult,
+      stepStartResult,
       allowedEventTypes,
       deps,
     });
@@ -216,7 +232,9 @@ export async function* unifiedAgentLoop(
       messages,
       stepNumber,
       manifestId,
+      manifestVersion: manifest.config.version,
       parentManifestId,
+      stateId,
     });
 
     // 6. Yield tool-result events for completed tools
@@ -297,8 +315,21 @@ export async function* unifiedAgentLoop(
     steps = [...steps, stepResult];
 
     // 10. Call onStepFinish hook
-    if (manifest.hooks.onStepFinish) {
-      await manifest.hooks.onStepFinish(stepResult, ctx);
+    if (manifest.hooks?.onStepFinish) {
+      const finishResult = await manifest.hooks.onStepFinish(ctx, stepResult);
+      if (finishResult.isErr()) {
+        return ok({
+          status: 'error',
+          error: finishResult.error,
+          finalState: buildFinalState(
+            state,
+            messages,
+            steps,
+            stepNumber,
+            outputValidationRetries,
+          ),
+        });
+      }
     }
 
     // 11. Check stopWhen conditions
@@ -424,7 +455,7 @@ interface StreamCompletionStepParams {
   readonly stepNumber: number;
   readonly messages: AgentRunState['messages'];
   readonly tools: AgentRunState['tools'];
-  readonly prepareResult: PrepareStepResult | undefined;
+  readonly stepStartResult: OnStepStartResult | undefined;
   readonly allowedEventTypes: Set<StreamableEventType>;
   readonly deps: UnifiedAgentLoopDeps;
 }
@@ -455,7 +486,7 @@ async function* streamCompletionStep(
     stepNumber,
     messages,
     tools,
-    prepareResult,
+    stepStartResult,
     allowedEventTypes,
     deps,
   } = params;
@@ -486,8 +517,10 @@ async function* streamCompletionStep(
       messages,
       tools,
       stopWhen: [{ type: 'stepCount', stepCount: 1 }],
-      toolChoice: prepareResult?.toolChoice,
-      activeTools: prepareResult?.activeTools,
+      toolChoice: stepStartResult?.toolChoice,
+      activeTools: stepStartResult?.activeTools
+        ? [...stepStartResult.activeTools]
+        : undefined,
       mcpServers: manifest.config.mcpServers,
     },
   );

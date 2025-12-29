@@ -1,3 +1,4 @@
+import type { AgentManifest } from '@backend/agents/domain';
 import {
   type AgentRunOptions,
   type AgentRunState,
@@ -7,12 +8,7 @@ import {
 import type { Context } from '@backend/infrastructure/context/Context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { IStorageService } from '@backend/storage/domain/StorageService';
-import type {
-  AgentManifest,
-  AgentRequest,
-  AgentRunId,
-  AgentTool,
-} from '@core/domain/agents';
+import type { AgentRequest, AgentRunId, AgentTool } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
 import { buildInitialMessages } from '../messages/buildInitialMessages';

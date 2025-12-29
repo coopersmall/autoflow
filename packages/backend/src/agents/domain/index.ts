@@ -1,3 +1,6 @@
+export type { AgentInput } from './AgentInput';
+export type { AgentManifest } from './AgentManifest';
+export type { AgentRunConfig } from './AgentRunConfig';
 export type { AgentRunOptions } from './AgentRunOptions';
 export type { AgentRunState } from './AgentRunState';
 export {
@@ -24,3 +27,4 @@ export {
 export * from './dependencies';
 // Execution domain objects
 export * from './execution';
+export type { ParentAgentContext } from './ParentAgentContext';

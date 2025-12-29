@@ -49,4 +49,11 @@ export type AgentRunOptions = {
    * Defaults to DEFAULT_CANCELLATION_POLL_INTERVAL_MS.
    */
   cancellationPollIntervalMs?: number;
+
+  /**
+   * Whether to call onStreamEvent hook for each streaming event.
+   * Set to true by streamAgent(), false by runAgent().
+   * Defaults to false.
+   */
+  emitStreamEvents?: boolean;
 };

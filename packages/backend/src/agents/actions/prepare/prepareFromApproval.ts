@@ -1,8 +1,11 @@
-import type { AgentRunOptions, PrepareDeps } from '@backend/agents/domain';
+import type {
+  AgentManifest,
+  AgentRunOptions,
+  PrepareDeps,
+} from '@backend/agents/domain';
 import type { PrepareResult } from '@backend/agents/domain/execution';
 import type { Context } from '@backend/infrastructure/context/Context';
 import type {
-  AgentManifest,
   AgentRunId,
   AgentTool,
   ContinueResponse,
@@ -112,5 +115,7 @@ export async function prepareFromApproval(
     state,
     context: savedState.context,
     previousElapsedMs: savedState.elapsedExecutionMs,
+    parentContext: savedState.parentContext,
+    resolvedSuspensions: [matchingSuspension],
   });
 }

@@ -1,4 +1,4 @@
-import type { AgentManifest } from '@core/domain/agents';
+import type { AgentManifest } from '@backend/agents/domain';
 import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 import { buildManifestMap } from '../utils/buildManifestMap';

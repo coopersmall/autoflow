@@ -73,5 +73,15 @@ export type IConversationsService = Readonly<
       userId: UserId,
       title: string,
     ): Promise<Result<Conversation, AppError>>;
+
+    /**
+     * Gets the next turn index for a conversation.
+     * This is the latest turn index + 1, or 0 if no items exist.
+     */
+    getNextTurnIndex(
+      ctx: Context,
+      conversationId: ConversationId,
+      userId: UserId,
+    ): Promise<Result<number, AppError>>;
   }
 >;

@@ -1,7 +1,11 @@
-import type { PrepareDeps } from '@backend/agents/domain';
+import type {
+  AgentInput,
+  AgentManifest,
+  PrepareDeps,
+} from '@backend/agents/domain';
 import type { PrepareResult } from '@backend/agents/domain/execution';
 import type { Context } from '@backend/infrastructure/context/Context';
-import type { AgentInput, AgentManifest, AgentTool } from '@core/domain/agents';
+import type { AgentTool } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
 import { unreachable } from '@core/unreachable';
 import type { Result } from 'neverthrow';

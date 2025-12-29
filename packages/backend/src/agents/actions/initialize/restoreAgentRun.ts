@@ -1,3 +1,4 @@
+import type { AgentManifest } from '@backend/agents/domain';
 import {
   type AgentRunOptions,
   type AgentRunState,
@@ -6,7 +7,7 @@ import {
 } from '@backend/agents/domain';
 import type { SerializationDeps } from '@backend/agents/domain/dependencies';
 import type { Context } from '@backend/infrastructure/context/Context';
-import type { AgentManifest, AgentTool } from '@core/domain/agents';
+import type { AgentTool } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
 import { deserializeMessages } from '../serialization/deserializeMessages';

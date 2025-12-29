@@ -13,5 +13,6 @@ export function getMockedConversationsService(): ExtractMockMethods<IConversatio
     close: mock(),
     reopen: mock(),
     updateTitle: mock(),
+    getNextTurnIndex: mock(),
   };
 }

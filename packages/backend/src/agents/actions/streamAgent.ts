@@ -1,3 +1,4 @@
+import type { AgentInput, AgentManifest } from '@backend/agents/domain';
 import type { IAgentCancellationCache } from '@backend/agents/infrastructure/cache';
 import type { IAgentRunLock } from '@backend/agents/infrastructure/lock';
 import type { ICompletionsGateway } from '@backend/ai/completions/domain/CompletionsGateway';
@@ -5,12 +6,7 @@ import type { IMCPService } from '@backend/ai/mcp/domain/MCPService';
 import type { Context } from '@backend/infrastructure/context/Context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { IStorageService } from '@backend/storage/domain/StorageService';
-import type {
-  AgentEvent,
-  AgentInput,
-  AgentManifest,
-  AgentRunResult,
-} from '@core/domain/agents';
+import type { AgentEvent, AgentRunResult } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 import type { IAgentStateCache } from '../infrastructure/cache';

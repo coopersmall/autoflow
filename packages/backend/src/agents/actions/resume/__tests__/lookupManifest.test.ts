@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test';
-import { AgentId } from '@autoflow/core';
+import { AgentId, ManifestKey } from '@autoflow/core';
+import type { AgentManifest } from '@backend/agents/domain';
 import { lookupManifest } from '../lookupManifest';
 import { createAgentManifest, createSuspensionStackEntry } from './fixtures';
 
@@ -11,7 +12,9 @@ describe('lookupManifest', () => {
     });
 
     const manifest = createAgentManifest('test-agent', '1.0.0');
-    const manifestMap = new Map([['test-agent:1.0.0', manifest]]);
+    const manifestMap = new Map<ManifestKey, AgentManifest>([
+      [ManifestKey(manifest.config), manifest],
+    ]);
 
     const result = lookupManifest(entry, manifestMap);
 
@@ -24,10 +27,7 @@ describe('lookupManifest', () => {
       manifestVersion: '1.0.0',
     });
 
-    const manifestMap = new Map<
-      string,
-      ReturnType<typeof createAgentManifest>
-    >();
+    const manifestMap = new Map<ManifestKey, AgentManifest>();
 
     const result = lookupManifest(entry, manifestMap);
 
@@ -41,7 +41,9 @@ describe('lookupManifest', () => {
     });
 
     const manifest = createAgentManifest('my-agent', '2.3.1');
-    const manifestMap = new Map([['my-agent:2.3.1', manifest]]);
+    const manifestMap = new Map<ManifestKey, AgentManifest>([
+      [ManifestKey(manifest.config), manifest],
+    ]);
 
     const result = lookupManifest(entry, manifestMap);
 

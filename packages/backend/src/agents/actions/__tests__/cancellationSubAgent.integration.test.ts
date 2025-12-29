@@ -289,7 +289,7 @@ describe('Sub-Agent Cancellation Integration Tests', () => {
 
       const childManifest = createTestManifest('child-running', {
         tools: [createToolDefinition('slow-child-tool')],
-        toolExecutors: new Map([['slow-child-tool', slowChildTool]]),
+        toolExecutors: { 'slow-child-tool': slowChildTool },
       });
 
       const parentManifest = createTestManifest('parent-running', {
@@ -470,7 +470,7 @@ describe('Sub-Agent Cancellation Integration Tests', () => {
 
       const childManifest = createTestManifest('timing-child', {
         tools: [createToolDefinition('timing-child-tool')],
-        toolExecutors: new Map([['timing-child-tool', quickChildTool]]),
+        toolExecutors: { 'timing-child-tool': quickChildTool },
       });
 
       const parentManifest = createTestManifest('timing-parent', {
@@ -689,12 +689,12 @@ describe('Sub-Agent Cancellation Integration Tests', () => {
 
       const child1Manifest = createTestManifest('parallel-child-1', {
         tools: [createToolDefinition('slow-tool-1')],
-        toolExecutors: new Map([['slow-tool-1', slowTool1]]),
+        toolExecutors: { 'slow-tool-1': slowTool1 },
       });
 
       const child2Manifest = createTestManifest('parallel-child-2', {
         tools: [createToolDefinition('slow-tool-2')],
-        toolExecutors: new Map([['slow-tool-2', slowTool2]]),
+        toolExecutors: { 'slow-tool-2': slowTool2 },
       });
 
       const parentManifest = createTestManifest('parallel-parent', {

@@ -1,11 +1,13 @@
 import type {
   AgentRunId,
   ContinueResponse,
+  Suspension,
   SuspensionStack,
   ToolApprovalSuspension,
 } from '@core/domain/agents';
 import type { AgentRunState } from '../AgentRunState';
 import type { AgentState } from '../AgentState';
+import type { ParentAgentContext } from '../ParentAgentContext';
 
 /**
  * Result from prepare functions.
@@ -33,6 +35,10 @@ export type PrepareResult =
       readonly state: AgentRunState;
       readonly context?: Record<string, unknown>;
       readonly previousElapsedMs: number;
+      /** Parent context from saved state (for resume scenarios) */
+      readonly parentContext?: ParentAgentContext;
+      /** Suspensions that were resolved to trigger this resume */
+      readonly resolvedSuspensions?: readonly Suspension[];
     }
   | {
       readonly type: 'delegate';

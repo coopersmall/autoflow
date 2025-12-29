@@ -1,7 +1,11 @@
-import type { AgentRunOptions, PrepareDeps } from '@backend/agents/domain';
+import type {
+  AgentManifest,
+  AgentRunOptions,
+  PrepareDeps,
+} from '@backend/agents/domain';
 import type { PrepareResult } from '@backend/agents/domain/execution';
 import type { Context } from '@backend/infrastructure/context/Context';
-import type { AgentManifest, AgentRunId, AgentTool } from '@core/domain/agents';
+import type { AgentRunId, AgentTool } from '@core/domain/agents';
 import type { Message } from '@core/domain/ai';
 import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
@@ -73,5 +77,7 @@ export async function prepareFromReply(
     state,
     context: savedState.context,
     previousElapsedMs: savedState.elapsedExecutionMs,
+    parentContext: savedState.parentContext,
+    // No resolvedSuspensions - this is a reply to a completed agent, not a resume from suspension
   });
 }

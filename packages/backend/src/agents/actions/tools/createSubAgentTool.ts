@@ -1,10 +1,10 @@
+import type { AgentInput, AgentManifest } from '@backend/agents/domain';
 import {
-  type AgentInput,
-  type AgentManifest,
   type AgentRequest,
   AgentToolResult,
   type AgentToolWithContext,
   defaultSubAgentArgsSchema,
+  type ManifestKey,
   type SubAgentConfig,
 } from '@core/domain/agents';
 import { validate } from '@core/validation/validate';
@@ -39,7 +39,7 @@ export function createSubAgentTool(
   config: SubAgentConfig,
   subAgentManifest: AgentManifest,
   mapper: ((args: unknown) => AgentRequest) | undefined,
-  manifestMap: Map<string, AgentManifest>,
+  manifestMap: Map<ManifestKey, AgentManifest>,
   deps: CreateSubAgentToolDeps,
 ): AgentToolWithContext {
   return {

@@ -1,10 +1,11 @@
 import type {
+  AgentManifest,
   AgentState,
   ContinuableStateStatus,
   StateDeps,
 } from '@backend/agents/domain';
 import type { Context } from '@backend/infrastructure/context/Context';
-import type { AgentManifest, AgentRunId } from '@core/domain/agents';
+import type { AgentRunId } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
 import { notFound } from '@core/errors/factories';
 import { err, ok, type Result } from 'neverthrow';

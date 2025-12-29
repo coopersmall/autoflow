@@ -1,16 +1,17 @@
-import type { AgentManifest } from '@core/domain/agents';
+import type { AgentManifest } from '@backend/agents/domain';
+import { ManifestKey } from '@core/domain/agents';
 
 /**
- * Builds a map of manifest ID:version → AgentManifest from a flat array.
+ * Builds a map of ManifestKey → AgentManifest from a flat array.
  * Used for quick lookup during agent execution and sub-agent resolution.
  */
 export function buildManifestMap(
   manifests: AgentManifest[],
-): Map<string, AgentManifest> {
-  const map = new Map<string, AgentManifest>();
+): Map<ManifestKey, AgentManifest> {
+  const map = new Map<ManifestKey, AgentManifest>();
 
   for (const manifest of manifests) {
-    const key = `${manifest.config.id}:${manifest.config.version}`;
+    const key = ManifestKey(manifest.config);
     map.set(key, manifest);
   }
 

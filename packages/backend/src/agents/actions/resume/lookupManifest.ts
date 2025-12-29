@@ -1,12 +1,16 @@
-import type { AgentManifest, SuspensionStackEntry } from '@core/domain/agents';
+import type { AgentManifest } from '@backend/agents/domain';
+import { ManifestKey, type SuspensionStackEntry } from '@core/domain/agents';
 
 /**
  * Looks up a manifest from the map.
  */
 export function lookupManifest(
   entry: SuspensionStackEntry,
-  manifestMap: Map<string, AgentManifest>,
+  manifestMap: Map<ManifestKey, AgentManifest>,
 ): AgentManifest | undefined {
-  const key = `${entry.manifestId}:${entry.manifestVersion}`;
+  const key = ManifestKey({
+    id: entry.manifestId,
+    version: entry.manifestVersion,
+  });
   return manifestMap.get(key);
 }

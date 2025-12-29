@@ -1,3 +1,4 @@
+import type { AgentManifest } from '@backend/agents/domain';
 import type { IAgentCancellationCache } from '@backend/agents/infrastructure/cache';
 import type { IAgentRunLock } from '@backend/agents/infrastructure/lock';
 import type { ICompletionsGateway } from '@backend/ai/completions/domain/CompletionsGateway';
@@ -7,9 +8,9 @@ import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { IStorageService } from '@backend/storage/domain/StorageService';
 import {
   type AgentExecuteFunction,
-  type AgentManifest,
   type AgentTool,
   AgentToolResult,
+  ManifestKey,
 } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
 import { notFound } from '@core/errors/factories';
@@ -45,14 +46,14 @@ export interface BuildAgentToolsResult {
 export async function buildAgentTools(
   ctx: Context,
   manifest: AgentManifest,
-  manifestMap: Map<string, AgentManifest>,
+  manifestMap: Map<ManifestKey, AgentManifest>,
   deps: BuildAgentToolsDeps,
 ): Promise<Result<BuildAgentToolsResult, AppError>> {
   const tools: AgentTool[] = [];
 
   // Add manifest tools with executors from hooks
   for (const tool of manifest.config.tools ?? []) {
-    const agentExecute = manifest.hooks.toolExecutors?.get(tool.function.name);
+    const agentExecute = manifest.hooks?.toolExecutors?.[tool.function.name];
     const execute = agentExecute;
     tools.push({ ...tool, execute });
   }
@@ -109,7 +110,10 @@ export async function buildAgentTools(
 
   // Add sub-agent tools (framework-managed)
   for (const subAgentConfig of manifest.config.subAgents ?? []) {
-    const subAgentKey = `${subAgentConfig.manifestId}:${subAgentConfig.manifestVersion}`;
+    const subAgentKey = ManifestKey({
+      id: subAgentConfig.manifestId,
+      version: subAgentConfig.manifestVersion,
+    });
     const subAgentManifest = manifestMap.get(subAgentKey);
 
     if (!subAgentManifest) {
@@ -123,9 +127,10 @@ export async function buildAgentTools(
       );
     }
 
-    const mapper = manifest.hooks.subAgentMappers?.get(subAgentConfig.name);
+    const mapper = manifest.hooks?.subAgentMappers?.[subAgentConfig.name];
     const subAgentTool = createStreamingSubAgentTool(
       subAgentConfig,
+      manifest,
       subAgentManifest,
       mapper,
       manifestMap,

@@ -1,12 +1,11 @@
 import {
-  type AgentManifest,
   type AgentRequest,
-  type AgentRunConfig,
   type AgentRunId,
   type AgentRunResult,
   type AppError,
   badRequest,
 } from '@autoflow/core';
+import type { AgentManifest, AgentRunConfig } from '@backend/agents/domain';
 import { createMCPService, type IMCPService } from '@backend/ai';
 import {
   createCompletionsService,

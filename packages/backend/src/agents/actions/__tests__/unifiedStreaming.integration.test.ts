@@ -15,6 +15,7 @@
  */
 
 import { describe, expect, it } from 'bun:test';
+import type { AgentManifest } from '@backend/agents/domain';
 import {
   createAgentCancellationCache,
   createAgentStateCache,
@@ -30,7 +31,6 @@ import {
   type AgentEvent,
   type AgentExecuteFunction,
   AgentId,
-  type AgentManifest,
   type AgentRunResult,
 } from '@core/domain/agents';
 import type { StreamPart } from '@core/domain/ai';
@@ -224,11 +224,12 @@ describe('Unified Streaming Architecture Integration Tests', () => {
       const ctx = createMockContext();
       const { deps } = setup();
 
-      const toolExecutors = new Map<string, AgentExecuteFunction>();
-      toolExecutors.set('test-tool', async () => ({
-        type: 'success',
-        output: { result: 'success' },
-      }));
+      const toolExecutors: Record<string, AgentExecuteFunction> = {
+        'test-tool': async () => ({
+          type: 'success',
+          output: { result: 'success' },
+        }),
+      };
 
       const manifest = createTestManifest('test-agent', {
         streamingEvents: ['tool-call', 'tool-result'],
@@ -390,11 +391,12 @@ describe('Unified Streaming Architecture Integration Tests', () => {
       const ctx = createMockContext();
       const { deps } = setup();
 
-      const toolExecutors = new Map<string, AgentExecuteFunction>();
-      toolExecutors.set('test-tool', async () => ({
-        type: 'success',
-        output: { result: 'ok' },
-      }));
+      const toolExecutors: Record<string, AgentExecuteFunction> = {
+        'test-tool': async () => ({
+          type: 'success',
+          output: { result: 'ok' },
+        }),
+      };
 
       // Only allow text-delta, not tool-call
       const manifest = createTestManifest('test-agent', {
@@ -498,11 +500,12 @@ describe('Unified Streaming Architecture Integration Tests', () => {
       const ctx = createMockContext();
       const { deps } = setup();
 
-      const toolExecutors = new Map<string, AgentExecuteFunction>();
-      toolExecutors.set('step-tool', async () => ({
-        type: 'success',
-        output: { done: true },
-      }));
+      const toolExecutors: Record<string, AgentExecuteFunction> = {
+        'step-tool': async () => ({
+          type: 'success',
+          output: { done: true },
+        }),
+      };
 
       const manifest = createTestManifest('test-agent', {
         streamingEvents: ['text-delta', 'tool-call', 'tool-result'],
@@ -825,15 +828,16 @@ describe('Unified Streaming Architecture Integration Tests', () => {
       const ctx = createMockContext();
       const { deps } = setup();
 
-      const toolExecutors = new Map<string, AgentExecuteFunction>();
-      toolExecutors.set('tool-a', async () => ({
-        type: 'success',
-        output: { result: 'a-result' },
-      }));
-      toolExecutors.set('tool-b', async () => ({
-        type: 'success',
-        output: { result: 'b-result' },
-      }));
+      const toolExecutors: Record<string, AgentExecuteFunction> = {
+        'tool-a': async () => ({
+          type: 'success',
+          output: { result: 'a-result' },
+        }),
+        'tool-b': async () => ({
+          type: 'success',
+          output: { result: 'b-result' },
+        }),
+      };
 
       const manifest = createTestManifest('test-agent', {
         streamingEvents: ['tool-call', 'tool-result'],
@@ -1147,12 +1151,12 @@ describe('Unified Streaming Architecture Integration Tests', () => {
 
           const ctx = createMockContext();
 
-          const toolExecutors = new Map<string, AgentExecuteFunction>();
+          const toolExecutors: Record<string, AgentExecuteFunction> = {};
           const toolDefinitions: NonNullable<AgentManifest['config']['tools']> =
             [];
 
           for (const tool of tools) {
-            toolExecutors.set(tool.name, tool.executor);
+            toolExecutors[tool.name] = tool.executor;
             toolDefinitions.push(tool.definition);
           }
 

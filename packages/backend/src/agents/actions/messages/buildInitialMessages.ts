@@ -1,4 +1,5 @@
-import type { AgentManifest, AgentRequest } from '@core/domain/agents';
+import type { AgentManifest } from '@backend/agents/domain';
+import type { AgentRequest } from '@core/domain/agents';
 import type { Message } from '@core/domain/ai';
 import { unreachable } from '@core/unreachable';
 

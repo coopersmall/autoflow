@@ -1,4 +1,5 @@
-import type { AgentManifest, AgentResult } from '@core/domain/agents';
+import type { AgentManifest } from '@backend/agents/domain';
+import type { AgentResult } from '@core/domain/agents';
 import type { FinishReason, StepResult, Usage } from '@core/domain/ai';
 
 /**

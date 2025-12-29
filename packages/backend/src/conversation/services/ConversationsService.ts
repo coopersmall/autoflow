@@ -1,6 +1,7 @@
 import { appendItem } from '@backend/conversation/actions/appendItem';
 import { closeConversation } from '@backend/conversation/actions/closeConversation';
 import { getItems } from '@backend/conversation/actions/getItems';
+import { getNextTurnIndex } from '@backend/conversation/actions/getNextTurnIndex';
 import { getWithItems } from '@backend/conversation/actions/getWithItems';
 import { reopenConversation } from '@backend/conversation/actions/reopenConversation';
 import { updateTitle } from '@backend/conversation/actions/updateTitle';
@@ -45,6 +46,7 @@ interface ConversationsServiceActions {
   readonly closeConversation: typeof closeConversation;
   readonly reopenConversation: typeof reopenConversation;
   readonly updateTitle: typeof updateTitle;
+  readonly getNextTurnIndex: typeof getNextTurnIndex;
 }
 
 interface ConversationsServiceDependencies {
@@ -73,6 +75,7 @@ class ConversationsService
       closeConversation,
       reopenConversation,
       updateTitle,
+      getNextTurnIndex,
     },
     dependencies: ConversationsServiceDependencies = {
       createConversationsRepo,
@@ -185,6 +188,22 @@ class ConversationsService
       ctx,
       { conversationId, userId, title },
       { conversations: this },
+    );
+  }
+
+  /**
+   * Gets the next turn index for a conversation.
+   * This is the latest turn index + 1, or 0 if no items exist.
+   */
+  async getNextTurnIndex(
+    ctx: Context,
+    conversationId: ConversationId,
+    userId: UserId,
+  ): Promise<Result<number, AppError>> {
+    return this.actions.getNextTurnIndex(
+      ctx,
+      { conversationId, userId },
+      { itemsRepo: this.itemsRepo },
     );
   }
 }

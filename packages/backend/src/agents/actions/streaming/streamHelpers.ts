@@ -1,11 +1,7 @@
+import type { AgentInput, AgentManifest } from '@backend/agents/domain';
 import type { AgentExecutionDeps } from '@backend/agents/domain/dependencies';
 import type { Context } from '@backend/infrastructure/context/Context';
-import type {
-  AgentEvent,
-  AgentInput,
-  AgentManifest,
-  AgentRunResult,
-} from '@core/domain/agents';
+import type { AgentEvent, AgentRunResult } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
 import { internalError } from '@core/errors/factories';
 import { err, type Result } from 'neverthrow';

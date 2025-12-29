@@ -491,7 +491,7 @@ describe('Agent Cancellation Integration Tests', () => {
 
       const manifest = createTestManifest('test-agent', {
         tools: [createToolDefinition('slow-tool')],
-        toolExecutors: new Map([['slow-tool', slowTool]]),
+        toolExecutors: { 'slow-tool': slowTool },
       });
 
       // Mock: LLM calls slow tool, then returns text (in case tool completes before abort)

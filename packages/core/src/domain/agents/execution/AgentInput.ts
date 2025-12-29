@@ -1,7 +1,6 @@
 import { z as zod } from 'zod';
 import { messageSchema } from '../../ai/request/completions/messages/Message';
 import { agentRunIdSchema } from '../AgentRunId';
-import type { AgentManifest } from '../config/AgentManifest';
 import { continueResponseSchema } from '../suspension/ContinueResponse';
 import { agentRunOptionsSchema } from './AgentRunOptions';
 
@@ -28,6 +27,12 @@ export const agentRequestSchema = zod.discriminatedUnion('type', [
     type: zod.literal('request'),
     prompt: zod.union([zod.string(), zod.array(messageSchema)]),
     context: zod.record(zod.string(), zod.unknown()).optional(),
+    /**
+     * Optional pre-generated stateId.
+     * If provided, the agent will use this ID instead of generating a new one.
+     * Used by non-streaming sub-agent tools to enable proper hook timing.
+     */
+    stateId: agentRunIdSchema.optional(),
   }),
   agentInputBaseSchema.extend({
     type: zod.literal('reply'),
@@ -46,6 +51,3 @@ export const agentRequestSchema = zod.discriminatedUnion('type', [
 ]);
 
 export type AgentRequest = zod.infer<typeof agentRequestSchema>;
-export type AgentInput = AgentRequest & {
-  manifestMap: Map<string, AgentManifest>;
-};

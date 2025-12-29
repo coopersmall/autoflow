@@ -1,7 +1,11 @@
-import type { AgentRunOptions, PrepareDeps } from '@backend/agents/domain';
+import type {
+  AgentManifest,
+  AgentRunOptions,
+  PrepareDeps,
+} from '@backend/agents/domain';
 import type { PrepareResult } from '@backend/agents/domain/execution';
 import type { Context } from '@backend/infrastructure/context/Context';
-import type { AgentManifest, AgentRunId, AgentTool } from '@core/domain/agents';
+import type { AgentRunId, AgentTool } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
 import { badRequest } from '@core/errors/factories';
 import { err, ok, type Result } from 'neverthrow';
@@ -82,5 +86,8 @@ export async function prepareFromContinue(
     state,
     context: savedState.context,
     previousElapsedMs: savedState.elapsedExecutionMs,
+    parentContext: savedState.parentContext,
+    // No resolvedSuspensions - this is resuming after sub-agent suspensions resolved,
+    // not after approval of this agent's own suspensions
   });
 }

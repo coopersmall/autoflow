@@ -1,8 +1,8 @@
 import type {
+  AgentManifest,
   AgentState,
   ContinuableStateStatus,
 } from '@backend/agents/domain';
-import type { AgentManifest } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
 import { badRequest } from '@core/errors/factories';
 import { err, ok, type Result } from 'neverthrow';

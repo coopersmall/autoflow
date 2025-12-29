@@ -34,8 +34,12 @@ export interface ExecuteToolCallsParams {
   readonly stepNumber: number;
   /** ID of the agent executing these tools (for event attribution) */
   readonly manifestId: AgentId;
+  /** Version of the agent manifest executing these tools */
+  readonly manifestVersion: string;
   /** ID of the parent agent if this is a sub-agent (for event attribution) */
   readonly parentManifestId?: AgentId;
+  /** State ID of the current agent run */
+  readonly stateId: AgentRunId;
 }
 
 /**
@@ -76,7 +80,9 @@ export async function executeToolCalls(
     messages,
     stepNumber,
     manifestId,
+    manifestVersion,
     parentManifestId,
+    stateId,
   } = params;
 
   const promises = toolCalls.map(async (toolCall) => {
@@ -88,7 +94,9 @@ export async function executeToolCalls(
       messages,
       stepNumber,
       manifestId,
+      manifestVersion,
       parentManifestId,
+      stateId,
     });
   });
 
@@ -130,7 +138,9 @@ async function executeToolCall(params: {
   messages: Message[];
   stepNumber: number;
   manifestId: AgentId;
+  manifestVersion: string;
   parentManifestId?: AgentId;
+  stateId: AgentRunId;
 }): Promise<ToolCallResult> {
   const {
     toolCall,
@@ -139,7 +149,9 @@ async function executeToolCall(params: {
     messages,
     stepNumber,
     manifestId,
+    manifestVersion,
     parentManifestId,
+    stateId,
   } = params;
 
   const tool = params.toolsMap.get(toolCall.toolName);
@@ -155,7 +167,9 @@ async function executeToolCall(params: {
     messages,
     stepNumber,
     manifestId,
+    manifestVersion,
     parentManifestId,
+    stateId,
   });
 
   if (toolResult.type === 'suspended') {

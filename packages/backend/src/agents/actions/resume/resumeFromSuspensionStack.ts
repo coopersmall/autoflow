@@ -1,4 +1,5 @@
 import type {
+  AgentManifest,
   AgentRunOptions,
   AgentState,
   PrepareDeps,
@@ -7,9 +8,9 @@ import type { IMCPService } from '@backend/ai';
 import type { ICompletionsGateway } from '@backend/ai/completions';
 import type { Context } from '@backend/infrastructure/context/Context';
 import type {
-  AgentManifest,
   AgentRunResult,
   ContinueResponse,
+  ManifestKey,
   SuspensionStack,
 } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
@@ -41,7 +42,7 @@ export interface ResumeFromStackDeps extends PrepareDeps, HandleCompletionDeps {
 export async function resumeFromSuspensionStack(
   ctx: Context,
   manifest: AgentManifest,
-  manifestMap: Map<string, AgentManifest>,
+  manifestMap: Map<ManifestKey, AgentManifest>,
   savedState: AgentState,
   matchingStack: SuspensionStack,
   response: ContinueResponse,

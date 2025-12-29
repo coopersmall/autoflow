@@ -1,4 +1,5 @@
-import type { AgentManifest } from '@core/domain/agents';
+import type { AgentManifest } from '@backend/agents/domain';
+import { ManifestKey } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
 import { notFound } from '@core/errors/factories';
 import { err, ok, type Result } from 'neverthrow';
@@ -9,7 +10,7 @@ import { err, ok, type Result } from 'neverthrow';
  */
 export function validateSubAgentReferences(
   manifest: AgentManifest,
-  manifestMap: Map<string, AgentManifest>,
+  manifestMap: Map<ManifestKey, AgentManifest>,
 ): Result<void, AppError> {
   if (!manifest.config.subAgents || manifest.config.subAgents.length === 0) {
     return ok(undefined);
@@ -18,7 +19,10 @@ export function validateSubAgentReferences(
   const missingRefs: string[] = [];
 
   for (const subAgentConfig of manifest.config.subAgents) {
-    const key = `${subAgentConfig.manifestId}:${subAgentConfig.manifestVersion}`;
+    const key = ManifestKey({
+      id: subAgentConfig.manifestId,
+      version: subAgentConfig.manifestVersion,
+    });
     if (!manifestMap.has(key)) {
       missingRefs.push(key);
     }

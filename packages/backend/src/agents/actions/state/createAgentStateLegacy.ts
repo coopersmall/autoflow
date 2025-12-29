@@ -1,4 +1,5 @@
 import type {
+  AgentManifest,
   AgentRunOptions,
   AgentState,
   AgentStateStatus,
@@ -9,7 +10,6 @@ import type {
 import type { LoopResult } from '@backend/agents/domain/execution';
 import type { Context } from '@backend/infrastructure/context/Context';
 import {
-  type AgentManifest,
   AgentRunId,
   type SuspensionStack,
   type ToolApprovalSuspension,

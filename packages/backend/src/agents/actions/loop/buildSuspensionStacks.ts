@@ -1,6 +1,6 @@
+import type { AgentManifest } from '@backend/agents/domain';
 import type { SuspendedBranch } from '@backend/agents/domain/execution';
 import type {
-  AgentManifest,
   AgentRunId,
   SuspensionStack,
   SuspensionStackEntry,

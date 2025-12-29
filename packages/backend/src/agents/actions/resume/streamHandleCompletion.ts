@@ -1,10 +1,14 @@
-import type { AgentRunOptions, AgentState } from '@backend/agents/domain';
+import type {
+  AgentInput,
+  AgentManifest,
+  AgentRunOptions,
+  AgentState,
+} from '@backend/agents/domain';
 import type { Context } from '@backend/infrastructure/context/Context';
 import type {
   AgentEvent,
-  AgentInput,
-  AgentManifest,
   AgentRunResult,
+  ManifestKey,
   SuspensionStack,
 } from '@core/domain/agents';
 import type { RequestToolResultPart } from '@core/domain/ai';
@@ -43,7 +47,7 @@ const defaultActions: StreamHandleCompletionActions = {
 export async function* streamHandleCompletion(
   ctx: Context,
   manifest: AgentManifest,
-  manifestMap: Map<string, AgentManifest>,
+  manifestMap: Map<ManifestKey, AgentManifest>,
   savedState: AgentState,
   completedStack: SuspensionStack,
   toolResult: RequestToolResultPart,

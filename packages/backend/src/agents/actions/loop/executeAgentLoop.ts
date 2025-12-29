@@ -1,8 +1,8 @@
-import type { AgentRunState } from '@backend/agents/domain';
+import type { AgentManifest, AgentRunState } from '@backend/agents/domain';
 import type { LoopResult } from '@backend/agents/domain/execution';
 import type { ICompletionsGateway } from '@backend/ai/completions/domain/CompletionsGateway';
 import type { Context } from '@backend/infrastructure/context/Context';
-import type { AgentId, AgentManifest } from '@core/domain/agents';
+import type { AgentId } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
 import { consumeGenerator } from '../utils/consumeGenerator';

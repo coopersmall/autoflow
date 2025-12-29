@@ -1,8 +1,7 @@
-import type { AgentRunOptions } from '@backend/agents/domain';
+import type { AgentManifest, AgentRunOptions } from '@backend/agents/domain';
 import type { PrepareResult } from '@backend/agents/domain/execution';
 import type { Context } from '@backend/infrastructure/context/Context';
 import {
-  type AgentManifest,
   type AgentRequest,
   AgentRunId,
   type AgentTool,
@@ -24,8 +23,12 @@ export function prepareFromRequest(
   toolsMap: Map<string, AgentTool>,
   options?: AgentRunOptions,
 ): Result<PrepareResult, AppError> {
-  // Generate NEW stateId - only prepareFromRequest does this
-  const stateId = AgentRunId();
+  // Use provided stateId or generate new one
+  // Pre-generated stateId is used by non-streaming sub-agent tools for proper hook timing
+  const stateId =
+    request.type === 'request' && request.stateId
+      ? request.stateId
+      : AgentRunId();
 
   const state = initializeAgentRun(
     stateId,

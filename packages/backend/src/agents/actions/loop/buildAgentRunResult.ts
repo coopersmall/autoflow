@@ -1,8 +1,5 @@
-import type {
-  AgentManifest,
-  AgentRunId,
-  AgentRunResult,
-} from '@core/domain/agents';
+import type { AgentManifest } from '@backend/agents/domain';
+import type { AgentRunId, AgentRunResult } from '@core/domain/agents';
 import { unreachable } from '@core/unreachable';
 import { ok, type Result } from 'neverthrow';
 import { buildSuspensionStacks } from './buildSuspensionStacks';

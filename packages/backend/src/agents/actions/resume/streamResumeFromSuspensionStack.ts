@@ -1,11 +1,15 @@
-import type { AgentRunOptions, AgentState } from '@backend/agents/domain';
+import type {
+  AgentInput,
+  AgentManifest,
+  AgentRunOptions,
+  AgentState,
+} from '@backend/agents/domain';
 import type { Context } from '@backend/infrastructure/context/Context';
 import type {
   AgentEvent,
-  AgentInput,
-  AgentManifest,
   AgentRunResult,
   ContinueResponse,
+  ManifestKey,
   SuspensionStack,
 } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
@@ -43,7 +47,7 @@ export interface StreamResumeFromStackActions {
 export async function* streamResumeFromSuspensionStack(
   ctx: Context,
   manifest: AgentManifest,
-  manifestMap: Map<string, AgentManifest>,
+  manifestMap: Map<ManifestKey, AgentManifest>,
   savedState: AgentState,
   matchingStack: SuspensionStack,
   response: ContinueResponse,

@@ -2,9 +2,9 @@ import zod from 'zod';
 import { messageSchema } from '../../messages/Message';
 import { toolChoiceSchema } from '../../tools/ToolChoice';
 
-export type PrepareStepResult = zod.infer<typeof prepareStepResultSchema>;
+export type OnStepStartResult = zod.infer<typeof onStepStartResultSchema>;
 
-export const prepareStepResultSchema = zod
+export const onStepStartResultSchema = zod
   .strictObject({
     toolChoice: toolChoiceSchema.describe(
       'Change the tool choice strategy for this step.',
@@ -22,4 +22,4 @@ export const prepareStepResultSchema = zod
       .optional()
       .describe('Modify the input messages for this step.'),
   })
-  .describe('Result returned from prepareStep to modify the next step.');
+  .describe('Result returned from onStepStart to modify the next step.');

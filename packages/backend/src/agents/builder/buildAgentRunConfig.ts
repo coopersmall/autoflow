@@ -1,4 +1,5 @@
-import type { AgentManifest, AgentRunConfig } from '@autoflow/core';
+import type { ManifestKey } from '@autoflow/core';
+import type { AgentManifest, AgentRunConfig } from '@backend/agents/domain';
 import type { AppError } from '@core/errors/AppError';
 import { badRequest } from '@core/errors/factories';
 import { err, ok, type Result } from 'neverthrow';
@@ -7,7 +8,7 @@ import { validateReferences } from './validateReferences';
 
 type ValidateAgentRunResponse = {
   rootManifest: AgentManifest;
-  manifestMap: Map<string, AgentManifest>;
+  manifestMap: Map<ManifestKey, AgentManifest>;
 };
 
 export function validateAgentRunConfig(

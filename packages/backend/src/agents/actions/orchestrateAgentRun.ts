@@ -1,11 +1,7 @@
+import type { AgentInput, AgentManifest } from '@backend/agents/domain';
 import type { IMCPService } from '@backend/ai/mcp/domain/MCPService';
 import type { Context } from '@backend/infrastructure/context/Context';
-import type {
-  AgentEvent,
-  AgentInput,
-  AgentManifest,
-  AgentRunResult,
-} from '@core/domain/agents';
+import type { AgentEvent, AgentRunResult } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
 import { type ExecuteAgentDeps, executeAgent } from './loop/executeAgent';
@@ -130,6 +126,15 @@ export async function* orchestrateAgentRun(
   // 5. Type is 'start' or 'continue' - wrap with cancellation polling
   const { stateId, state, context, previousElapsedMs } = prepareValue;
   const isNewState = prepareValue.type === 'start';
+  // For 'continue' type, extract parentContext and resolvedSuspensions from saved state
+  const parentContext =
+    prepareValue.type === 'continue'
+      ? prepareValue.parentContext
+      : input.parentContext;
+  const resolvedSuspensions =
+    prepareValue.type === 'continue'
+      ? prepareValue.resolvedSuspensions
+      : undefined;
 
   // Single place for cancellation polling wrapper
   const generator = withCancellationPolling(
@@ -145,6 +150,8 @@ export async function* orchestrateAgentRun(
           context,
           previousElapsedMs,
           isNewState,
+          parentContext,
+          resolvedSuspensions,
         },
         deps,
         options,

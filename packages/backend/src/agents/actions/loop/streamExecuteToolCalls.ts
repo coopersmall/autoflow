@@ -39,8 +39,12 @@ export interface StreamExecuteToolCallsParams {
   readonly stepNumber: number;
   /** ID of the agent executing these tools (for event attribution) */
   readonly manifestId: AgentId;
+  /** Version of the agent manifest executing these tools */
+  readonly manifestVersion: string;
   /** ID of the parent agent if this is a sub-agent (for event attribution) */
   readonly parentManifestId?: AgentId;
+  /** State ID of the current agent run */
+  readonly stateId: AgentRunId;
 }
 
 /**
@@ -101,7 +105,9 @@ export async function* streamExecuteToolCalls(
     messages,
     stepNumber,
     manifestId,
+    manifestVersion,
     parentManifestId,
+    stateId,
   } = params;
 
   // Handle empty tool calls case
@@ -134,7 +140,9 @@ export async function* streamExecuteToolCalls(
           messages,
           stepNumber,
           manifestId,
+          manifestVersion,
           parentManifestId,
+          stateId,
         }),
         done: false,
       });

@@ -1,10 +1,11 @@
+import type { AgentInput, AgentManifest } from '@backend/agents/domain';
 import {
-  type AgentInput,
-  type AgentManifest,
   type AgentRequest,
+  type AgentRunId,
   AgentToolResult,
   type AgentToolWithStreamingContext,
   defaultSubAgentArgsSchema,
+  type ManifestKey,
   type SubAgentConfig,
 } from '@core/domain/agents';
 import { validate } from '@core/validation/validate';
@@ -58,13 +59,15 @@ function isFinalResult(item: StreamAgentItem): item is StreamAgentFinalResult {
  * - Looking up the sub-agent manifest from the flat registry
  * - Streaming the sub-agent execution via streamAgent
  * - Yielding events with proper parentManifestId attribution
+ * - Calling parent's sub-agent lifecycle hooks (onSubAgentComplete, etc.)
  * - Returning AgentToolResult (success, error, or suspended)
  */
 export function createStreamingSubAgentTool(
   config: SubAgentConfig,
+  parentManifest: AgentManifest,
   subAgentManifest: AgentManifest,
   mapper: ((args: unknown) => AgentRequest) | undefined,
-  manifestMap: Map<string, AgentManifest>,
+  manifestMap: Map<ManifestKey, AgentManifest>,
   deps: CreateStreamingSubAgentToolDeps,
 ): AgentToolWithStreamingContext {
   return {
@@ -111,8 +114,17 @@ export function createStreamingSubAgentTool(
 
       // 4. Stream sub-agent execution, yielding events as they arrive
       let finalResult: ReturnType<typeof AgentToolResult.success> | undefined;
+      let childStateId: AgentRunId | undefined;
 
-      const input: AgentInput = { ...agentRequest, manifestMap };
+      const input: AgentInput = {
+        ...agentRequest,
+        manifestMap,
+        parentContext: {
+          parentManifestId: execCtx.manifestId,
+          parentManifestVersion: execCtx.manifestVersion,
+          toolCallId: toolCall.toolCallId,
+        },
+      };
 
       for await (const item of streamAgent(
         subCtx,
@@ -120,10 +132,61 @@ export function createStreamingSubAgentTool(
         input,
         deps,
       )) {
+        // Capture child's stateId from agent-started event and call onSubAgentStart
+        if (
+          !isFinalResult(item) &&
+          item.isOk() &&
+          item.value.type === 'agent-started' &&
+          item.value.manifestId === subAgentManifest.config.id
+        ) {
+          childStateId = item.value.stateId;
+
+          // Call onSubAgentStart hook - child state now exists
+          if (parentManifest.hooks?.onSubAgentStart) {
+            const hookResult = await parentManifest.hooks.onSubAgentStart(
+              subCtx,
+              {
+                parentManifestId: execCtx.manifestId,
+                parentManifestVersion: execCtx.manifestVersion,
+                parentStateId: execCtx.stateId,
+                childManifestId: subAgentManifest.config.id,
+                childManifestVersion: subAgentManifest.config.version,
+                childStateId,
+                toolCallId: toolCall.toolCallId,
+              },
+            );
+            if (hookResult.isErr()) {
+              // Cancel the child agent to prevent orphaned execution
+              subCtx.cancel();
+              return AgentToolResult.error(
+                hookResult.error.message,
+                hookResult.error.code,
+              );
+            }
+          }
+        }
+
         // Check for final result (StreamAgentFinalResult)
         if (isFinalResult(item)) {
           if (item.result.isErr()) {
-            // Sub-agent had an error - yield end event and return error
+            // Sub-agent had an error - call onSubAgentError hook
+            if (parentManifest.hooks?.onSubAgentError && childStateId) {
+              await parentManifest.hooks.onSubAgentError(subCtx, {
+                parentManifestId: execCtx.manifestId,
+                parentManifestVersion: execCtx.manifestVersion,
+                parentStateId: execCtx.stateId,
+                childManifestId: subAgentManifest.config.id,
+                childManifestVersion: subAgentManifest.config.version,
+                childStateId,
+                toolCallId: toolCall.toolCallId,
+                error: {
+                  code: item.result.error.code,
+                  message: item.result.error.message,
+                },
+              });
+            }
+
+            // Yield sub-agent-end event and return error
             yield ok({
               type: 'sub-agent-end',
               manifestId: execCtx.manifestId,
@@ -144,6 +207,20 @@ export function createStreamingSubAgentTool(
 
           // Sub-agent suspended
           if (agentRunResult.status === 'suspended') {
+            // Call onSubAgentSuspend hook
+            if (parentManifest.hooks?.onSubAgentSuspend) {
+              await parentManifest.hooks.onSubAgentSuspend(subCtx, {
+                parentManifestId: execCtx.manifestId,
+                parentManifestVersion: execCtx.manifestVersion,
+                parentStateId: execCtx.stateId,
+                childManifestId: subAgentManifest.config.id,
+                childManifestVersion: subAgentManifest.config.version,
+                childStateId: agentRunResult.runId,
+                toolCallId: toolCall.toolCallId,
+                suspensions: agentRunResult.suspensions,
+              });
+            }
+
             yield ok({
               type: 'sub-agent-end',
               manifestId: execCtx.manifestId,
@@ -165,6 +242,23 @@ export function createStreamingSubAgentTool(
 
           // Sub-agent error status
           if (agentRunResult.status === 'error') {
+            // Call onSubAgentError hook
+            if (parentManifest.hooks?.onSubAgentError) {
+              await parentManifest.hooks.onSubAgentError(subCtx, {
+                parentManifestId: execCtx.manifestId,
+                parentManifestVersion: execCtx.manifestVersion,
+                parentStateId: execCtx.stateId,
+                childManifestId: subAgentManifest.config.id,
+                childManifestVersion: subAgentManifest.config.version,
+                childStateId: agentRunResult.runId,
+                toolCallId: toolCall.toolCallId,
+                error: {
+                  code: agentRunResult.error.code,
+                  message: agentRunResult.error.message,
+                },
+              });
+            }
+
             yield ok({
               type: 'sub-agent-end',
               manifestId: execCtx.manifestId,
@@ -183,6 +277,20 @@ export function createStreamingSubAgentTool(
 
           // Sub-agent was cancelled
           if (agentRunResult.status === 'cancelled') {
+            // Call onSubAgentCancelled hook
+            if (parentManifest.hooks?.onSubAgentCancelled) {
+              await parentManifest.hooks.onSubAgentCancelled(subCtx, {
+                parentManifestId: execCtx.manifestId,
+                parentManifestVersion: execCtx.manifestVersion,
+                parentStateId: execCtx.stateId,
+                childManifestId: subAgentManifest.config.id,
+                childManifestVersion: subAgentManifest.config.version,
+                childStateId: agentRunResult.runId,
+                toolCallId: toolCall.toolCallId,
+                reason: 'User cancelled',
+              });
+            }
+
             yield ok({
               type: 'sub-agent-end',
               manifestId: execCtx.manifestId,
@@ -218,6 +326,22 @@ export function createStreamingSubAgentTool(
           }
 
           // Sub-agent completed successfully
+          // Call parent's onSubAgentComplete hook
+          // Note: We use subCtx which is a full Context derived from the parent's AgentContext
+          if (parentManifest.hooks?.onSubAgentComplete) {
+            await parentManifest.hooks.onSubAgentComplete(subCtx, {
+              parentManifestId: execCtx.manifestId,
+              parentManifestVersion: execCtx.manifestVersion,
+              parentStateId: execCtx.stateId,
+              childManifestId: subAgentManifest.config.id,
+              childManifestVersion: subAgentManifest.config.version,
+              childStateId: agentRunResult.runId,
+              toolCallId: toolCall.toolCallId,
+              result: agentRunResult.result,
+            });
+            // Note: We don't fail on hook errors - the sub-agent already completed
+          }
+
           finalResult = AgentToolResult.success({
             text: agentRunResult.result.text,
             output: agentRunResult.result.output,

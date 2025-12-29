@@ -2,9 +2,9 @@ import zod from 'zod';
 import { stepResultSchema } from '../../../../response/completions/result/StepResult';
 import { messageSchema } from '../../messages/Message';
 
-export type PrepareStepOptions = zod.infer<typeof prepareStepOptionsSchema>;
+export type OnStepStartOptions = zod.infer<typeof onStepStartOptionsSchema>;
 
-export const prepareStepOptionsSchema = zod
+export const onStepStartOptionsSchema = zod
   .strictObject({
     steps: zod
       .array(stepResultSchema)
@@ -26,4 +26,4 @@ export const prepareStepOptionsSchema = zod
         'The messages that will be sent to the model for the current step.',
       ),
   })
-  .describe('Options provided to the prepareStep callback before each step.');
+  .describe('Options provided to the onStepStart callback before each step.');

@@ -1,4 +1,5 @@
-import type { AgentManifest } from '@autoflow/core';
+import { ManifestKey } from '@autoflow/core';
+import type { AgentManifest } from '@backend/agents/domain';
 import type { AppError } from '@core/errors/AppError';
 import { badRequest } from '@core/errors/factories';
 import { err, ok, type Result } from 'neverthrow';
@@ -6,7 +7,7 @@ import { detectCircularReferences } from './detectCircularReferences';
 
 export function validateReferences(
   manifests: AgentManifest[],
-  manifestMap: Map<string, AgentManifest>,
+  manifestMap: Map<ManifestKey, AgentManifest>,
 ): Result<void, AppError> {
   // Check for version conflicts (same ID, different versions)
   const idToVersions = new Map<string, string[]>();
@@ -30,7 +31,10 @@ export function validateReferences(
   // Validate sub-agent references
   for (const manifest of manifests) {
     for (const subAgent of manifest.config.subAgents ?? []) {
-      const key = `${subAgent.manifestId}:${subAgent.manifestVersion}`;
+      const key = ManifestKey({
+        id: subAgent.manifestId,
+        version: subAgent.manifestVersion,
+      });
       if (!manifestMap.has(key)) {
         return err(
           badRequest(

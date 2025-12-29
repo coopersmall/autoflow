@@ -7,6 +7,7 @@ import { messageSchema } from '@core/domain/ai/request/completions';
 import { requestToolResultPartSchema } from '@core/domain/ai/request/completions/content';
 import { stepResultSchema } from '@core/domain/ai/response/completions/result';
 import { z as zod } from 'zod';
+import { parentAgentContextSchema } from './ParentAgentContext';
 
 /**
  * Internal state for agent execution persistence.
@@ -24,6 +25,9 @@ export const agentStateSchema = zod.strictObject({
 
   // Parent state for nested agents (enables cleanup)
   parentStateId: agentRunIdSchema.optional(),
+
+  // Parent agent context (for resume scenarios - enables consistent parent info)
+  parentContext: parentAgentContextSchema.optional(),
 
   // Child state IDs for cleanup on completion/cancellation
   childStateIds: zod.array(agentRunIdSchema).default([]),

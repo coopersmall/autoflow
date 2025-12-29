@@ -1,4 +1,9 @@
-import type { AgentRunOptions, AgentRunState } from '@backend/agents/domain';
+import type {
+  AgentManifest,
+  AgentRunOptions,
+  AgentRunState,
+  ParentAgentContext,
+} from '@backend/agents/domain';
 import type { LoopResult } from '@backend/agents/domain/execution';
 import type { IAgentCancellationCache } from '@backend/agents/infrastructure/cache';
 import type { IAgentRunLock } from '@backend/agents/infrastructure/lock';
@@ -8,9 +13,9 @@ import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { IStorageService } from '@backend/storage/domain/StorageService';
 import type {
   AgentEvent,
-  AgentManifest,
   AgentRunId,
   AgentRunResult,
+  Suspension,
 } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
@@ -36,6 +41,10 @@ export interface ExecuteAgentParams {
   readonly previousElapsedMs: number;
   /** true for 'start' (new state), false for 'continue' (existing state) */
   readonly isNewState: boolean;
+  /** Parent agent context when invoked as a sub-agent */
+  readonly parentContext?: ParentAgentContext;
+  /** Resolved suspensions when resuming from suspension */
+  readonly resolvedSuspensions?: readonly Suspension[];
 }
 
 export interface ExecuteAgentDeps
@@ -79,6 +88,8 @@ export async function* executeAgent(
     context,
     previousElapsedMs,
     isNewState,
+    parentContext,
+    resolvedSuspensions,
   } = params;
   const manifestId = manifest.config.id;
 
@@ -91,20 +102,13 @@ export async function* executeAgent(
   const handle = handleResult.value;
   if (handle === null) {
     // Lock not acquired - agent is already running
+    // Note: No hooks are called in this case
     return ok({ status: 'already-running', runId: stateId });
   }
 
   try {
-    // 2. Emit agent-started event immediately (provides stateId to consumers)
-    yield ok({
-      type: 'agent-started',
-      manifestId,
-      parentManifestId: undefined,
-      timestamp: Date.now(),
-      stateId,
-    });
-
-    // 3. Create or update running state
+    // 2. Create or update running state FIRST (before hooks)
+    // This ensures state exists when onAgentStart/onAgentResume hook fires
     if (isNewState) {
       const createResult = await createAgentState(
         { ctx, stateId, manifest, messages: state.messages, context },
@@ -125,6 +129,71 @@ export async function* executeAgent(
         return err(updateResult.error);
       }
     }
+
+    // 3. Call appropriate lifecycle hook (state now exists and can be looked up)
+    if (isNewState) {
+      // Fresh start - call onAgentStart
+      if (manifest.hooks?.onAgentStart) {
+        const startResult = await manifest.hooks.onAgentStart(ctx, {
+          manifestId,
+          manifestVersion: manifest.config.version,
+          stateId,
+          parentManifestId: parentContext?.parentManifestId,
+          parentManifestVersion: parentContext?.parentManifestVersion,
+          toolCallId: parentContext?.toolCallId,
+        });
+        if (startResult.isErr()) {
+          // Hook failed - emit error and return
+          yield ok({
+            type: 'agent-error',
+            manifestId,
+            parentManifestId: parentContext?.parentManifestId,
+            timestamp: Date.now(),
+            error: {
+              code: startResult.error.code,
+              message: startResult.error.message,
+            },
+          });
+          return err(startResult.error);
+        }
+      }
+    } else {
+      // Resume from suspension - call onAgentResume
+      if (manifest.hooks?.onAgentResume) {
+        const resumeResult = await manifest.hooks.onAgentResume(ctx, {
+          manifestId,
+          manifestVersion: manifest.config.version,
+          stateId,
+          resolvedSuspensions: [...(resolvedSuspensions ?? [])],
+          parentManifestId: parentContext?.parentManifestId,
+          parentManifestVersion: parentContext?.parentManifestVersion,
+          toolCallId: parentContext?.toolCallId,
+        });
+        if (resumeResult.isErr()) {
+          // Hook failed - emit error and return
+          yield ok({
+            type: 'agent-error',
+            manifestId,
+            parentManifestId: parentContext?.parentManifestId,
+            timestamp: Date.now(),
+            error: {
+              code: resumeResult.error.code,
+              message: resumeResult.error.message,
+            },
+          });
+          return err(resumeResult.error);
+        }
+      }
+    }
+
+    // 4. Emit agent-started event (after hook, so hook can veto)
+    yield ok({
+      type: 'agent-started',
+      manifestId,
+      parentManifestId: parentContext?.parentManifestId,
+      timestamp: Date.now(),
+      stateId,
+    });
 
     // 4. Execute loop, yielding events
     let loopResult: LoopResult;
@@ -162,10 +231,26 @@ export async function* executeAgent(
               options,
             );
 
+            // Call onAgentError hook
+            if (manifest.hooks?.onAgentError) {
+              await manifest.hooks.onAgentError(ctx, {
+                manifestId,
+                manifestVersion: manifest.config.version,
+                stateId,
+                error: {
+                  code: next.value.error.code,
+                  message: next.value.error.message,
+                },
+                parentManifestId: parentContext?.parentManifestId,
+                parentManifestVersion: parentContext?.parentManifestVersion,
+                toolCallId: parentContext?.toolCallId,
+              });
+            }
+
             yield ok({
               type: 'agent-error',
               manifestId,
-              parentManifestId: undefined,
+              parentManifestId: parentContext?.parentManifestId,
               timestamp: Date.now(),
               error: {
                 code: next.value.error.code,
@@ -196,38 +281,114 @@ export async function* executeAgent(
       return err(finalizeResult.error);
     }
 
-    // 7. Yield lifecycle event based on outcome
+    // 7. Call terminal lifecycle hooks and yield events based on outcome
     if (loopResult.status === 'complete') {
+      // Call onAgentComplete hook
+      if (manifest.hooks?.onAgentComplete) {
+        const hookResult = await manifest.hooks.onAgentComplete(ctx, {
+          manifestId,
+          manifestVersion: manifest.config.version,
+          stateId,
+          result: loopResult.result,
+          parentManifestId: parentContext?.parentManifestId,
+          parentManifestVersion: parentContext?.parentManifestVersion,
+          toolCallId: parentContext?.toolCallId,
+        });
+        // Note: We don't fail on terminal hook errors - the agent already completed
+        if (hookResult.isErr()) {
+          deps.logger.info('onAgentComplete hook failed', {
+            error: hookResult.error,
+          });
+        }
+      }
+
       yield ok({
         type: 'agent-done',
         manifestId,
-        parentManifestId: undefined,
+        parentManifestId: parentContext?.parentManifestId,
         timestamp: Date.now(),
         result: loopResult.result,
       });
     } else if (loopResult.status === 'suspended') {
+      // Call onAgentSuspend hook
+      if (manifest.hooks?.onAgentSuspend) {
+        const hookResult = await manifest.hooks.onAgentSuspend(ctx, {
+          manifestId,
+          manifestVersion: manifest.config.version,
+          stateId,
+          suspensions: loopResult.suspensions,
+          parentManifestId: parentContext?.parentManifestId,
+          parentManifestVersion: parentContext?.parentManifestVersion,
+          toolCallId: parentContext?.toolCallId,
+        });
+        if (hookResult.isErr()) {
+          deps.logger.info('onAgentSuspend hook failed', {
+            error: hookResult.error,
+          });
+        }
+      }
+
       for (const suspension of loopResult.suspensions) {
         yield ok({
           type: 'agent-suspended',
           manifestId,
-          parentManifestId: undefined,
+          parentManifestId: parentContext?.parentManifestId,
           timestamp: Date.now(),
           suspension,
           stateId,
         });
       }
     } else if (loopResult.status === 'cancelled') {
+      // Call onAgentCancelled hook
+      if (manifest.hooks?.onAgentCancelled) {
+        const hookResult = await manifest.hooks.onAgentCancelled(ctx, {
+          manifestId,
+          manifestVersion: manifest.config.version,
+          stateId,
+          reason: 'User cancelled',
+          parentManifestId: parentContext?.parentManifestId,
+          parentManifestVersion: parentContext?.parentManifestVersion,
+          toolCallId: parentContext?.toolCallId,
+        });
+        if (hookResult.isErr()) {
+          deps.logger.info('onAgentCancelled hook failed', {
+            error: hookResult.error,
+          });
+        }
+      }
+
       yield ok({
         type: 'agent-cancelled',
         manifestId,
-        parentManifestId: undefined,
+        parentManifestId: parentContext?.parentManifestId,
         timestamp: Date.now(),
       });
     } else if (loopResult.status === 'error') {
+      // Call onAgentError hook
+      if (manifest.hooks?.onAgentError) {
+        const hookResult = await manifest.hooks.onAgentError(ctx, {
+          manifestId,
+          manifestVersion: manifest.config.version,
+          stateId,
+          error: {
+            code: loopResult.error.code,
+            message: loopResult.error.message,
+          },
+          parentManifestId: parentContext?.parentManifestId,
+          parentManifestVersion: parentContext?.parentManifestVersion,
+          toolCallId: parentContext?.toolCallId,
+        });
+        if (hookResult.isErr()) {
+          deps.logger.info('onAgentError hook failed', {
+            error: hookResult.error,
+          });
+        }
+      }
+
       yield ok({
         type: 'agent-error',
         manifestId,
-        parentManifestId: undefined,
+        parentManifestId: parentContext?.parentManifestId,
         timestamp: Date.now(),
         error: {
           code: loopResult.error.code,

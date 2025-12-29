@@ -1,6 +1,6 @@
+import type { AgentManifest } from '@backend/agents/domain';
 import type {
   AgentExecuteFunction,
-  AgentManifest,
   StreamableEventType,
 } from '@core/domain/agents';
 import { AgentId } from '@core/domain/agents';

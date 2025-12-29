@@ -1,12 +1,14 @@
 import type {
+  AgentManifest,
   AgentRunOptions,
   AgentState,
   LoggingDeps,
+  ParentAgentContext,
   StateDeps,
   StorageDeps,
 } from '@backend/agents/domain';
 import type { Context } from '@backend/infrastructure/context/Context';
-import type { AgentManifest, AgentRunId } from '@core/domain/agents';
+import type { AgentRunId } from '@core/domain/agents';
 import type { Message } from '@core/domain/ai';
 import type { AppError } from '@core/errors/AppError';
 import { err, ok, type Result } from 'neverthrow';
@@ -23,6 +25,7 @@ export interface CreateAgentStateParams {
   readonly manifest: AgentManifest;
   readonly messages: Message[];
   readonly context?: Record<string, unknown>;
+  readonly parentContext?: ParentAgentContext;
 }
 
 /**
@@ -48,7 +51,7 @@ export async function createAgentState(
   deps: CreateAgentStateDeps,
   options?: AgentRunOptions,
 ): Promise<Result<void, AppError>> {
-  const { ctx, stateId, manifest, messages, context } = params;
+  const { ctx, stateId, manifest, messages, context, parentContext } = params;
 
   // Serialize messages for crash recovery
   const serializeResult = await serializeMessages(ctx, messages, deps, options);
@@ -63,6 +66,7 @@ export async function createAgentState(
     rootManifestId: manifest.config.id,
     manifestId: manifest.config.id,
     manifestVersion: manifest.config.version,
+    parentContext,
     messages: serializeResult.value,
     steps: [],
     currentStepNumber: 0,

@@ -1,13 +1,12 @@
-import type { AgentState } from '@backend/agents/domain';
+import type { AgentManifest, AgentState } from '@backend/agents/domain';
 import type {
-  AgentManifest,
   AgentRunResult,
   ContinueResponse,
   Suspension,
   SuspensionStack,
   SuspensionStackEntry,
 } from '@core/domain/agents';
-import { AgentId, AgentRunId } from '@core/domain/agents';
+import { AgentId, AgentRunId, ManifestKey } from '@core/domain/agents';
 import { nanoid } from 'nanoid';
 
 /**
@@ -210,10 +209,10 @@ export function createErrorResult(
  */
 export function createManifestMap(
   manifests: AgentManifest[],
-): Map<string, AgentManifest> {
-  const map = new Map<string, AgentManifest>();
+): Map<ManifestKey, AgentManifest> {
+  const map = new Map<ManifestKey, AgentManifest>();
   for (const manifest of manifests) {
-    const key = `${manifest.config.id}:${manifest.config.version}`;
+    const key = ManifestKey(manifest.config);
     map.set(key, manifest);
   }
   return map;

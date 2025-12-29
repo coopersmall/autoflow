@@ -1,4 +1,4 @@
-import type { AgentManifest } from '@core/domain/agents';
+import type { AgentManifest } from '@backend/agents/domain';
 import type { FinishReason, StepResult } from '@core/domain/ai';
 
 type ShouldStopParams = {

@@ -1,4 +1,4 @@
-import type { AgentState } from '@backend/agents/domain';
+import type { AgentManifest, AgentState } from '@backend/agents/domain';
 import type {
   IAgentCancellationCache,
   IAgentStateCache,
@@ -10,8 +10,8 @@ import type { Context } from '@backend/infrastructure/context/Context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
 import type { IStorageService } from '@backend/storage/domain/StorageService';
 import type {
-  AgentManifest,
   AgentRunResult,
+  ManifestKey,
   SuspensionStack,
 } from '@core/domain/agents';
 import type { RequestToolResultPart } from '@core/domain/ai';
@@ -45,7 +45,7 @@ export interface HandleCompletionDeps {
 export async function handleCompletion(
   ctx: Context,
   manifest: AgentManifest,
-  manifestMap: Map<string, AgentManifest>,
+  manifestMap: Map<ManifestKey, AgentManifest>,
   savedState: AgentState,
   completedStack: SuspensionStack,
   toolResult: RequestToolResultPart,

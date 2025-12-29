@@ -1,20 +1,21 @@
-import type { AgentId, AgentManifest } from '@autoflow/core';
+import { type AgentId, ManifestKey } from '@autoflow/core';
+import type { AgentManifest } from '@backend/agents/domain';
 import type { AppError } from '@core/errors/AppError';
 import { badRequest } from '@core/errors/factories';
 import { err, ok, type Result } from 'neverthrow';
 
 export function detectCircularReferences(
   manifests: AgentManifest[],
-  manifestMap: Map<string, AgentManifest>,
+  manifestMap: Map<ManifestKey, AgentManifest>,
 ): Result<void, AppError> {
-  const visited = new Set<string>();
-  const stack = new Set<string>();
+  const visited = new Set<ManifestKey>();
+  const stack = new Set<ManifestKey>();
 
   const visit = (
     manifestId: AgentId,
     version: string,
   ): Result<void, AppError> => {
-    const key = `${manifestId}:${version}`;
+    const key = ManifestKey({ id: manifestId, version });
 
     if (stack.has(key)) {
       return err(badRequest(`Circular sub-agent reference detected: ${key}`));
