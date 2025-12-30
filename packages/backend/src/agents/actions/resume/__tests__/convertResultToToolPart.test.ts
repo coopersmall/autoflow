@@ -158,7 +158,12 @@ describe('convertResultToToolPart', () => {
 
             const parsed = JSON.parse(toolResult.output.value);
             expect(parsed.text).toBe(resultData.text);
-            expect(parsed.output).toEqual(resultData.output);
+            // JSON.stringify converts -0 to 0, so we compare via JSON round-trip
+            // to match the serialization behavior
+            const expectedOutput = JSON.parse(
+              JSON.stringify(resultData.output),
+            );
+            expect(parsed.output).toEqual(expectedOutput);
           },
         ),
         { numRuns: 30 },

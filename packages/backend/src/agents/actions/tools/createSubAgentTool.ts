@@ -3,14 +3,13 @@ import {
   type AgentRequest,
   AgentToolResult,
   type AgentToolWithContext,
-  defaultSubAgentArgsSchema,
   type ManifestKey,
   type SubAgentConfig,
 } from '@core/domain/agents';
-import { validate } from '@core/validation/validate';
 import type { JSONSchema7 } from 'ai';
 import { type RunAgentDeps, runAgent } from '../runAgent';
 import { createSubAgentContext } from './createSubAgentContext';
+import { parseSubAgentArgs } from './parseSubAgentArgs';
 
 export interface CreateSubAgentToolDeps extends RunAgentDeps {}
 
@@ -42,7 +41,7 @@ export function createSubAgentTool(
   manifestMap: Map<ManifestKey, AgentManifest>,
   deps: CreateSubAgentToolDeps,
 ): AgentToolWithContext {
-  return {
+  return Object.freeze({
     type: 'function',
     function: {
       name: config.name,
@@ -50,26 +49,12 @@ export function createSubAgentTool(
       parameters: config.parameters ?? defaultParameters,
     },
     executeWithContext: async (tool, toolCall, execCtx) => {
-      // Map args to AgentRequest using mapper from hooks or default with validation
-      let agentRequest: AgentRequest;
-
-      if (mapper) {
-        agentRequest = mapper(toolCall.input);
-      } else {
-        // Validate args against default schema
-        const argsResult = validate(defaultSubAgentArgsSchema, toolCall.input);
-        if (argsResult.isErr()) {
-          return AgentToolResult.error(
-            `Invalid sub-agent arguments: ${argsResult.error.message}`,
-            'ValidationError',
-          );
-        }
-        agentRequest = {
-          type: 'request',
-          prompt: argsResult.value.prompt,
-          context: argsResult.value.context,
-        };
+      // Parse and validate args
+      const argsResult = parseSubAgentArgs(toolCall.input, mapper);
+      if (argsResult.isErr()) {
+        return argsResult.error;
       }
+      const agentRequest: AgentRequest = argsResult.value;
 
       // Create sub-agent context with independent timeout
       const subCtx = createSubAgentContext(execCtx.ctx, config.timeout);
@@ -123,5 +108,5 @@ export function createSubAgentTool(
         output: result.value.result.output,
       });
     },
-  };
+  });
 }

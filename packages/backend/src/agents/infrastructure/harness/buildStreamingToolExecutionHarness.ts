@@ -11,18 +11,16 @@ import {
 /**
  * Builds a streaming tool execution harness from the manifest config.
  *
- * This is the entry point for creating a streaming harness.
- * Middleware can be added based on the manifest config in the future.
+ * TODO: Implement middleware configuration from manifest.config.toolMiddleware.
+ * Currently returns an empty middleware array as middleware is not yet configurable.
+ *
+ * @param _config - Reserved for future middleware configuration
+ * @returns A streaming tool execution harness with base executor
  */
 export function buildStreamingToolExecutionHarness(
-  _config: AgentManifestConfig, // For future middleware config
+  _config: AgentManifestConfig,
 ): StreamingToolExecutionHarness {
-  // Start with no middleware - add as needed
-  const middleware: StreamingToolExecutionMiddleware[] = [
-    // Future: streamingLoggingMiddleware(config.toolExecution?.logging),
-    // Future: streamingTimeoutMiddleware(config.toolExecution?.timeout),
-  ];
-
+  const middleware: StreamingToolExecutionMiddleware[] = [];
   return createStreamingToolExecutionHarness(
     createStreamingBaseToolExecutor(),
     middleware,

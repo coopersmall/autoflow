@@ -1,26 +1,19 @@
-import type { AgentInput, AgentManifest } from '@backend/agents/domain';
-import type { IAgentCancellationCache } from '@backend/agents/infrastructure/cache';
-import type { IAgentRunLock } from '@backend/agents/infrastructure/lock';
-import type { ICompletionsGateway } from '@backend/ai/completions/domain/CompletionsGateway';
-import type { IMCPService } from '@backend/ai/mcp/domain/MCPService';
+import type {
+  AgentExecutionDeps,
+  AgentInput,
+  AgentManifest,
+} from '@backend/agents/domain';
 import type { Context } from '@backend/infrastructure/context/Context';
-import type { ILogger } from '@backend/infrastructure/logger/Logger';
-import type { IStorageService } from '@backend/storage/domain/StorageService';
 import type { AgentEvent, AgentRunResult } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
-import type { IAgentStateCache } from '../infrastructure/cache';
 import { orchestrateAgentRun } from './orchestrateAgentRun';
 
-export interface StreamAgentDeps {
-  readonly completionsGateway: ICompletionsGateway;
-  readonly mcpService: IMCPService;
-  readonly stateCache: IAgentStateCache;
-  readonly storageService: IStorageService;
-  readonly logger: ILogger;
-  readonly agentRunLock: IAgentRunLock;
-  readonly cancellationCache: IAgentCancellationCache;
-}
+/**
+ * Dependencies required for streaming an agent.
+ * Extends AgentExecutionDeps which includes all core agent infrastructure.
+ */
+export interface StreamAgentDeps extends AgentExecutionDeps {}
 
 /**
  * Result yielded at the end of the stream containing the final outcome.
@@ -49,17 +42,19 @@ export type StreamAgentItem =
  * 2. Reply to a completed agent with additional user message
  * 3. Resume suspended agent after tool approval
  *
- * Usage:
+ * @param ctx - The request context with correlationId and abort signal
+ * @param manifest - The root agent manifest configuration
+ * @param input - The agent input including prompt, manifestMap, and options
+ * @param deps - Dependencies required for execution (completions, state, etc.)
+ * @returns An async generator yielding StreamAgentItem (events or final result)
+ *
+ * @example
  * ```ts
  * for await (const item of streamAgent(ctx, manifest, input, deps)) {
  *   if ('type' in item && item.type === 'final') {
- *     // Handle final result
  *     const result = item.result;
- *   } else {
- *     // Handle event (Result<AgentEvent, AppError>)
- *     if (item.isOk()) {
- *       handleEvent(item.value);
- *     }
+ *   } else if (item.isOk()) {
+ *     handleEvent(item.value);
  *   }
  * }
  * ```

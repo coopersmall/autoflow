@@ -11,15 +11,17 @@ import type {
   ContinueResponse,
 } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
-import { badRequest } from '@core/errors/factories';
+import { badRequest, notFound } from '@core/errors/factories';
 import { err, ok, type Result } from 'neverthrow';
 import { restoreAgentRun } from '../initialize/restoreAgentRun';
 import { buildToolApprovalResponseMessage } from '../messages/buildToolApprovalResponseMessage';
-import { loadAndValidateState } from '../state/loadAndValidateState';
+import { getAgentState } from '../state/getAgentState';
+import { validateAgentState } from '../validation/validateAgentState';
 
 /**
  * Prepares agent run state from an approval response.
  * Loads the suspended state, validates the approval ID, and either:
+ * - Returns 'already-running' if agent is currently executing
  * - Returns 'delegate' for suspension stacks (nested sub-agent)
  * - Returns 'continue' for flat HITL (current agent's own suspension)
  *
@@ -36,20 +38,38 @@ export async function prepareFromApproval(
   deps: Pick<PrepareDeps, 'stateCache' | 'storageService' | 'logger'>,
   options?: AgentRunOptions,
 ): Promise<Result<PrepareResult, AppError>> {
-  // 1. Load and validate saved state
-  const stateResult = await loadAndValidateState(
-    ctx,
-    stateId,
-    manifest,
-    'suspended',
-    deps,
-  );
-
+  // 1. Load saved state from cache
+  const stateResult = await getAgentState(ctx, stateId, deps);
   if (stateResult.isErr()) {
     return err(stateResult.error);
   }
 
   const savedState = stateResult.value;
+  if (!savedState) {
+    return err(
+      notFound('Agent state not found', {
+        metadata: { stateId },
+      }),
+    );
+  }
+
+  // 2. Check if agent is already running - return early without error
+  if (savedState.status === 'running') {
+    return ok({
+      type: 'already-running',
+      runId: stateId,
+    });
+  }
+
+  // 3. Validate state status and manifest
+  const validationResult = validateAgentState(
+    savedState,
+    manifest,
+    'suspended',
+  );
+  if (validationResult.isErr()) {
+    return err(validationResult.error);
+  }
 
   // 2. Check if this is a nested sub-agent suspension (has a matching stack)
   const matchingStack = savedState.suspensionStacks.find(

@@ -8,13 +8,16 @@ import type { Context } from '@backend/infrastructure/context/Context';
 import type { AgentRunId, AgentTool } from '@core/domain/agents';
 import type { Message } from '@core/domain/ai';
 import type { AppError } from '@core/errors/AppError';
+import { notFound } from '@core/errors/factories';
 import { err, ok, type Result } from 'neverthrow';
 import { restoreAgentRun } from '../initialize/restoreAgentRun';
-import { loadAndValidateState } from '../state/loadAndValidateState';
+import { getAgentState } from '../state/getAgentState';
+import { validateAgentState } from '../validation/validateAgentState';
 
 /**
  * Prepares agent run state from a reply to a completed agent.
  * Loads the completed state and adds the user's message.
+ * Returns 'already-running' if agent is currently executing.
  * Uses EXISTING stateId from savedState.id.
  * Tools are pre-built and passed in.
  */
@@ -28,20 +31,38 @@ export async function prepareFromReply(
   deps: Pick<PrepareDeps, 'stateCache' | 'storageService' | 'logger'>,
   options?: AgentRunOptions,
 ): Promise<Result<PrepareResult, AppError>> {
-  // 1. Load and validate saved state
-  const stateResult = await loadAndValidateState(
-    ctx,
-    stateId,
-    manifest,
-    'completed',
-    deps,
-  );
-
+  // 1. Load saved state from cache
+  const stateResult = await getAgentState(ctx, stateId, deps);
   if (stateResult.isErr()) {
     return err(stateResult.error);
   }
 
   const savedState = stateResult.value;
+  if (!savedState) {
+    return err(
+      notFound('Agent state not found', {
+        metadata: { stateId },
+      }),
+    );
+  }
+
+  // 2. Check if agent is already running - return early without error
+  if (savedState.status === 'running') {
+    return ok({
+      type: 'already-running',
+      runId: stateId,
+    });
+  }
+
+  // 3. Validate state status and manifest
+  const validationResult = validateAgentState(
+    savedState,
+    manifest,
+    'completed',
+  );
+  if (validationResult.isErr()) {
+    return err(validationResult.error);
+  }
 
   // 2. Restore agent run state (deserialize messages, use pre-built tools)
   const restoreResult = await restoreAgentRun(

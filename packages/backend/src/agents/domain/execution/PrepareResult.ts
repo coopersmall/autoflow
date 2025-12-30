@@ -12,11 +12,12 @@ import type { ParentAgentContext } from '../ParentAgentContext';
 /**
  * Result from prepare functions.
  *
- * Discriminated union with four variants:
+ * Discriminated union with five variants:
  * - start: Fresh execution - CREATE new state (only for first request)
  * - continue: Continuing existing state - UPDATE to running (reply/approval/continue)
  * - delegate: Nested sub-agent suspension - delegate to resumeFromSuspensionStack
  * - suspended: Partial approval - still has pending suspensions, return early
+ * - already-running: Agent is already executing - return early with status
  *
  * The prepare phase determines how to initialize agent state based on
  * the type of input (fresh request, reply, approval, or continue).
@@ -50,4 +51,8 @@ export type PrepareResult =
       readonly type: 'suspended';
       readonly runId: AgentRunId;
       readonly remainingSuspensions: ToolApprovalSuspension[];
+    }
+  | {
+      readonly type: 'already-running';
+      readonly runId: AgentRunId;
     };

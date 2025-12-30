@@ -2,6 +2,7 @@ import type { AgentManifest } from '@backend/agents/domain';
 import type { IAgentCancellationCache } from '@backend/agents/infrastructure/cache';
 import type { IAgentRunLock } from '@backend/agents/infrastructure/lock';
 import type { ICompletionsGateway } from '@backend/ai/completions/domain/CompletionsGateway';
+import type { IMCPClient } from '@backend/ai/mcp/domain/MCPClient';
 import type { IMCPService } from '@backend/ai/mcp/domain/MCPService';
 import type { Context } from '@backend/infrastructure/context/Context';
 import type { ILogger } from '@backend/infrastructure/logger/Logger';
@@ -36,12 +37,24 @@ export interface BuildAgentToolsDeps {
 export interface BuildAgentToolsResult {
   readonly tools: AgentTool[];
   readonly toolsMap: Map<string, AgentTool>;
+  /**
+   * Cleanup function to close MCP clients after agent execution completes.
+   * Should be called in a finally block to ensure resources are released.
+   * Logs errors but does not throw - cleanup is best-effort.
+   */
+  readonly cleanup: () => Promise<void>;
 }
 
 /**
  * Builds the complete tool set for an agent execution.
  * Merges manifest tools, MCP tools (wrapped), sub-agent tools, and output tool.
- * Returns both array and map for efficient lookup.
+ * Returns tools, toolsMap, and a cleanup function for MCP client lifecycle.
+ *
+ * @param ctx - The request context
+ * @param manifest - The agent manifest configuration
+ * @param manifestMap - Map of all available manifests for sub-agent resolution
+ * @param deps - Dependencies including MCP service, logger, etc.
+ * @returns Tools, toolsMap, and cleanup function for resource management
  */
 export async function buildAgentTools(
   ctx: Context,
@@ -50,6 +63,23 @@ export async function buildAgentTools(
   deps: BuildAgentToolsDeps,
 ): Promise<Result<BuildAgentToolsResult, AppError>> {
   const tools: AgentTool[] = [];
+  const mcpClients: IMCPClient[] = [];
+
+  /**
+   * Closes all MCP clients, logging any errors encountered.
+   * This is a best-effort cleanup - errors do not propagate.
+   */
+  const cleanup = async (): Promise<void> => {
+    for (const client of mcpClients) {
+      const closeResult = await client.close();
+      if (closeResult.isErr()) {
+        deps.logger.error('Failed to close MCP client', closeResult.error, {
+          clientId: client.id,
+          clientName: client.name,
+        });
+      }
+    }
+  };
 
   // Add manifest tools with executors from hooks
   for (const tool of manifest.config.tools ?? []) {
@@ -62,30 +92,35 @@ export async function buildAgentTools(
   for (const serverConfig of manifest.config.mcpServers ?? []) {
     const clientResult = await deps.mcpService.createClient(serverConfig);
     if (clientResult.isErr()) {
+      // Close any already-created clients before returning error
+      await cleanup();
       return err(clientResult.error);
     }
 
     const client = clientResult.value;
+    mcpClients.push(client);
+
     const mcpToolsResult = await client.tools();
     if (mcpToolsResult.isErr()) {
-      await client.close();
+      // Close all clients (including this one) before returning error
+      await cleanup();
       return err(mcpToolsResult.error);
     }
 
     // Wrap each MCP tool to return AgentToolResult
+    // NOTE: try-catch is intentional here - MCP SDK may throw exceptions.
+    // This is an exception to the "no throw" rule for external library boundaries.
     const wrappedMcpTools = mcpToolsResult.value.map((mcpTool) => {
       const originalExecute = mcpTool.execute;
       const wrappedExecute: AgentExecuteFunction = async (
-        ctx,
+        toolCtx,
         input,
         context,
       ) => {
         try {
-          // Pass ctx to the original execute for consistency
-          const result = await originalExecute(ctx, input, {
+          const result = await originalExecute(toolCtx, input, {
             messages: context.messages,
           });
-          // MCP tools always return success, never suspended
           return AgentToolResult.success(result);
         } catch (e) {
           return AgentToolResult.error(
@@ -103,9 +138,6 @@ export async function buildAgentTools(
     });
 
     tools.push(...wrappedMcpTools);
-
-    // Note: Client should be closed after agent execution completes
-    // For now, we'll leave it to the caller to manage lifecycle
   }
 
   // Add sub-agent tools (framework-managed)
@@ -117,6 +149,8 @@ export async function buildAgentTools(
     const subAgentManifest = manifestMap.get(subAgentKey);
 
     if (!subAgentManifest) {
+      // Close MCP clients before returning error
+      await cleanup();
       return err(
         notFound('Sub-agent manifest not found', {
           metadata: {
@@ -151,5 +185,5 @@ export async function buildAgentTools(
     toolsMap.set(tool.function.name, tool);
   }
 
-  return ok({ tools, toolsMap });
+  return ok({ tools, toolsMap, cleanup });
 }

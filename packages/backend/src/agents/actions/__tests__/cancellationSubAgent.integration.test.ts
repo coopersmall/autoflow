@@ -460,10 +460,10 @@ describe('Sub-Agent Cancellation Integration Tests', () => {
       // when parent and child agents are in different execution states.
       // The actual state (cancelled vs completed) depends on timing, which is okay.
 
-      let childToolExecuted = false;
+      let _childToolExecuted = false;
 
       const quickChildTool: AgentExecuteFunction = async () => {
-        childToolExecuted = true;
+        _childToolExecuted = true;
         await delay(50);
         return AgentToolResult.success({ done: true });
       };

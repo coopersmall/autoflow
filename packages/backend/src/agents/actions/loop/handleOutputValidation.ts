@@ -33,21 +33,10 @@ export type HandleOutputValidationResult =
 /**
  * Handles output tool validation and returns the action to take.
  *
- * This function:
- * 1. Checks if output tool is configured and was called
- * 2. Validates the output against the schema (if applicable)
- * 3. Returns action: continue, retry with messages, or error
+ * For 'retry' action, includes messages the caller should add to the conversation.
  *
- * For the 'retry' action, the function builds the assistant message (with text, reasoning,
- * and tool calls from the response) and user message (with validation error) that the
- * caller should add to the conversation.
- *
- * The caller is responsible for:
- * - Appending retry messages to the conversation
- * - Incrementing retry counter
- * - Continuing the loop or returning error
- *
- * @returns Action to take: continue, retry, or error
+ * @param params - Validation parameters including response and output tool config
+ * @returns Action to take: 'continue', 'retry' (with messages), or 'error'
  */
 export function handleOutputValidation(
   params: HandleOutputValidationParams,

@@ -77,27 +77,30 @@ export type IAgentService = Readonly<{
 }>;
 
 export function createAgentsService(
-  context: AgentServiceContext,
+  config: AgentsServiceConfig,
 ): IAgentService {
-  return new AgentsService(context);
+  return Object.freeze(new AgentsService(config));
 }
 
-type AgentServiceContext = {
+/**
+ * Configuration for creating an AgentsService instance.
+ */
+type AgentsServiceConfig = {
   appConfig: IAppConfigurationService;
   logger: ILogger;
   storageProviderConfig: StorageProviderConfig;
 };
 
-type AgentsServiceDeps = {
-  createAgentCancellationCache: typeof createAgentCancellationCache;
-  createAgentRunLock: typeof createAgentRunLock;
-  createAgentStateCache: typeof createAgentStateCache;
-  createCompletionsService: typeof createCompletionsService;
-  createMCPService: typeof createMCPService;
-  createStorageService: typeof createStorageService;
-};
+interface AgentsServiceDependencies {
+  readonly createAgentCancellationCache: typeof createAgentCancellationCache;
+  readonly createAgentRunLock: typeof createAgentRunLock;
+  readonly createAgentStateCache: typeof createAgentStateCache;
+  readonly createCompletionsService: typeof createCompletionsService;
+  readonly createMCPService: typeof createMCPService;
+  readonly createStorageService: typeof createStorageService;
+}
 
-const defaultDeps: AgentsServiceDeps = {
+const defaultDeps: AgentsServiceDependencies = {
   createAgentCancellationCache,
   createAgentRunLock,
   createAgentStateCache,
@@ -125,16 +128,16 @@ class AgentsService implements IAgentService {
   private readonly stateCache: IAgentStateCache;
 
   constructor(
-    private readonly context: AgentServiceContext,
-    private readonly deps: AgentsServiceDeps = defaultDeps,
+    private readonly config: AgentsServiceConfig,
+    private readonly deps: AgentsServiceDependencies = defaultDeps,
     private readonly actions: AgentsServiceActions = defaultActions,
   ) {
-    this.cancellationCache = deps.createAgentCancellationCache(context);
-    this.agentRunLock = deps.createAgentRunLock(context);
+    this.cancellationCache = deps.createAgentCancellationCache(config);
+    this.agentRunLock = deps.createAgentRunLock(config);
     this.completionsService = deps.createCompletionsService();
     this.mcpService = deps.createMCPService();
-    this.storageService = deps.createStorageService(context);
-    this.stateCache = deps.createAgentStateCache(context);
+    this.storageService = deps.createStorageService(config);
+    this.stateCache = deps.createAgentStateCache(config);
   }
 
   async run(
@@ -170,12 +173,14 @@ class AgentsService implements IAgentService {
   ): AsyncGenerator<StreamAgentItem> {
     const validateResult = validateAgentRunConfig(config);
     if (validateResult.isErr()) {
-      return err(validateResult.error);
+      yield { type: 'final', result: err(validateResult.error) };
+      return;
     }
 
     const rootManifestResult = this.getRootManifest(config);
     if (rootManifestResult.isErr()) {
-      return err(rootManifestResult.error);
+      yield { type: 'final', result: err(rootManifestResult.error) };
+      return;
     }
 
     const rootManifest = rootManifestResult.value;
@@ -229,7 +234,7 @@ class AgentsService implements IAgentService {
       mcpService: this.mcpService,
       stateCache: this.stateCache,
       storageService: this.storageService,
-      logger: this.context.logger,
+      logger: this.config.logger,
       agentRunLock: this.agentRunLock,
       cancellationCache: this.cancellationCache,
     };

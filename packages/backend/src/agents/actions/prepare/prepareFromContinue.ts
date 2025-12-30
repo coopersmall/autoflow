@@ -7,15 +7,17 @@ import type { PrepareResult } from '@backend/agents/domain/execution';
 import type { Context } from '@backend/infrastructure/context/Context';
 import type { AgentRunId, AgentTool } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
-import { badRequest } from '@core/errors/factories';
+import { badRequest, notFound } from '@core/errors/factories';
 import { err, ok, type Result } from 'neverthrow';
 import { restoreAgentRun } from '../initialize/restoreAgentRun';
 import { buildToolResultMessage } from '../messages/buildToolResultMessage';
-import { loadAndValidateState } from '../state/loadAndValidateState';
+import { getAgentState } from '../state/getAgentState';
+import { validateAgentState } from '../validation/validateAgentState';
 
 /**
  * Prepares agent state for continuation after sub-agent suspensions resolved.
  * Used when a parent agent's sub-agents have completed and results are pending.
+ * Returns 'already-running' if agent is currently executing.
  * Uses EXISTING stateId from savedState.id.
  */
 export async function prepareFromContinue(
@@ -27,20 +29,38 @@ export async function prepareFromContinue(
   deps: PrepareDeps,
   options?: AgentRunOptions,
 ): Promise<Result<PrepareResult, AppError>> {
-  // Load and validate state
-  const stateResult = await loadAndValidateState(
-    ctx,
-    runId,
-    manifest,
-    'suspended',
-    deps,
-  );
-
+  // 1. Load saved state from cache
+  const stateResult = await getAgentState(ctx, runId, deps);
   if (stateResult.isErr()) {
     return err(stateResult.error);
   }
 
   const savedState = stateResult.value;
+  if (!savedState) {
+    return err(
+      notFound('Agent state not found', {
+        metadata: { stateId: runId },
+      }),
+    );
+  }
+
+  // 2. Check if agent is already running - return early without error
+  if (savedState.status === 'running') {
+    return ok({
+      type: 'already-running',
+      runId,
+    });
+  }
+
+  // 3. Validate state status and manifest
+  const validationResult = validateAgentState(
+    savedState,
+    manifest,
+    'suspended',
+  );
+  if (validationResult.isErr()) {
+    return err(validationResult.error);
+  }
 
   // Validate no remaining suspensions
   if (

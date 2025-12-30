@@ -1,6 +1,4 @@
 import type { LifecycleHook } from './LifecycleHook';
-
-// Note: These param types will be defined in Phase 5
 import type {
   SubAgentCancelledParams,
   SubAgentCompleteParams,

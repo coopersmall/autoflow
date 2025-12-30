@@ -45,6 +45,11 @@ export interface ExecuteAgentParams {
   readonly parentContext?: ParentAgentContext;
   /** Resolved suspensions when resuming from suspension */
   readonly resolvedSuspensions?: readonly Suspension[];
+  /**
+   * Cleanup function to release resources (e.g., MCP clients) after execution.
+   * Called in finally block - should not throw.
+   */
+  readonly cleanup?: () => Promise<void>;
 }
 
 export interface ExecuteAgentDeps
@@ -90,6 +95,7 @@ export async function* executeAgent(
     isNewState,
     parentContext,
     resolvedSuspensions,
+    cleanup,
   } = params;
   const manifestId = manifest.config.id;
 
@@ -195,7 +201,7 @@ export async function* executeAgent(
       stateId,
     });
 
-    // 4. Execute loop, yielding events
+    // 5. Execute loop, yielding events
     let loopResult: LoopResult;
     const loopGenerator = streamAgentLoop(
       { ctx, manifest, state, previousElapsedMs },
@@ -268,10 +274,10 @@ export async function* executeAgent(
       yield next.value; // Pass through streaming events
     }
 
-    // 5. Clear cancellation signal (best effort - ignore errors)
+    // 6. Clear cancellation signal (best effort - ignore errors)
     await clearCancellation(ctx, stateId, deps);
 
-    // 6. Finalize state
+    // 7. Finalize state
     const finalizeResult = await finalizeAgentState(
       { ctx, stateId, manifest, context, loopResult, previousElapsedMs },
       deps,
@@ -281,7 +287,7 @@ export async function* executeAgent(
       return err(finalizeResult.error);
     }
 
-    // 7. Call terminal lifecycle hooks and yield events based on outcome
+    // 8. Call terminal lifecycle hooks and yield events based on outcome
     if (loopResult.status === 'complete') {
       // Call onAgentComplete hook
       if (manifest.hooks?.onAgentComplete) {
@@ -397,10 +403,15 @@ export async function* executeAgent(
       });
     }
 
-    // 8. Return final result
+    // 9. Return final result
     return buildAgentRunResult(loopResult, stateId, manifest);
   } finally {
-    // 9. Release lock (best effort - TTL is safety net for client disconnect)
+    // 10. Cleanup resources (e.g., close MCP clients)
+    if (cleanup) {
+      await cleanup();
+    }
+
+    // 11. Release lock (best effort - TTL is safety net for client disconnect)
     await handle.release();
   }
 }

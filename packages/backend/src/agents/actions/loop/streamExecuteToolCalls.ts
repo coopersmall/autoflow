@@ -160,11 +160,11 @@ export async function* streamExecuteToolCalls(
  * Creates a dummy generator for unknown tools.
  * This allows us to handle unknown tools uniformly with other tools.
  */
+// biome-ignore lint/correctness/useYield: Intentionally returns without yielding for unknown tools
 async function* createUnknownToolGenerator(): AsyncGenerator<
   Result<AgentEvent, AppError>,
   AgentToolResult
 > {
-  // No events to yield for unknown tools
   return {
     type: 'error',
     error: 'Unknown tool',

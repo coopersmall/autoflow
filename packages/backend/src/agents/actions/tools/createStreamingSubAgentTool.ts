@@ -4,11 +4,9 @@ import {
   type AgentRunId,
   AgentToolResult,
   type AgentToolWithStreamingContext,
-  defaultSubAgentArgsSchema,
   type ManifestKey,
   type SubAgentConfig,
 } from '@core/domain/agents';
-import { validate } from '@core/validation/validate';
 import type { JSONSchema7 } from 'ai';
 import { ok } from 'neverthrow';
 import {
@@ -18,6 +16,7 @@ import {
   streamAgent,
 } from '../streamAgent';
 import { createSubAgentContext } from './createSubAgentContext';
+import { parseSubAgentArgs } from './parseSubAgentArgs';
 
 export interface CreateStreamingSubAgentToolDeps extends StreamAgentDeps {}
 
@@ -70,7 +69,7 @@ export function createStreamingSubAgentTool(
   manifestMap: Map<ManifestKey, AgentManifest>,
   deps: CreateStreamingSubAgentToolDeps,
 ): AgentToolWithStreamingContext {
-  return {
+  return Object.freeze({
     type: 'function',
     function: {
       name: config.name,
@@ -78,26 +77,12 @@ export function createStreamingSubAgentTool(
       parameters: config.parameters ?? defaultParameters,
     },
     executeStreamingWithContext: async function* (tool, toolCall, execCtx) {
-      // 1. Map args to AgentRequest using mapper from hooks or default with validation
-      let agentRequest: AgentRequest;
-
-      if (mapper) {
-        agentRequest = mapper(toolCall.input);
-      } else {
-        // Validate args against default schema
-        const argsResult = validate(defaultSubAgentArgsSchema, toolCall.input);
-        if (argsResult.isErr()) {
-          return AgentToolResult.error(
-            `Invalid sub-agent arguments: ${argsResult.error.message}`,
-            'ValidationError',
-          );
-        }
-        agentRequest = {
-          type: 'request',
-          prompt: argsResult.value.prompt,
-          context: argsResult.value.context,
-        };
+      // 1. Parse and validate args
+      const argsResult = parseSubAgentArgs(toolCall.input, mapper);
+      if (argsResult.isErr()) {
+        return argsResult.error;
       }
+      const agentRequest: AgentRequest = argsResult.value;
 
       // 2. Create sub-agent context with independent timeout
       const subCtx = createSubAgentContext(execCtx.ctx, config.timeout);
@@ -380,5 +365,5 @@ export function createStreamingSubAgentTool(
         AgentToolResult.error('Sub-agent completed without result', 'NoResult')
       );
     },
-  };
+  });
 }

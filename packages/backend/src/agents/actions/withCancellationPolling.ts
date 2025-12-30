@@ -4,6 +4,8 @@ import {
   deriveContext,
 } from '@backend/infrastructure/context/Context';
 import type { AgentRunId } from '@core/domain/agents';
+import type { AppError } from '@core/errors/AppError';
+import { err, type Result } from 'neverthrow';
 import {
   type CheckCancellationDeps,
   checkCancellation,
@@ -23,9 +25,11 @@ export interface WithCancellationPollingOptions {
  * cache and aborts the signal when cancellation is detected. All downstream
  * operations that respect the abort signal will be interrupted.
  *
+ * If cancellation polling encounters an error (e.g., cache unavailable), the
+ * error is propagated to the caller and the agent execution is stopped.
+ *
  * Optimizations:
- * - Stops polling immediately when cancellation is detected
- * - Uses { once: true } for event listeners to prevent memory leaks
+ * - Stops polling immediately when cancellation is detected or on error
  * - Prevents overlapping poll callbacks with pollingInProgress flag
  *
  * @param parentCtx - The parent context to derive from
@@ -33,15 +37,17 @@ export interface WithCancellationPollingOptions {
  * @param runGenerator - Factory function that creates the generator with derived context
  * @param deps - Dependencies including cancellation cache
  * @param options - Optional configuration including poll interval
- * @returns An async generator that yields from the wrapped generator
+ * @returns An async generator that yields from the wrapped generator, or returns an error if polling fails
  */
 export async function* withCancellationPolling<TYield, TReturn>(
   parentCtx: Context,
   stateId: AgentRunId,
-  runGenerator: (derivedCtx: Context) => AsyncGenerator<TYield, TReturn>,
+  runGenerator: (
+    derivedCtx: Context,
+  ) => AsyncGenerator<TYield, Result<TReturn, AppError>>,
   deps: WithCancellationPollingDeps,
   options?: WithCancellationPollingOptions,
-): AsyncGenerator<TYield, TReturn> {
+): AsyncGenerator<TYield, Result<TReturn, AppError>> {
   const pollIntervalMs =
     options?.pollIntervalMs ?? DEFAULT_CANCELLATION_POLL_INTERVAL_MS;
 
@@ -51,25 +57,30 @@ export async function* withCancellationPolling<TYield, TReturn>(
   // Track polling state
   let cancellationSignaled = false;
   let pollingInProgress = false;
+  let pollingError: AppError | null = null;
 
   // Start polling
   const pollHandle = setInterval(() => {
-    // Skip if already cancelled or poll in progress
-    // This prevents overlapping async poll callbacks if cache is slow
-    if (cancellationSignaled || pollingInProgress) {
+    // Skip if already cancelled, errored, or poll in progress
+    if (cancellationSignaled || pollingError || pollingInProgress) {
       return;
     }
 
     pollingInProgress = true;
 
-    // Using void to explicitly ignore the promise (fire-and-forget pattern)
-    // The polling callback handles the result internally
     void (async () => {
       try {
         const isCancelled = await checkCancellation(parentCtx, stateId, deps);
-        if (isCancelled.isOk() && isCancelled.value) {
+        if (isCancelled.isErr()) {
+          // Store the error - generator will check this and return it
+          pollingError = isCancelled.error;
+          clearInterval(pollHandle);
+          derivedCtx.cancel('polling-error');
+          return;
+        }
+        if (isCancelled.value) {
           cancellationSignaled = true;
-          clearInterval(pollHandle); // Stop polling immediately
+          clearInterval(pollHandle);
           derivedCtx.cancel('cancelled');
         }
       } finally {
@@ -79,7 +90,27 @@ export async function* withCancellationPolling<TYield, TReturn>(
   }, pollIntervalMs);
 
   try {
-    return yield* runGenerator(derivedCtx);
+    const generator = runGenerator(derivedCtx);
+
+    while (true) {
+      // Check for polling error before each iteration
+      if (pollingError) {
+        return err(pollingError);
+      }
+
+      const next = await generator.next();
+
+      // Check again after async operation
+      if (pollingError) {
+        return err(pollingError);
+      }
+
+      if (next.done) {
+        return next.value;
+      }
+
+      yield next.value;
+    }
   } finally {
     clearInterval(pollHandle);
   }

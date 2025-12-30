@@ -63,6 +63,7 @@ export function applyObservers(
       manifestVersion: manifest.config.version,
       parentManifestId: parentMap.get(key),
       isRoot: manifest.config.id === rootManifestId,
+      providerConfig: manifest.config.provider,
     };
 
     // Collect hooks from all observers (context captured via closure)

@@ -7,14 +7,8 @@ import type { ToolExecutionHarness } from './createToolExecutionHarness';
 import { createToolExecutionHarness } from './createToolExecutionHarness';
 
 export function buildToolExecutionHarness(
-  _config: AgentManifestConfig, // For future middleware config
+  _config: AgentManifestConfig,
 ): ToolExecutionHarness {
-  // Start with no middleware - add as needed
-  const middleware: ToolExecutionMiddleware[] = [
-    // Future: loggingMiddleware(config.toolExecution?.logging),
-    // Future: timeoutMiddleware(config.toolExecution?.timeout),
-    // Future: retryMiddleware(config.toolExecution?.retry),
-  ];
-
+  const middleware: ToolExecutionMiddleware[] = [];
   return createToolExecutionHarness(createBaseToolExecutor(), middleware);
 }

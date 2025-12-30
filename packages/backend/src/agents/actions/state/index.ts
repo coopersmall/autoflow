@@ -10,11 +10,6 @@ export {
   createAgentState,
 } from './createAgentState';
 export {
-  type CreateAgentStateLegacyDeps,
-  type CreateAgentStateLegacyParams,
-  createAgentStateLegacy,
-} from './createAgentStateLegacy';
-export {
   type DeleteAgentStateOptions,
   deleteAgentState,
 } from './deleteAgentState';

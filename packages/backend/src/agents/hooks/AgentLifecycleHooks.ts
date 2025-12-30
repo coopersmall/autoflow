@@ -1,7 +1,4 @@
 import type { LifecycleHook } from './LifecycleHook';
-
-// Note: These param types will be defined in Phase 5
-// For now, we use placeholder interfaces that match the expected structure
 import type {
   AgentCancelledParams,
   AgentCompleteParams,

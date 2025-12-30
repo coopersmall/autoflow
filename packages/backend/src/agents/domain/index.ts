@@ -1,3 +1,15 @@
+/**
+ * Agent domain module.
+ *
+ * Contains domain types and interfaces for the agents framework:
+ * - State management types (AgentState, AgentRunState)
+ * - Configuration types (AgentManifest, AgentRunConfig)
+ * - Dependency composition interfaces
+ * - Constants for timeouts and TTLs
+ *
+ * @module agents/domain
+ */
+
 export type { AgentInput } from './AgentInput';
 export type { AgentManifest } from './AgentManifest';
 export type { AgentRunConfig } from './AgentRunConfig';

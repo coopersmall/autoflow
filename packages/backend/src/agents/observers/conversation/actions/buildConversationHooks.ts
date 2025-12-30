@@ -24,6 +24,10 @@ export interface BuildConversationHooksDeps {
  * Each call creates a fresh set of hooks with their own closure-captured state (startedAt).
  * This is called once per manifest when applying observers.
  *
+ * Note: Steps are recorded as empty arrays because the AI completion StepResult schema
+ * differs from the conversation Step schema. Full step conversion would require mapping
+ * between these schemas.
+ *
  * @param params - Parameters including conversationId, userId, turnIndex, and observer context
  * @param deps - Dependencies including the conversations service
  * @returns Partial hooks to be merged with manifest hooks
@@ -34,6 +38,7 @@ export function buildConversationHooks(
 ): Result<Partial<AgentManifestHooks>, AppError> {
   const { conversationId, userId, turnIndex, observerContext } = params;
   const { conversationsService } = deps;
+  const { providerConfig } = observerContext;
 
   // Each manifest gets its own startedAt captured in closure
   let startedAt: Date | undefined;
@@ -49,7 +54,7 @@ export function buildConversationHooks(
       return ok(undefined);
     },
 
-    onAgentComplete: async (hookCtx, hookParams) => {
+    onAgentComplete: async (ctx, hookParams) => {
       if (startedAt === undefined) {
         return err(
           internalError(
@@ -59,23 +64,23 @@ export function buildConversationHooks(
       }
 
       const appendResult = await conversationsService.appendItem(
-        hookCtx,
+        ctx,
         conversationId,
         userId,
         {
           type: 'agent',
           schemaVersion: 1,
           agentId: String(observerContext.manifestId),
-          provider: 'openai', // TODO: Get from result
-          model: 'unknown', // TODO: Get from result
+          provider: providerConfig.provider,
+          model: providerConfig.model,
           turnIndex,
           startedAt,
           finishedAt: new Date(),
           result: {
             status: 'complete',
-            steps: [], // TODO: Convert steps
-            totalUsage: { inputTokens: 0, outputTokens: 0 },
-            finishReason: 'stop',
+            steps: [],
+            totalUsage: hookParams.result.totalUsage,
+            finishReason: hookParams.result.finishReason,
           },
         },
       );
@@ -87,7 +92,7 @@ export function buildConversationHooks(
       return ok(undefined);
     },
 
-    onAgentError: async (hookCtx, hookParams) => {
+    onAgentError: async (ctx, hookParams) => {
       if (startedAt === undefined) {
         return err(
           internalError(
@@ -97,15 +102,15 @@ export function buildConversationHooks(
       }
 
       const appendResult = await conversationsService.appendItem(
-        hookCtx,
+        ctx,
         conversationId,
         userId,
         {
           type: 'agent',
           schemaVersion: 1,
           agentId: String(observerContext.manifestId),
-          provider: 'openai', // TODO: Get from manifest
-          model: 'unknown',
+          provider: providerConfig.provider,
+          model: providerConfig.model,
           turnIndex,
           startedAt,
           finishedAt: new Date(),
@@ -127,7 +132,7 @@ export function buildConversationHooks(
       return ok(undefined);
     },
 
-    onAgentCancelled: async (hookCtx, hookParams) => {
+    onAgentCancelled: async (ctx, _hookParams) => {
       if (startedAt === undefined) {
         return err(
           internalError(
@@ -137,15 +142,15 @@ export function buildConversationHooks(
       }
 
       const appendResult = await conversationsService.appendItem(
-        hookCtx,
+        ctx,
         conversationId,
         userId,
         {
           type: 'agent',
           schemaVersion: 1,
           agentId: String(observerContext.manifestId),
-          provider: 'openai', // TODO: Get from manifest
-          model: 'unknown',
+          provider: providerConfig.provider,
+          model: providerConfig.model,
           turnIndex,
           startedAt,
           finishedAt: new Date(),
@@ -162,7 +167,5 @@ export function buildConversationHooks(
 
       return ok(undefined);
     },
-
-    // Note: onAgentSuspend intentionally not tracked - suspension is not a terminal state
   });
 }

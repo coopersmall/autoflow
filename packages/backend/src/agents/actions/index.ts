@@ -1,4 +1,13 @@
-// Main entry points
+/**
+ * Agent actions module.
+ *
+ * This module provides the core actions for agent execution:
+ * - `runAgent` - Non-streaming agent execution
+ * - `streamAgent` - Streaming agent execution with events
+ * - Tool building, state management, and lifecycle hooks
+ *
+ * @module agents/actions
+ */
 
 // Feature directories
 export * from './initialize';

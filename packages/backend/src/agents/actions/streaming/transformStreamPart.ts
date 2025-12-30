@@ -19,7 +19,7 @@ export interface TransformContext {
  * - The event type is not in the allowed set
  * - The stream part type doesn't map to an agent event
  *
- * Note: Step events (start-step, finish-step) from the AI SDK don't include stepIndex,
+ * Note: Step events (start-step, finish-step) don't include stepIndex,
  * so the caller must provide the current step number in the context.
  */
 export function transformStreamPart(
@@ -83,7 +83,7 @@ export function transformStreamPart(
       if (!allowedEventTypes.has('step-start')) {
         return undefined;
       }
-      // AI SDK's start-step doesn't have stepIndex, use context's stepNumber
+      // start-step doesn't include stepIndex, use context's stepNumber
       return {
         type: 'step-start',
         manifestId,
@@ -97,7 +97,7 @@ export function transformStreamPart(
       if (!allowedEventTypes.has('step-finish')) {
         return undefined;
       }
-      // AI SDK's finish-step doesn't have stepIndex or isContinued
+      // finish-step doesn't include stepIndex or isContinued
       return {
         type: 'step-finish',
         manifestId,

@@ -557,12 +557,22 @@ describe('Conversation Observer Integration Tests', () => {
         manifestVersion: '1.0.0',
         parentManifestId: undefined,
         isRoot: true,
+        providerConfig: {
+          provider: 'openai',
+          model: 'gpt-4',
+          settings: { requestType: 'chatCompletions' },
+        },
       });
       const hooks2 = observer.createHooks({
         manifestId: AgentId('agent-2'),
         manifestVersion: '1.0.0',
         parentManifestId: AgentId('agent-1'),
         isRoot: false,
+        providerConfig: {
+          provider: 'openai',
+          model: 'gpt-4',
+          settings: { requestType: 'chatCompletions' },
+        },
       });
 
       expect(hooks1.isOk()).toBe(true);

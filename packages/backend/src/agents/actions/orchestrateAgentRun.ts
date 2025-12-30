@@ -3,6 +3,7 @@ import type { IMCPService } from '@backend/ai/mcp/domain/MCPService';
 import type { Context } from '@backend/infrastructure/context/Context';
 import type { AgentEvent, AgentRunResult } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
+import { unreachable } from '@core/unreachable';
 import { err, ok, type Result } from 'neverthrow';
 import { type ExecuteAgentDeps, executeAgent } from './loop/executeAgent';
 import { prepareRunState } from './prepare';
@@ -31,6 +32,12 @@ export interface OrchestrateAgentRunDeps
  * 5. Yielding events from execution
  *
  * Both runAgent and streamAgent delegate to this function.
+ *
+ * @param ctx - The request context with correlationId and abort signal
+ * @param manifest - The root agent manifest configuration
+ * @param input - The agent input including prompt, manifestMap, and options
+ * @param deps - Dependencies required for execution
+ * @returns An async generator yielding events and returning the final result
  */
 export async function* orchestrateAgentRun(
   ctx: Context,
@@ -53,7 +60,7 @@ export async function* orchestrateAgentRun(
   if (toolsResult.isErr()) {
     return err(toolsResult.error);
   }
-  const { tools, toolsMap } = toolsResult.value;
+  const { tools, toolsMap, cleanup } = toolsResult.value;
 
   // 2. Prepare run state
   const prepareResult = await prepareRunState(
@@ -65,6 +72,7 @@ export async function* orchestrateAgentRun(
     deps,
   );
   if (prepareResult.isErr()) {
+    await cleanup();
     return err(prepareResult.error);
   }
 
@@ -100,6 +108,8 @@ export async function* orchestrateAgentRun(
       })();
     };
 
+    // Note: cleanup not called here - delegate continues execution in a new context
+    // The recursive orchestrateAgentRun will build its own tools and cleanup
     return yield* streamResumeFromSuspensionStack(
       ctx,
       manifest,
@@ -115,6 +125,7 @@ export async function* orchestrateAgentRun(
 
   // 4. Handle suspended - no execution needed
   if (prepareValue.type === 'suspended') {
+    await cleanup();
     return ok({
       status: 'suspended',
       suspensions: prepareValue.remainingSuspensions,
@@ -123,7 +134,22 @@ export async function* orchestrateAgentRun(
     });
   }
 
-  // 5. Type is 'start' or 'continue' - wrap with cancellation polling
+  // 5. Handle already-running - agent is being executed by another process
+  if (prepareValue.type === 'already-running') {
+    await cleanup();
+    return ok({
+      status: 'already-running',
+      runId: prepareValue.runId,
+    });
+  }
+
+  // 6. Type is 'start' or 'continue' - wrap with cancellation polling
+  // TypeScript narrowing: at this point, type can only be 'start' or 'continue'
+  if (prepareValue.type !== 'start' && prepareValue.type !== 'continue') {
+    // This should never happen - all other cases are handled above
+    return unreachable(prepareValue);
+  }
+
   const { stateId, state, context, previousElapsedMs } = prepareValue;
   const isNewState = prepareValue.type === 'start';
   // For 'continue' type, extract parentContext and resolvedSuspensions from saved state
@@ -152,6 +178,7 @@ export async function* orchestrateAgentRun(
           isNewState,
           parentContext,
           resolvedSuspensions,
+          cleanup,
         },
         deps,
         options,

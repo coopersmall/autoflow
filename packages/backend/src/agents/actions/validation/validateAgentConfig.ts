@@ -43,10 +43,5 @@ export function validateAgentConfig(
     return dependenciesValidation;
   }
 
-  // Future validations can be added here:
-  // - validateCircularDependencies(manifest, manifestMap)
-  // - validateToolNames(manifest)
-  // - validateOutputTool(manifest)
-
-  return subAgentValidation;
+  return dependenciesValidation;
 }
