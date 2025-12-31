@@ -6,7 +6,7 @@ import { ManifestKey } from '@core/domain/agents';
  * Used for quick lookup during agent execution and sub-agent resolution.
  */
 export function buildManifestMap(
-  manifests: AgentManifest[],
+  manifests: readonly AgentManifest[],
 ): Map<ManifestKey, AgentManifest> {
   const map = new Map<ManifestKey, AgentManifest>();
 

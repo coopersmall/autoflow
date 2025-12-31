@@ -83,6 +83,12 @@ export async function finalizeAgentState(
 
   const now = new Date();
 
+  // Try to get existing state to preserve createdAt
+  const existingStateResult = await deps.stateCache.get(ctx, stateId);
+  const createdAt = existingStateResult.isOk()
+    ? existingStateResult.value.createdAt
+    : now;
+
   // Determine status, suspensions, stacks, and pending results based on loop result
   let status: AgentStateStatus;
   let suspensions: ToolApprovalSuspension[] = [];
@@ -128,7 +134,7 @@ export async function finalizeAgentState(
     pendingToolResults,
     status,
     context,
-    createdAt: now, // Will be overwritten by existing value in cache if updating
+    createdAt, // Preserved from existing state if available, otherwise now
     updatedAt: now,
     elapsedExecutionMs: totalElapsedMs,
     childStateIds: [],

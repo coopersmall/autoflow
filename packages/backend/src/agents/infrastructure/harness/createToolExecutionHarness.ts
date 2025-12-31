@@ -3,8 +3,13 @@ import type {
   ToolExecutor,
 } from '@core/domain/agents';
 
+/**
+ * A harness that wraps a tool executor with composed middleware.
+ * Provides a single execute method that runs the tool through the middleware chain.
+ */
 export interface ToolExecutionHarness {
-  execute: ToolExecutor;
+  /** Execute a tool call through the middleware chain */
+  readonly execute: ToolExecutor;
 }
 
 /**
@@ -20,5 +25,5 @@ export function createToolExecutionHarness(
     baseExecutor,
   );
 
-  return { execute: composedExecutor };
+  return Object.freeze({ execute: composedExecutor });
 }

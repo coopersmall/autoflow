@@ -71,7 +71,7 @@ export async function prepareFromApproval(
     return err(validationResult.error);
   }
 
-  // 2. Check if this is a nested sub-agent suspension (has a matching stack)
+  // 4. Check if this is a nested sub-agent suspension (has a matching stack)
   const matchingStack = savedState.suspensionStacks.find(
     (stack) => stack.leafSuspension.approvalId === response.approvalId,
   );
@@ -86,7 +86,7 @@ export async function prepareFromApproval(
     });
   }
 
-  // 3. Otherwise, handle as flat HITL (current agent's own suspension)
+  // 5. Otherwise, handle as flat HITL (current agent's own suspension)
   const matchingSuspension = savedState.suspensions.find(
     (s) => s.approvalId === response.approvalId,
   );
@@ -105,7 +105,7 @@ export async function prepareFromApproval(
     );
   }
 
-  // 4. Restore agent run state (deserialize messages, use pre-built tools)
+  // 6. Restore agent run state (deserialize messages, use pre-built tools)
   const restoreResult = await restoreAgentRun(
     ctx,
     manifest,
@@ -125,7 +125,7 @@ export async function prepareFromApproval(
 
   const state = restoreResult.value;
 
-  // 5. Add approval response to messages
+  // 7. Add approval response to messages
   const approvalMessage = buildToolApprovalResponseMessage(response);
   state.messages = [...state.messages, approvalMessage];
 

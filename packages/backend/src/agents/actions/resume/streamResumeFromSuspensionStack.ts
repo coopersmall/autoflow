@@ -1,5 +1,4 @@
 import type {
-  AgentInput,
   AgentManifest,
   AgentRunOptions,
   AgentState,
@@ -13,14 +12,11 @@ import type {
   SuspensionStack,
 } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
-import { internalError, notFound } from '@core/errors/factories';
+import { badRequest, internalError, notFound } from '@core/errors/factories';
 import { err, type Result } from 'neverthrow';
 import { getAgentState, updateAgentState } from '../state';
-import {
-  type StreamAgentDeps,
-  type StreamAgentItem,
-  streamAgent,
-} from '../streamAgent';
+import { type StreamAgentDeps, streamAgent } from '../streamAgent';
+import { runStreamAgentAndYieldEvents } from '../streaming/streamHelpers';
 import { buildReRootedStacks } from './buildReRootedStacks';
 import { convertResultToToolPart } from './convertResultToToolPart';
 import { handleIntermediateParentStillSuspended } from './handleIntermediateParentStillSuspended';
@@ -28,7 +24,7 @@ import { handleResuspension } from './handleResuspension';
 import { lookupManifest } from './lookupManifest';
 import { streamHandleCompletion } from './streamHandleCompletion';
 
-export interface StreamResumeFromStackDeps extends StreamAgentDeps {}
+export type StreamResumeFromStackDeps = StreamAgentDeps;
 export interface StreamResumeFromStackActions {
   readonly streamAgent: typeof streamAgent;
 }
@@ -47,7 +43,7 @@ export interface StreamResumeFromStackActions {
 export async function* streamResumeFromSuspensionStack(
   ctx: Context,
   manifest: AgentManifest,
-  manifestMap: Map<ManifestKey, AgentManifest>,
+  manifestMap: ReadonlyMap<ManifestKey, AgentManifest>,
   savedState: AgentState,
   matchingStack: SuspensionStack,
   response: ContinueResponse,
@@ -63,7 +59,12 @@ export async function* streamResumeFromSuspensionStack(
   // After fix: stacks always have at least 2 entries (parent + child)
   if (stackEntries.length < 2) {
     return err(
-      internalError('Invalid suspension stack: must have at least 2 entries'),
+      internalError('Invalid suspension stack: must have at least 2 entries', {
+        metadata: {
+          stackLength: stackEntries.length,
+          approvalId: response.approvalId,
+        },
+      }),
     );
   }
 
@@ -92,7 +93,7 @@ export async function* streamResumeFromSuspensionStack(
       options,
     },
     deps,
-    actions,
+    actions.streamAgent,
   );
 
   if (currentResult.isErr()) {
@@ -127,17 +128,33 @@ export async function* streamResumeFromSuspensionStack(
     // Validate parent has pendingToolCallId (the tool call that invoked the child)
     const parentToolCallId = parentEntry.pendingToolCallId;
     if (!parentToolCallId) {
-      return err(internalError('Parent stack entry missing pendingToolCallId'));
+      return err(
+        internalError('Parent stack entry missing pendingToolCallId', {
+          metadata: {
+            stackIndex: i,
+            parentManifestId: parentEntry.manifestId,
+            parentStateId: parentEntry.stateId,
+          },
+        }),
+      );
     }
 
     // Handle cancellation - treat as error for resume purposes
     if (currentResult.value.status === 'cancelled') {
-      return err(internalError('Agent execution was cancelled'));
+      return err(
+        badRequest('Cannot resume: agent execution was cancelled', {
+          metadata: { runId: currentResult.value.runId },
+        }),
+      );
     }
 
     // Handle already-running - treat as error for resume purposes
     if (currentResult.value.status === 'already-running') {
-      return err(internalError('Agent is already running'));
+      return err(
+        badRequest('Cannot resume: agent is already running', {
+          metadata: { runId: currentResult.value.runId },
+        }),
+      );
     }
 
     // Convert child result to tool result
@@ -227,7 +244,7 @@ export async function* streamResumeFromSuspensionStack(
         options,
       },
       deps,
-      actions,
+      actions.streamAgent,
     );
 
     if (currentResult.isErr()) {
@@ -261,17 +278,32 @@ export async function* streamResumeFromSuspensionStack(
   // Validate OUR entry has pendingToolCallId (the tool call that invoked the child)
   const ourToolCallId = ourEntry.pendingToolCallId;
   if (!ourToolCallId) {
-    return err(internalError('Root stack entry missing pendingToolCallId'));
+    return err(
+      internalError('Root stack entry missing pendingToolCallId', {
+        metadata: {
+          rootManifestId: ourEntry.manifestId,
+          rootStateId: ourEntry.stateId,
+        },
+      }),
+    );
   }
 
   // Handle cancellation - treat as error for resume purposes
   if (currentResult.value.status === 'cancelled') {
-    return err(internalError('Agent execution was cancelled'));
+    return err(
+      badRequest('Cannot resume: agent execution was cancelled', {
+        metadata: { runId: currentResult.value.runId },
+      }),
+    );
   }
 
   // Handle already-running - treat as error for resume purposes
   if (currentResult.value.status === 'already-running') {
-    return err(internalError('Agent is already running'));
+    return err(
+      badRequest('Cannot resume: agent is already running', {
+        metadata: { runId: currentResult.value.runId },
+      }),
+    );
   }
 
   // Convert to tool result
@@ -295,45 +327,4 @@ export async function* streamResumeFromSuspensionStack(
     { streamAgent: actions.streamAgent },
     options,
   );
-}
-
-/**
- * Helper: Run streamAgent and yield all events, returning the final result.
- *
- * This is the key function that enables streaming during resume.
- * It consumes streamAgent's output, yields all events, and extracts the final result.
- */
-async function* runStreamAgentAndYieldEvents(
-  ctx: Context,
-  manifest: AgentManifest,
-  input: AgentInput,
-  deps: StreamAgentDeps,
-  actions: StreamResumeFromStackActions = { streamAgent },
-): AsyncGenerator<
-  Result<AgentEvent, AppError>,
-  Result<AgentRunResult, AppError>
-> {
-  for await (const item of actions.streamAgent(ctx, manifest, input, deps)) {
-    // Check if this is an event Result (has isOk method)
-    if (isEventResult(item)) {
-      yield item;
-      continue;
-    }
-
-    // At this point, item is StreamAgentFinalResult
-    return item.result;
-  }
-
-  // Should never reach here - streamAgent always yields a final result
-  return err(internalError('streamAgent ended without final result'));
-}
-
-/**
- * Type guard to check if a StreamAgentItem is an event Result.
- * Result objects have isOk/isErr methods, while StreamAgentFinalResult doesn't.
- */
-function isEventResult(
-  item: StreamAgentItem,
-): item is Result<AgentEvent, AppError> {
-  return 'isOk' in item;
 }

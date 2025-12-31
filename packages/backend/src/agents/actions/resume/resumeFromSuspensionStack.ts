@@ -42,7 +42,7 @@ export interface ResumeFromStackDeps extends PrepareDeps, HandleCompletionDeps {
 export async function resumeFromSuspensionStack(
   ctx: Context,
   manifest: AgentManifest,
-  manifestMap: Map<ManifestKey, AgentManifest>,
+  manifestMap: ReadonlyMap<ManifestKey, AgentManifest>,
   savedState: AgentState,
   matchingStack: SuspensionStack,
   response: ContinueResponse,

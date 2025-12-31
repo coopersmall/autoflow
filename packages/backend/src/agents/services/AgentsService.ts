@@ -6,6 +6,7 @@ import {
   badRequest,
 } from '@autoflow/core';
 import type { AgentManifest, AgentRunConfig } from '@backend/agents/domain';
+import type { IAgentService } from '@backend/agents/domain/AgentService';
 import { createMCPService, type IMCPService } from '@backend/ai';
 import {
   createCompletionsService,
@@ -28,7 +29,7 @@ import {
   type StreamAgentItem,
   streamAgent,
 } from '../actions';
-import { validateAgentRunConfig } from '../builder/buildAgentRunConfig';
+import { validateAgentRunConfig } from '../actions/validation/validateAgentRunConfig';
 import {
   createAgentCancellationCache,
   createAgentRunLock,
@@ -38,44 +39,12 @@ import {
   type IAgentStateCache,
 } from '../infrastructure';
 
-export type IAgentService = Readonly<{
-  /**
-   * Run an agent to completion or until suspended.
-   *
-   * The config contains a flat array of all manifests. The framework validates
-   * that all sub-agent references can be resolved from this array.
-   */
-  run(
-    ctx: Context,
-    config: AgentRunConfig,
-    request: AgentRequest,
-  ): Promise<Result<AgentRunResult, AppError>>;
-
-  /**
-   * Stream an agent run.
-   *
-   * When a suspension event is yielded, the stream ends.
-   * Use continueStream() to resume after providing approval.
-   */
-  stream(
-    ctx: Context,
-    config: AgentRunConfig,
-    request: AgentRequest,
-  ): AsyncGenerator<StreamAgentItem>;
-
-  /**
-   * Cancel an agent run.
-   *
-   * For suspended agents: Marks the state as cancelled directly.
-   * For running agents: Signals cancellation via cache for the polling wrapper to detect.
-   * Uses lock-based verification to determine if an agent is truly running or has crashed.
-   */
-  cancel(
-    ctx: Context,
-    stateId: AgentRunId,
-  ): Promise<Result<CancelResult, AppError>>;
-}>;
-
+/**
+ * Creates an AgentsService instance for running AI agents.
+ *
+ * @param config - Configuration including app config, logger, and storage settings
+ * @returns A frozen IAgentService instance
+ */
 export function createAgentsService(
   config: AgentsServiceConfig,
 ): IAgentService {
@@ -109,10 +78,10 @@ const defaultDeps: AgentsServiceDependencies = {
   createStorageService,
 };
 
-type AgentsServiceActions = {
+type AgentsServiceActions = Readonly<{
   runAgent: typeof runAgent;
   streamAgent: typeof streamAgent;
-};
+}>;
 
 const defaultActions: AgentsServiceActions = {
   runAgent,
@@ -140,6 +109,14 @@ class AgentsService implements IAgentService {
     this.stateCache = deps.createAgentStateCache(config);
   }
 
+  /**
+   * Runs an agent to completion without streaming.
+   *
+   * @param ctx - Request context with correlationId and abort signal
+   * @param config - Agent run configuration with manifests and root manifest ID
+   * @param request - Agent request with prompt and optional state ID for continuation
+   * @returns Result containing the agent run result or an error
+   */
   async run(
     ctx: Context,
     config: AgentRunConfig,
@@ -166,6 +143,14 @@ class AgentsService implements IAgentService {
     );
   }
 
+  /**
+   * Runs an agent with streaming, yielding events as they occur.
+   *
+   * @param ctx - Request context with correlationId and abort signal
+   * @param config - Agent run configuration with manifests and root manifest ID
+   * @param request - Agent request with prompt and optional state ID for continuation
+   * @yields StreamAgentItem - Events during execution and final result
+   */
   async *stream(
     ctx: Context,
     config: AgentRunConfig,
@@ -196,6 +181,13 @@ class AgentsService implements IAgentService {
     }
   }
 
+  /**
+   * Cancels a running or suspended agent.
+   *
+   * @param ctx - Request context with correlationId and abort signal
+   * @param stateId - The agent run ID to cancel
+   * @returns Result containing the cancellation outcome or an error
+   */
   async cancel(
     ctx: Context,
     stateId: AgentRunId,

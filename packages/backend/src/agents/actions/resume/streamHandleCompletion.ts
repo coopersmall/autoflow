@@ -1,5 +1,4 @@
 import type {
-  AgentInput,
   AgentManifest,
   AgentRunOptions,
   AgentState,
@@ -13,14 +12,10 @@ import type {
 } from '@core/domain/agents';
 import type { RequestToolResultPart } from '@core/domain/ai';
 import type { AppError } from '@core/errors/AppError';
-import { internalError } from '@core/errors/factories';
 import { err, ok, type Result } from 'neverthrow';
 import { updateAgentState } from '../state';
-import {
-  type StreamAgentDeps,
-  type StreamAgentItem,
-  streamAgent,
-} from '../streamAgent';
+import { type StreamAgentDeps, streamAgent } from '../streamAgent';
+import { runStreamAgentAndYieldEvents } from '../streaming/streamHelpers';
 
 export interface StreamHandleCompletionDeps extends StreamAgentDeps {}
 
@@ -47,7 +42,7 @@ const defaultActions: StreamHandleCompletionActions = {
 export async function* streamHandleCompletion(
   ctx: Context,
   manifest: AgentManifest,
-  manifestMap: Map<ManifestKey, AgentManifest>,
+  manifestMap: ReadonlyMap<ManifestKey, AgentManifest>,
   savedState: AgentState,
   completedStack: SuspensionStack,
   toolResult: RequestToolResultPart,
@@ -111,47 +106,6 @@ export async function* streamHandleCompletion(
       options,
     },
     deps,
-    actions,
+    actions.streamAgent,
   );
-}
-
-/**
- * Type guard to check if a StreamAgentItem is an event Result.
- * Result objects have isOk/isErr methods, while StreamAgentFinalResult doesn't.
- */
-function isEventResult(
-  item: StreamAgentItem,
-): item is Result<AgentEvent, AppError> {
-  return 'isOk' in item;
-}
-
-/**
- * Helper: Run streamAgent and yield all events, returning the final result.
- *
- * This is the key function that enables streaming during resume.
- * It consumes streamAgent's output, yields all events, and extracts the final result.
- */
-async function* runStreamAgentAndYieldEvents(
-  ctx: Context,
-  manifest: AgentManifest,
-  input: AgentInput,
-  deps: StreamAgentDeps,
-  actions: StreamHandleCompletionActions,
-): AsyncGenerator<
-  Result<AgentEvent, AppError>,
-  Result<AgentRunResult, AppError>
-> {
-  for await (const item of actions.streamAgent(ctx, manifest, input, deps)) {
-    // Check if this is an event Result (has isOk method)
-    if (isEventResult(item)) {
-      yield item;
-      continue;
-    }
-
-    // At this point, item is StreamAgentFinalResult
-    return item.result;
-  }
-
-  // Should never reach here - streamAgent always yields a final result
-  return err(internalError('streamAgent ended without final result'));
 }

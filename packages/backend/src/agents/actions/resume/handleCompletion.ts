@@ -45,7 +45,7 @@ export interface HandleCompletionDeps {
 export async function handleCompletion(
   ctx: Context,
   manifest: AgentManifest,
-  manifestMap: Map<ManifestKey, AgentManifest>,
+  manifestMap: ReadonlyMap<ManifestKey, AgentManifest>,
   savedState: AgentState,
   completedStack: SuspensionStack,
   toolResult: RequestToolResultPart,

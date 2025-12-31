@@ -55,11 +55,11 @@ export interface StepTransformationHooks {
    * Called before each LLM step. Can modify messages, toolChoice, activeTools.
    * Returns Result - errors abort the run.
    */
-  onStepStart?: OnStepStartFunction;
+  readonly onStepStart?: OnStepStartFunction;
 
   /**
    * Called after each step completes. Receives the step result.
    * Returns Result - errors abort the run.
    */
-  onStepFinish?: OnStepFinishFunction;
+  readonly onStepFinish?: OnStepFinishFunction;
 }

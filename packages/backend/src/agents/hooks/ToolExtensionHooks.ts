@@ -12,8 +12,8 @@ import type {
  */
 export interface ToolExtensionHooks {
   /** Custom tool implementations by tool name */
-  toolExecutors?: Record<string, AgentExecuteFunction>;
+  readonly toolExecutors?: Readonly<Record<string, AgentExecuteFunction>>;
 
   /** Sub-agent argument mappers by sub-agent name */
-  subAgentMappers?: Record<string, SubAgentMapperFunction>;
+  readonly subAgentMappers?: Readonly<Record<string, SubAgentMapperFunction>>;
 }

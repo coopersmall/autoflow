@@ -19,4 +19,6 @@ export const subAgentErrorParamsSchema = zod.strictObject({
   }),
 });
 
-export type SubAgentErrorParams = zod.infer<typeof subAgentErrorParamsSchema>;
+export type SubAgentErrorParams = Readonly<
+  zod.infer<typeof subAgentErrorParamsSchema>
+>;

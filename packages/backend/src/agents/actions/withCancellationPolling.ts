@@ -5,6 +5,7 @@ import {
 } from '@backend/infrastructure/context/Context';
 import type { AgentRunId } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
+import { internalError } from '@core/errors/factories';
 import { err, type Result } from 'neverthrow';
 import {
   type CheckCancellationDeps,
@@ -83,6 +84,16 @@ export async function* withCancellationPolling<TYield, TReturn>(
           clearInterval(pollHandle);
           derivedCtx.cancel('cancelled');
         }
+      } catch (e) {
+        // Unexpected throw - treat as polling error
+        pollingError = internalError(
+          'Cancellation polling failed unexpectedly',
+          {
+            metadata: { error: e instanceof Error ? e.message : String(e) },
+          },
+        );
+        clearInterval(pollHandle);
+        derivedCtx.cancel('polling-error');
       } finally {
         pollingInProgress = false;
       }

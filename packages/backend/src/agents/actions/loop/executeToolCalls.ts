@@ -1,20 +1,15 @@
-import type { SuspendedBranch } from '@backend/agents/domain/execution';
 import type { ToolExecutionHarness } from '@backend/agents/infrastructure/harness';
 import type { Context } from '@backend/infrastructure/context/Context';
-import type {
-  AgentId,
-  AgentRunId,
-  CompletedAgentToolResult,
-  Suspension,
-  SuspensionStack,
-} from '@core/domain/agents';
-import type {
-  Message,
-  RequestToolResultPart,
-  ToolCall,
-  ToolWithExecution,
-} from '@core/domain/ai';
-import { convertAgentToolResultForLLM } from '../tools/convertAgentToolResultForLLM';
+import type { AgentId, AgentRunId } from '@core/domain/agents';
+import type { Message, ToolCall, ToolWithExecution } from '@core/domain/ai';
+import {
+  buildToolCallResults,
+  type ExecuteToolCallsResult,
+  type ToolCallResult,
+} from './toolCallResult';
+
+// Re-export ExecuteToolCallsResult for backwards compatibility
+export type { ExecuteToolCallsResult } from './toolCallResult';
 
 /**
  * Parameters for executing tool calls.
@@ -41,21 +36,6 @@ export interface ExecuteToolCallsParams {
   /** State ID of the current agent run */
   readonly stateId: AgentRunId;
 }
-
-/**
- * Result of executing tool calls.
- * Either all tools completed (success or error) or one or more tools suspended.
- */
-export type ExecuteToolCallsResult =
-  | {
-      type: 'completed';
-      toolResultParts: RequestToolResultPart[];
-    }
-  | {
-      type: 'suspended';
-      branches: SuspendedBranch[];
-      completedToolResultParts: RequestToolResultPart[];
-    };
 
 /**
  * Executes tool calls via the harness and converts results to LLM format.
@@ -101,34 +81,8 @@ export async function executeToolCalls(
   });
 
   const results = await Promise.all(promises);
-  return buildExecutionResults(results);
+  return buildToolCallResults(results);
 }
-
-type ToolCallResult =
-  | CompletedToolCallResult
-  | SuspendedToolCallResult
-  | UnknownToolCallResult;
-
-type CompletedToolCallResult = {
-  type: 'completed';
-  toolCall: ToolCall;
-  result: CompletedAgentToolResult;
-};
-
-type SuspendedToolCallResult = {
-  type: 'suspended';
-  toolCallId: string;
-  childStateId: AgentRunId;
-  childManifestId: AgentId;
-  childManifestVersion: string;
-  suspensions: Suspension[];
-  childStacks: SuspensionStack[];
-};
-
-type UnknownToolCallResult = {
-  type: 'unknown-tool';
-  toolCall: ToolCall;
-};
 
 async function executeToolCall(params: {
   toolCall: ToolCall;
@@ -188,59 +142,5 @@ async function executeToolCall(params: {
     type: 'completed',
     toolCall,
     result: toolResult,
-  };
-}
-
-function buildExecutionResults(
-  results: ToolCallResult[],
-): ExecuteToolCallsResult {
-  const toolResultParts: RequestToolResultPart[] = [];
-  const branches: SuspendedBranch[] = [];
-
-  for (const result of results) {
-    switch (result.type) {
-      case 'unknown-tool':
-        toolResultParts.push({
-          type: 'tool-result',
-          toolCallId: result.toolCall.toolCallId,
-          toolName: result.toolCall.toolName,
-          output: {
-            type: 'error-text',
-            value: `Unknown tool: ${result.toolCall.toolName}`,
-          },
-          isError: true,
-        });
-        break;
-
-      case 'suspended':
-        branches.push({
-          toolCallId: result.toolCallId,
-          childStateId: result.childStateId,
-          childManifestId: result.childManifestId,
-          childManifestVersion: result.childManifestVersion,
-          suspensions: result.suspensions,
-          childStacks: result.childStacks,
-        });
-        break;
-
-      case 'completed':
-        toolResultParts.push(
-          convertAgentToolResultForLLM(result.toolCall, result.result),
-        );
-        break;
-    }
-  }
-
-  if (branches.length > 0) {
-    return {
-      type: 'suspended',
-      branches,
-      completedToolResultParts: toolResultParts,
-    };
-  }
-
-  return {
-    type: 'completed',
-    toolResultParts,
   };
 }

@@ -21,13 +21,6 @@ export interface ExecuteAgentLoopParams {
 }
 
 /**
- * Result from agent execution loop.
- * Includes final state for persistence by the caller.
- */
-// AgentLoopResult is now LoopResult from domain (imported above)
-export type { LoopResult as AgentLoopResult } from '@backend/agents/domain/execution';
-
-/**
  * Non-streaming agent execution loop - consumes the unified streaming loop.
  *
  * This is a thin wrapper around unifiedAgentLoop that discards yielded events.

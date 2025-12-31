@@ -1,7 +1,8 @@
-import type { AgentRunOptions } from '@backend/agents/domain';
+import type {
+  AgentRunOptions,
+  SerializationDeps,
+} from '@backend/agents/domain';
 import type { Context } from '@backend/infrastructure/context';
-import type { ILogger } from '@backend/infrastructure/logger/Logger';
-import type { IStorageService } from '@backend/storage/domain/StorageService';
 import type {
   AssistantMessage,
   Message,
@@ -19,11 +20,6 @@ import {
   AGENT_DOWNLOAD_URL_EXPIRY_SECONDS,
 } from '../../domain';
 
-export interface DeserializeMessagesDeps {
-  readonly storageService: IStorageService;
-  readonly logger: ILogger;
-}
-
 /**
  * Deserialize messages from state.
  * Refreshes signed URLs for images and files that were uploaded during serialization.
@@ -32,7 +28,7 @@ export interface DeserializeMessagesDeps {
 export async function deserializeMessages(
   ctx: Context,
   messages: Message[],
-  deps: DeserializeMessagesDeps,
+  deps: SerializationDeps,
   options?: AgentRunOptions,
 ): Promise<Result<Message[], AppError>> {
   const deserialized: Message[] = [];
@@ -48,7 +44,7 @@ export async function deserializeMessages(
 async function deserializeMessage(
   ctx: Context,
   message: Message,
-  deps: DeserializeMessagesDeps,
+  deps: SerializationDeps,
   options?: AgentRunOptions,
 ): Promise<Message> {
   switch (message.role) {
@@ -68,7 +64,7 @@ async function deserializeMessage(
 async function deserializeUserMessage(
   ctx: Context,
   message: UserMessage,
-  deps: DeserializeMessagesDeps,
+  deps: SerializationDeps,
   options?: AgentRunOptions,
 ): Promise<UserMessage> {
   if (typeof message.content === 'string') {
@@ -95,7 +91,7 @@ async function deserializeUserMessage(
 async function deserializeAssistantMessage(
   ctx: Context,
   message: AssistantMessage,
-  deps: DeserializeMessagesDeps,
+  deps: SerializationDeps,
   options?: AgentRunOptions,
 ): Promise<AssistantMessage> {
   if (typeof message.content === 'string') {
@@ -119,7 +115,7 @@ async function deserializeAssistantMessage(
 async function deserializeImagePart(
   ctx: Context,
   part: RequestImagePart,
-  deps: DeserializeMessagesDeps,
+  deps: SerializationDeps,
   options?: AgentRunOptions,
 ): Promise<RequestImagePart> {
   // No storage tracking - pass through
@@ -165,7 +161,7 @@ async function deserializeImagePart(
 async function deserializeFilePart(
   ctx: Context,
   part: RequestFilePart,
-  deps: DeserializeMessagesDeps,
+  deps: SerializationDeps,
   options?: AgentRunOptions,
 ): Promise<RequestFilePart> {
   // No storage tracking - pass through

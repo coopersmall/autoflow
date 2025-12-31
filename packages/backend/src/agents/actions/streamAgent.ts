@@ -11,9 +11,9 @@ import { orchestrateAgentRun } from './orchestrateAgentRun';
 
 /**
  * Dependencies required for streaming an agent.
- * Extends AgentExecutionDeps which includes all core agent infrastructure.
+ * Equivalent to AgentExecutionDeps which includes all core agent infrastructure.
  */
-export interface StreamAgentDeps extends AgentExecutionDeps {}
+export type StreamAgentDeps = AgentExecutionDeps;
 
 /**
  * Result yielded at the end of the stream containing the final outcome.

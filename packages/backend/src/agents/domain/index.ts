@@ -15,6 +15,7 @@ export type { AgentManifest } from './AgentManifest';
 export type { AgentRunConfig } from './AgentRunConfig';
 export type { AgentRunOptions } from './AgentRunOptions';
 export type { AgentRunState } from './AgentRunState';
+export type { IAgentService } from './AgentService';
 export {
   type AgentState,
   type AgentStateStatus,
@@ -39,4 +40,7 @@ export {
 export * from './dependencies';
 // Execution domain objects
 export * from './execution';
-export type { ParentAgentContext } from './ParentAgentContext';
+export {
+  type ParentAgentContext,
+  parentAgentContextSchema,
+} from './ParentAgentContext';

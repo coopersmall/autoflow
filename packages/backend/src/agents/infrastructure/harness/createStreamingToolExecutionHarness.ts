@@ -3,8 +3,14 @@ import type {
   StreamingToolExecutor,
 } from '@core/domain/agents';
 
+/**
+ * A streaming harness that wraps a tool executor with composed middleware.
+ * Provides a single execute method that runs the tool through the middleware chain,
+ * yielding events as they are produced.
+ */
 export interface StreamingToolExecutionHarness {
-  execute: StreamingToolExecutor;
+  /** Execute a tool call through the middleware chain, yielding events */
+  readonly execute: StreamingToolExecutor;
 }
 
 /**
@@ -25,5 +31,5 @@ export function createStreamingToolExecutionHarness(
     baseExecutor,
   );
 
-  return { execute: composedExecutor };
+  return Object.freeze({ execute: composedExecutor });
 }

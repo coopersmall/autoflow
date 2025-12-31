@@ -64,7 +64,7 @@ export async function prepareFromReply(
     return err(validationResult.error);
   }
 
-  // 2. Restore agent run state (deserialize messages, use pre-built tools)
+  // 4. Restore agent run state (deserialize messages, use pre-built tools)
   const restoreResult = await restoreAgentRun(
     ctx,
     manifest,
@@ -84,7 +84,7 @@ export async function prepareFromReply(
 
   const state = restoreResult.value;
 
-  // 3. Add user's reply message
+  // 5. Add user's reply message
   const userMessage: Message =
     typeof message === 'string'
       ? { role: 'user', content: [{ type: 'text', text: message }] }

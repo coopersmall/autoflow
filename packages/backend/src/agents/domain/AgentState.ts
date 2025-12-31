@@ -84,7 +84,7 @@ export const agentStateSchema = zod.strictObject({
   elapsedExecutionMs: zod.number().default(0),
 });
 
-export type AgentState = zod.infer<typeof agentStateSchema>;
+export type AgentState = Readonly<zod.infer<typeof agentStateSchema>>;
 export type AgentStateStatus = AgentState['status'];
 
 /**

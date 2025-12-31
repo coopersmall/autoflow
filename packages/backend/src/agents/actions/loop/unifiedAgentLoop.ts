@@ -1,8 +1,11 @@
-import type { AgentManifest, AgentRunState } from '@backend/agents/domain';
+import type {
+  AgentManifest,
+  AgentRunState,
+  CompletionDeps,
+} from '@backend/agents/domain';
 import type { LoopResult } from '@backend/agents/domain/execution';
 import type { OnStepStartResult } from '@backend/agents/hooks';
 import { buildStreamingToolExecutionHarness } from '@backend/agents/infrastructure/harness';
-import type { ICompletionsGateway } from '@backend/ai/completions/domain/CompletionsGateway';
 import type { Context } from '@backend/infrastructure/context/Context';
 import type { AgentEvent, AgentId } from '@core/domain/agents';
 import type { TextResponse, ToolCallPart } from '@core/domain/ai';
@@ -17,10 +20,6 @@ import { buildStepResult } from './buildStepResult';
 import { handleOutputValidation } from './handleOutputValidation';
 import { streamCompletionStep } from './streamCompletionStep';
 import { streamExecuteToolCalls } from './streamExecuteToolCalls';
-
-export interface UnifiedAgentLoopDeps {
-  readonly completionsGateway: ICompletionsGateway;
-}
 
 export interface UnifiedAgentLoopParams {
   readonly ctx: Context;
@@ -42,7 +41,7 @@ export interface UnifiedAgentLoopParams {
  */
 export async function* unifiedAgentLoop(
   params: UnifiedAgentLoopParams,
-  deps: UnifiedAgentLoopDeps,
+  deps: CompletionDeps,
 ): AsyncGenerator<Result<AgentEvent, AppError>, Result<LoopResult, AppError>> {
   const {
     ctx,
@@ -56,7 +55,7 @@ export async function* unifiedAgentLoop(
   let { messages, steps, stepNumber, outputValidationRetries } = state;
 
   // Build streaming harness (handles all tool types including streaming sub-agents)
-  const harness = buildStreamingToolExecutionHarness(manifest.config);
+  const harness = buildStreamingToolExecutionHarness();
 
   // Get allowed event types from manifest config
   const allowedEventTypes = getAllowedEventTypes(

@@ -1,23 +1,23 @@
-import type { AgentInput, AgentManifest } from '@backend/agents/domain';
+import type {
+  AgentExecutionDeps,
+  AgentInput,
+  AgentManifest,
+} from '@backend/agents/domain';
 import type { IMCPService } from '@backend/ai/mcp/domain/MCPService';
 import type { Context } from '@backend/infrastructure/context/Context';
 import type { AgentEvent, AgentRunResult } from '@core/domain/agents';
 import type { AppError } from '@core/errors/AppError';
-import { unreachable } from '@core/unreachable';
 import { err, ok, type Result } from 'neverthrow';
 import { type ExecuteAgentDeps, executeAgent } from './loop/executeAgent';
 import { prepareRunState } from './prepare';
 import { streamResumeFromSuspensionStack } from './resume';
 import type { StreamAgentDeps } from './streamAgent';
-import {
-  type BuildAgentToolsDeps,
-  buildAgentTools,
-} from './tools/buildAgentTools';
+import { buildAgentTools } from './tools/buildAgentTools';
 import { withCancellationPolling } from './withCancellationPolling';
 
 export interface OrchestrateAgentRunDeps
   extends ExecuteAgentDeps,
-    BuildAgentToolsDeps {
+    AgentExecutionDeps {
   readonly mcpService: IMCPService;
 }
 
@@ -143,13 +143,6 @@ export async function* orchestrateAgentRun(
     });
   }
 
-  // 6. Type is 'start' or 'continue' - wrap with cancellation polling
-  // TypeScript narrowing: at this point, type can only be 'start' or 'continue'
-  if (prepareValue.type !== 'start' && prepareValue.type !== 'continue') {
-    // This should never happen - all other cases are handled above
-    return unreachable(prepareValue);
-  }
-
   const { stateId, state, context, previousElapsedMs } = prepareValue;
   const isNewState = prepareValue.type === 'start';
   // For 'continue' type, extract parentContext and resolvedSuspensions from saved state
@@ -162,7 +155,6 @@ export async function* orchestrateAgentRun(
       ? prepareValue.resolvedSuspensions
       : undefined;
 
-  // Single place for cancellation polling wrapper
   const generator = withCancellationPolling(
     ctx,
     stateId,

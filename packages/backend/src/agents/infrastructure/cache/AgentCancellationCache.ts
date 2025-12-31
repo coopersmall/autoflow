@@ -27,13 +27,12 @@ export function createAgentCancellationCache(ctx: {
   appConfig: IAppConfigurationService;
   ttl?: number;
 }): IAgentCancellationCache {
-  return createSharedCache<AgentRunId, CancellationSignal>(
-    'agent-cancellation',
-    {
+  return Object.freeze(
+    createSharedCache<AgentRunId, CancellationSignal>('agent-cancellation', {
       logger: ctx.logger,
       appConfig: ctx.appConfig,
       validator: (input) => validate(cancellationSignalSchema, input),
       defaultTtl: ctx.ttl ?? DEFAULT_CANCELLATION_SIGNAL_TTL,
-    },
+    }),
   );
 }

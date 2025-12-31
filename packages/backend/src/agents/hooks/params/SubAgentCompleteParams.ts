@@ -20,6 +20,6 @@ export const subAgentCompleteParamsSchema = zod.strictObject({
   result: agentResultSchema,
 });
 
-export type SubAgentCompleteParams = zod.infer<
-  typeof subAgentCompleteParamsSchema
+export type SubAgentCompleteParams = Readonly<
+  zod.infer<typeof subAgentCompleteParamsSchema>
 >;

@@ -19,4 +19,6 @@ export const subAgentStartParamsSchema = zod.strictObject({
   toolCallId: zod.string(),
 });
 
-export type SubAgentStartParams = zod.infer<typeof subAgentStartParamsSchema>;
+export type SubAgentStartParams = Readonly<
+  zod.infer<typeof subAgentStartParamsSchema>
+>;

@@ -106,7 +106,7 @@ export async function createConversationObserver(
   const turnIndex = turnResult.value;
 
   // Create stateless observer - all state is in closures
-  const observer: AgentObserver = {
+  const observer: AgentObserver = Object.freeze({
     createHooks(
       observerContext: AgentObserverContext,
     ): Result<Partial<AgentManifestHooks>, AppError> {
@@ -120,10 +120,12 @@ export async function createConversationObserver(
         { conversationsService },
       );
     },
-  };
-
-  return ok({
-    conversationId,
-    observer,
   });
+
+  return ok(
+    Object.freeze({
+      conversationId,
+      observer,
+    }),
+  );
 }

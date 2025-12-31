@@ -21,4 +21,6 @@ export const agentErrorParamsSchema = zod.strictObject({
   toolCallId: zod.string().optional(),
 });
 
-export type AgentErrorParams = zod.infer<typeof agentErrorParamsSchema>;
+export type AgentErrorParams = Readonly<
+  zod.infer<typeof agentErrorParamsSchema>
+>;

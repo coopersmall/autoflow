@@ -1,8 +1,6 @@
-// Re-export domain types for backwards compatibility
-// UnifiedLoopResult renamed to LoopResult in domain
+// Re-export domain types for convenience
 export type {
-  LoopResult as AgentLoopResult,
-  LoopResult as UnifiedLoopResult,
+  LoopResult,
   SuspendedBranch,
 } from '@backend/agents/domain/execution';
 // consumeGenerator moved to ../utils
@@ -24,7 +22,6 @@ export {
 } from './executeAgentLoop';
 export {
   type ExecuteToolCallsParams,
-  type ExecuteToolCallsResult,
   executeToolCalls,
 } from './executeToolCalls';
 export {
@@ -37,7 +34,14 @@ export {
   streamExecuteToolCalls,
 } from './streamExecuteToolCalls';
 export {
-  type UnifiedAgentLoopDeps,
+  buildToolCallResults,
+  type CompletedToolCallResult,
+  type ExecuteToolCallsResult,
+  type SuspendedToolCallResult,
+  type ToolCallResult,
+  type UnknownToolCallResult,
+} from './toolCallResult';
+export {
   type UnifiedAgentLoopParams,
   unifiedAgentLoop,
 } from './unifiedAgentLoop';

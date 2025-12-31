@@ -20,4 +20,6 @@ export const agentStartParamsSchema = zod.strictObject({
   toolCallId: zod.string().optional(),
 });
 
-export type AgentStartParams = zod.infer<typeof agentStartParamsSchema>;
+export type AgentStartParams = Readonly<
+  zod.infer<typeof agentStartParamsSchema>
+>;

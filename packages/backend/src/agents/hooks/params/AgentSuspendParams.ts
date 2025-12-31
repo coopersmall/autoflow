@@ -22,4 +22,6 @@ export const agentSuspendParamsSchema = zod.strictObject({
   toolCallId: zod.string().optional(),
 });
 
-export type AgentSuspendParams = zod.infer<typeof agentSuspendParamsSchema>;
+export type AgentSuspendParams = Readonly<
+  zod.infer<typeof agentSuspendParamsSchema>
+>;

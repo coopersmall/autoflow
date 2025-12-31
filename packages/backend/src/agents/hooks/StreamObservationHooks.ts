@@ -15,5 +15,5 @@ export interface StreamObservationHooks {
    * Called for each stream event when emitStreamEvents is true.
    * Returns Result - errors abort the run.
    */
-  onStreamEvent?: LifecycleHook<AgentEvent>;
+  readonly onStreamEvent?: LifecycleHook<AgentEvent>;
 }

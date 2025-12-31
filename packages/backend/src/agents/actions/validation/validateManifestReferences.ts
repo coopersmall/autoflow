@@ -3,11 +3,23 @@ import type { AgentManifest } from '@backend/agents/domain';
 import type { AppError } from '@core/errors/AppError';
 import { badRequest } from '@core/errors/factories';
 import { err, ok, type Result } from 'neverthrow';
-import { detectCircularReferences } from './detectCircularReferences';
+import { validateCircularReferences } from './validateCircularDependencies';
 
-export function validateReferences(
-  manifests: AgentManifest[],
-  manifestMap: Map<ManifestKey, AgentManifest>,
+/**
+ * Validates manifest references for an agent run configuration.
+ *
+ * Checks for:
+ * 1. Version conflicts (same manifest ID with different versions)
+ * 2. Missing sub-agent references (sub-agent manifests not provided)
+ * 3. Circular sub-agent dependencies
+ *
+ * @param manifests - Array of all agent manifests in the configuration
+ * @param manifestMap - Map of ManifestKey to AgentManifest for efficient lookups
+ * @returns Ok if valid, Err with details if any validation fails
+ */
+export function validateManifestReferences(
+  manifests: readonly AgentManifest[],
+  manifestMap: ReadonlyMap<ManifestKey, AgentManifest>,
 ): Result<void, AppError> {
   // Check for version conflicts (same ID, different versions)
   const idToVersions = new Map<string, string[]>();
@@ -52,7 +64,7 @@ export function validateReferences(
   }
 
   // Check for circular references
-  const circularResult = detectCircularReferences(manifests, manifestMap);
+  const circularResult = validateCircularReferences(manifests, manifestMap);
   if (circularResult.isErr()) {
     return err(circularResult.error);
   }

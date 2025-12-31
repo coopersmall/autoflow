@@ -1,7 +1,3 @@
-import type {
-  AgentManifestConfig,
-  StreamingToolExecutionMiddleware,
-} from '@core/domain/agents';
 import { createStreamingBaseToolExecutor } from './createStreamingBaseToolExecutor';
 import {
   createStreamingToolExecutionHarness,
@@ -9,20 +5,18 @@ import {
 } from './createStreamingToolExecutionHarness';
 
 /**
- * Builds a streaming tool execution harness from the manifest config.
+ * Builds a streaming tool execution harness with the base executor.
  *
- * TODO: Implement middleware configuration from manifest.config.toolMiddleware.
- * Currently returns an empty middleware array as middleware is not yet configurable.
+ * Note: Per-tool middleware is applied in buildAgentTools when wrapping
+ * individual tool execute functions. The harness itself uses no middleware.
  *
- * @param _config - Reserved for future middleware configuration
  * @returns A streaming tool execution harness with base executor
  */
-export function buildStreamingToolExecutionHarness(
-  _config: AgentManifestConfig,
-): StreamingToolExecutionHarness {
-  const middleware: StreamingToolExecutionMiddleware[] = [];
-  return createStreamingToolExecutionHarness(
-    createStreamingBaseToolExecutor(),
-    middleware,
+export function buildStreamingToolExecutionHarness(): StreamingToolExecutionHarness {
+  return Object.freeze(
+    createStreamingToolExecutionHarness(
+      createStreamingBaseToolExecutor(),
+      [], // No harness-level middleware - applied per-tool in buildAgentTools
+    ),
   );
 }

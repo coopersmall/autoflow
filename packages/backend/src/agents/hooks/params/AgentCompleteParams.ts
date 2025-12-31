@@ -22,4 +22,6 @@ export const agentCompleteParamsSchema = zod.strictObject({
   toolCallId: zod.string().optional(),
 });
 
-export type AgentCompleteParams = zod.infer<typeof agentCompleteParamsSchema>;
+export type AgentCompleteParams = Readonly<
+  zod.infer<typeof agentCompleteParamsSchema>
+>;

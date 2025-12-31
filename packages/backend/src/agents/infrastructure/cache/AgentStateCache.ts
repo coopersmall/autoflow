@@ -23,10 +23,12 @@ export function createAgentStateCache(ctx: {
   appConfig: IAppConfigurationService;
   ttl?: number;
 }): IAgentStateCache {
-  return createSharedCache<AgentRunId, AgentState>('agent-states', {
-    logger: ctx.logger,
-    appConfig: ctx.appConfig,
-    validator: (input) => validate(agentStateSchema, input),
-    defaultTtl: ctx.ttl ?? DEFAULT_AGENT_STATE_TTL,
-  });
+  return Object.freeze(
+    createSharedCache<AgentRunId, AgentState>('agent-states', {
+      logger: ctx.logger,
+      appConfig: ctx.appConfig,
+      validator: (input) => validate(agentStateSchema, input),
+      defaultTtl: ctx.ttl ?? DEFAULT_AGENT_STATE_TTL,
+    }),
+  );
 }

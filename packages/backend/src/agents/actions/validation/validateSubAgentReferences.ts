@@ -10,7 +10,7 @@ import { err, ok, type Result } from 'neverthrow';
  */
 export function validateSubAgentReferences(
   manifest: AgentManifest,
-  manifestMap: Map<ManifestKey, AgentManifest>,
+  manifestMap: ReadonlyMap<ManifestKey, AgentManifest>,
 ): Result<void, AppError> {
   if (!manifest.config.subAgents || manifest.config.subAgents.length === 0) {
     return ok(undefined);

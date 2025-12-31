@@ -208,6 +208,10 @@ async function handleRunningCancellation(
  *
  * Extracts child state IDs from suspension stacks (not childStateIds field)
  * and recursively cancels children before marking this state as cancelled.
+ *
+ * Re-verifies state before updating to handle TOCTOU race conditions where
+ * the agent may have transitioned to a different state between initial check
+ * and cancellation.
  */
 async function handleSuspendedCancellation(
   ctx: Context,
@@ -228,9 +232,44 @@ async function handleSuspendedCancellation(
     );
   }
 
+  // Re-verify state before updating (TOCTOU protection)
+  // State may have changed during recursive child cancellation
+  const freshStateResult = await getAgentState(ctx, stateId, deps);
+  if (freshStateResult.isErr()) {
+    return err(freshStateResult.error);
+  }
+
+  const freshState = freshStateResult.value;
+  if (!freshState) {
+    return err(notFound('Agent state not found', { metadata: { stateId } }));
+  }
+
+  // Handle state transitions that occurred during child cancellation
+  switch (freshState.status) {
+    case 'cancelled':
+      return ok({ type: 'already-cancelled', stateId });
+
+    case 'completed':
+    case 'failed':
+      return err(
+        badRequest(
+          `Cannot cancel agent that has already ${freshState.status}`,
+          { metadata: { stateId, status: freshState.status } },
+        ),
+      );
+
+    case 'running':
+      // Agent resumed while we were cancelling children - delegate to running handler
+      return handleRunningCancellation(ctx, stateId, freshState, deps, options);
+
+    case 'suspended':
+      // Still suspended - proceed with cancellation
+      break;
+  }
+
   // Mark this state as cancelled
   const updatedState: AgentState = {
-    ...state,
+    ...freshState,
     status: 'cancelled',
     updatedAt: new Date(),
   };

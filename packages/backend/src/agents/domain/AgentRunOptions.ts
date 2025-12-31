@@ -1,7 +1,7 @@
 /**
  * Represents configuration options for running an agent
  */
-export type AgentRunOptions = {
+export type AgentRunOptions = Readonly<{
   /**
    * Custom storage folder for agent binary content (e.g., images).
    * Defaults to AGENT_CONTENT_FOLDER.
@@ -56,4 +56,4 @@ export type AgentRunOptions = {
    * Defaults to false.
    */
   emitStreamEvents?: boolean;
-};
+}>;

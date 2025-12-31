@@ -1,4 +1,3 @@
-import type { SuspendedBranch } from '@backend/agents/domain/execution';
 import type { StreamingToolExecutionHarness } from '@backend/agents/infrastructure/harness';
 import type { Context } from '@backend/infrastructure/context/Context';
 import type {
@@ -6,20 +5,15 @@ import type {
   AgentId,
   AgentRunId,
   AgentToolResult,
-  CompletedAgentToolResult,
-  Suspension,
-  SuspensionStack,
 } from '@core/domain/agents';
-import type {
-  Message,
-  RequestToolResultPart,
-  ToolCall,
-  ToolWithExecution,
-} from '@core/domain/ai';
+import type { Message, ToolCall, ToolWithExecution } from '@core/domain/ai';
 import type { AppError } from '@core/errors/AppError';
 import type { Result } from 'neverthrow';
-import { convertAgentToolResultForLLM } from '../tools/convertAgentToolResultForLLM';
-import type { ExecuteToolCallsResult } from './executeToolCalls';
+import {
+  buildToolCallResults,
+  type ExecuteToolCallsResult,
+  type ToolCallResult,
+} from './toolCallResult';
 
 /**
  * Parameters for streaming tool execution.
@@ -59,29 +53,6 @@ interface GeneratorState {
   done: boolean;
   result?: AgentToolResult;
 }
-
-/**
- * Result of a single tool call execution.
- */
-type StreamToolCallResult =
-  | {
-      type: 'completed';
-      toolCall: ToolCall;
-      result: CompletedAgentToolResult;
-    }
-  | {
-      type: 'suspended';
-      toolCallId: string;
-      childStateId: AgentRunId;
-      childManifestId: AgentId;
-      childManifestVersion: string;
-      suspensions: Suspension[];
-      childStacks: SuspensionStack[];
-    }
-  | {
-      type: 'unknown-tool';
-      toolCall: ToolCall;
-    };
 
 /**
  * Streaming tool execution - yields events from tool execution.
@@ -179,6 +150,11 @@ const ABORTED = Symbol('aborted');
 /**
  * Creates a promise that resolves when the abort signal fires.
  * Returns a sentinel value instead of rejecting for graceful handling.
+ *
+ * MEMORY SAFETY: This promise uses `{ once: true }` for the event listener,
+ * preventing listener accumulation. The promise itself is garbage collected
+ * when no longer referenced after Promise.race completes. The sentinel pattern
+ * avoids unhandled rejection issues when abort doesn't occur.
  */
 function createAbortPromise<T>(signal: AbortSignal, sentinel: T): Promise<T> {
   return new Promise((resolve) => {
@@ -247,7 +223,6 @@ async function* interleaveGenerators(
       return { aborted: true };
     }
 
-    // TypeScript narrowing: raceResult is PendingResult
     const { state, result } = raceResult;
 
     // Remove the completed promise
@@ -282,7 +257,7 @@ function buildStreamingResults(
   states: GeneratorState[],
   aborted: boolean,
 ): ExecuteToolCallsResult {
-  const results: StreamToolCallResult[] = states.map((state) => {
+  const results: ToolCallResult[] = states.map((state) => {
     const { toolCall, result } = state;
 
     // Handle generators that didn't complete due to abort
@@ -295,7 +270,7 @@ function buildStreamingResults(
           error: 'Operation cancelled',
           code: 'Cancelled',
           retryable: false,
-        } satisfies CompletedAgentToolResult,
+        },
       };
     }
 
@@ -328,54 +303,6 @@ function buildStreamingResults(
     };
   });
 
-  // Build the final result structure (same as executeToolCalls)
-  const toolResultParts: RequestToolResultPart[] = [];
-  const branches: SuspendedBranch[] = [];
-
-  for (const result of results) {
-    switch (result.type) {
-      case 'unknown-tool':
-        toolResultParts.push({
-          type: 'tool-result',
-          toolCallId: result.toolCall.toolCallId,
-          toolName: result.toolCall.toolName,
-          output: {
-            type: 'error-text',
-            value: `Unknown tool: ${result.toolCall.toolName}`,
-          },
-          isError: true,
-        });
-        break;
-
-      case 'suspended':
-        branches.push({
-          toolCallId: result.toolCallId,
-          childStateId: result.childStateId,
-          childManifestId: result.childManifestId,
-          childManifestVersion: result.childManifestVersion,
-          suspensions: result.suspensions,
-          childStacks: result.childStacks,
-        });
-        break;
-
-      case 'completed':
-        toolResultParts.push(
-          convertAgentToolResultForLLM(result.toolCall, result.result),
-        );
-        break;
-    }
-  }
-
-  if (branches.length > 0) {
-    return {
-      type: 'suspended',
-      branches,
-      completedToolResultParts: toolResultParts,
-    };
-  }
-
-  return {
-    type: 'completed',
-    toolResultParts,
-  };
+  // Use shared function to build the final result structure
+  return buildToolCallResults(results);
 }

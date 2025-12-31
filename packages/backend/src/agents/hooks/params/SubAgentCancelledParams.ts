@@ -16,6 +16,6 @@ export const subAgentCancelledParamsSchema = zod.strictObject({
   reason: zod.string().optional(),
 });
 
-export type SubAgentCancelledParams = zod.infer<
-  typeof subAgentCancelledParamsSchema
+export type SubAgentCancelledParams = Readonly<
+  zod.infer<typeof subAgentCancelledParamsSchema>
 >;

@@ -31,26 +31,6 @@ export function createMockDeps() {
 }
 
 /**
- * Creates a mock runAgent action that returns the specified result.
- * @deprecated Use createMockStreamAgent instead for streaming architecture
- */
-export function createMockRunAgent(returnValue: AgentRunResult) {
-  return mock().mockResolvedValue(ok(returnValue));
-}
-
-/**
- * Creates a mock runAgent that returns different results for each call.
- * @deprecated Use createMockStreamAgentSequence instead for streaming architecture
- */
-export function createMockRunAgentSequence(results: AgentRunResult[]) {
-  const mockFn = mock();
-  for (const result of results) {
-    mockFn.mockResolvedValueOnce(ok(result));
-  }
-  return mockFn;
-}
-
-/**
  * Creates a mock state cache that returns states from a map.
  */
 export function setupStateCacheWithStates(states: Map<AgentRunId, AgentState>) {

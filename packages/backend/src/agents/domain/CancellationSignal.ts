@@ -16,4 +16,6 @@ export const cancellationSignalSchema = zod.strictObject({
   reason: zod.string().optional(),
 });
 
-export type CancellationSignal = zod.infer<typeof cancellationSignalSchema>;
+export type CancellationSignal = Readonly<
+  zod.infer<typeof cancellationSignalSchema>
+>;

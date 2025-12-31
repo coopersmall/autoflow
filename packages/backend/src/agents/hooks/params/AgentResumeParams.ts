@@ -25,4 +25,6 @@ export const agentResumeParamsSchema = zod.strictObject({
   toolCallId: zod.string().optional(),
 });
 
-export type AgentResumeParams = zod.infer<typeof agentResumeParamsSchema>;
+export type AgentResumeParams = Readonly<
+  zod.infer<typeof agentResumeParamsSchema>
+>;

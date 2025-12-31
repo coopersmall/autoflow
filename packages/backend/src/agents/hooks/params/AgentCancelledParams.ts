@@ -18,4 +18,6 @@ export const agentCancelledParamsSchema = zod.strictObject({
   toolCallId: zod.string().optional(),
 });
 
-export type AgentCancelledParams = zod.infer<typeof agentCancelledParamsSchema>;
+export type AgentCancelledParams = Readonly<
+  zod.infer<typeof agentCancelledParamsSchema>
+>;

@@ -6,8 +6,8 @@ import {
   openAIProviderSchema,
 } from '../../ai/providers/AIProviders';
 import { stopWhenSchema } from '../../ai/request/completions/hooks/stopWhen/StopWhen';
-import { toolSchema } from '../../ai/request/completions/tools/Tool';
 import { agentIdSchema } from '../AgentId';
+import { agentToolConfigSchema } from './AgentToolConfig';
 import { outputToolConfigSchema } from './OutputToolConfig';
 import { type StreamingConfig, streamingConfigSchema } from './StreamingConfig';
 import { subAgentConfigSchema } from './SubAgentConfig';
@@ -41,7 +41,7 @@ export const agentManifestConfigSchema = zod.strictObject({
   instructions: zod.string().describe('System prompt for the agent'),
 
   // Tools (definitions only - executors are in hooks)
-  tools: zod.array(toolSchema).optional(),
+  tools: zod.array(agentToolConfigSchema).optional(),
   mcpServers: zod.array(mcpServerConfigSchema).optional(),
   subAgents: zod.array(subAgentConfigSchema).optional(),
 

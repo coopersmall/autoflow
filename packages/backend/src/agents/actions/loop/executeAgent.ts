@@ -300,11 +300,8 @@ export async function* executeAgent(
           parentManifestVersion: parentContext?.parentManifestVersion,
           toolCallId: parentContext?.toolCallId,
         });
-        // Note: We don't fail on terminal hook errors - the agent already completed
         if (hookResult.isErr()) {
-          deps.logger.info('onAgentComplete hook failed', {
-            error: hookResult.error,
-          });
+          return err(hookResult.error);
         }
       }
 
@@ -328,9 +325,7 @@ export async function* executeAgent(
           toolCallId: parentContext?.toolCallId,
         });
         if (hookResult.isErr()) {
-          deps.logger.info('onAgentSuspend hook failed', {
-            error: hookResult.error,
-          });
+          return err(hookResult.error);
         }
       }
 
@@ -357,9 +352,7 @@ export async function* executeAgent(
           toolCallId: parentContext?.toolCallId,
         });
         if (hookResult.isErr()) {
-          deps.logger.info('onAgentCancelled hook failed', {
-            error: hookResult.error,
-          });
+          return err(hookResult.error);
         }
       }
 
@@ -385,9 +378,7 @@ export async function* executeAgent(
           toolCallId: parentContext?.toolCallId,
         });
         if (hookResult.isErr()) {
-          deps.logger.info('onAgentError hook failed', {
-            error: hookResult.error,
-          });
+          return err(hookResult.error);
         }
       }
 

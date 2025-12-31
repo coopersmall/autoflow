@@ -6,7 +6,7 @@ import { ManifestKey, type SuspensionStackEntry } from '@core/domain/agents';
  */
 export function lookupManifest(
   entry: SuspensionStackEntry,
-  manifestMap: Map<ManifestKey, AgentManifest>,
+  manifestMap: ReadonlyMap<ManifestKey, AgentManifest>,
 ): AgentManifest | undefined {
   const key = ManifestKey({
     id: entry.manifestId,

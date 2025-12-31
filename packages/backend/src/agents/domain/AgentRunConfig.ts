@@ -9,9 +9,9 @@ import type { AgentManifest } from './AgentManifest';
  * This keeps serializable config (AgentManifest.config) separate from
  * runtime functions (AgentManifest.hooks).
  */
-export type AgentRunConfig = {
+export type AgentRunConfig = Readonly<{
   rootManifestId: AgentId;
-  manifests: AgentManifest[];
+  manifests: readonly AgentManifest[];
 
   /**
    * Optional observers applied to all manifests.
@@ -23,5 +23,5 @@ export type AgentRunConfig = {
    * const runConfig = { rootManifestId, manifests, observers: [observer] };
    * ```
    */
-  observers?: AgentObserver[];
-};
+  observers?: readonly AgentObserver[];
+}>;

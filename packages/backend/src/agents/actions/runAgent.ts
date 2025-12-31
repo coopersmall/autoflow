@@ -11,9 +11,9 @@ import { orchestrateAgentRun } from './orchestrateAgentRun';
 
 /**
  * Dependencies required for running an agent.
- * Extends AgentExecutionDeps which includes all core agent infrastructure.
+ * Equivalent to AgentExecutionDeps which includes all core agent infrastructure.
  */
-export interface RunAgentDeps extends AgentExecutionDeps {}
+export type RunAgentDeps = AgentExecutionDeps;
 
 /**
  * Non-streaming agent execution entry point.
@@ -27,8 +27,8 @@ export interface RunAgentDeps extends AgentExecutionDeps {}
  * 3. Resume suspended agent after tool approval
  *
  * NOTE: Callers should validate the agent configuration before calling this function
- * using `validateAgentConfig(manifest, manifests)` to ensure sub-agent references
- * and other config validations pass. This validation will be automatic when using
+ * using `validateAgentRunConfig(config)` to ensure sub-agent references
+ * and other config validations pass. This validation is automatic when using
  * AgentService, but direct callers should validate manually.
  *
  * @param ctx - The request context with correlationId and abort signal

@@ -20,6 +20,6 @@ export const subAgentSuspendParamsSchema = zod.strictObject({
   suspensions: zod.array(suspensionSchema),
 });
 
-export type SubAgentSuspendParams = zod.infer<
-  typeof subAgentSuspendParamsSchema
+export type SubAgentSuspendParams = Readonly<
+  zod.infer<typeof subAgentSuspendParamsSchema>
 >;

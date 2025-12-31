@@ -19,9 +19,6 @@ export interface StreamAgentLoopParams {
   readonly parentManifestId?: AgentId;
 }
 
-// StreamAgentLoopResult is now LoopResult from domain (imported above)
-export type { LoopResult as StreamAgentLoopResult } from '@backend/agents/domain/execution';
-
 /**
  * Streaming agent execution loop - thin wrapper around unifiedAgentLoop.
  *

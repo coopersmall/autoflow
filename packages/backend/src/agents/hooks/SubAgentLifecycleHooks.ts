@@ -19,17 +19,17 @@ export interface SubAgentLifecycleHooks {
    * Called when a sub-agent starts.
    * Fired AFTER receiving agent-started event (child state exists).
    */
-  onSubAgentStart?: LifecycleHook<SubAgentStartParams>;
+  readonly onSubAgentStart?: LifecycleHook<SubAgentStartParams>;
 
   /** Called when a sub-agent completes successfully. */
-  onSubAgentComplete?: LifecycleHook<SubAgentCompleteParams>;
+  readonly onSubAgentComplete?: LifecycleHook<SubAgentCompleteParams>;
 
   /** Called when a sub-agent suspends. */
-  onSubAgentSuspend?: LifecycleHook<SubAgentSuspendParams>;
+  readonly onSubAgentSuspend?: LifecycleHook<SubAgentSuspendParams>;
 
   /** Called when a sub-agent errors. */
-  onSubAgentError?: LifecycleHook<SubAgentErrorParams>;
+  readonly onSubAgentError?: LifecycleHook<SubAgentErrorParams>;
 
   /** Called when a sub-agent is cancelled. */
-  onSubAgentCancelled?: LifecycleHook<SubAgentCancelledParams>;
+  readonly onSubAgentCancelled?: LifecycleHook<SubAgentCancelledParams>;
 }

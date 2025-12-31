@@ -1,19 +1,19 @@
 import type { AgentManifest } from '@backend/agents/domain';
+import type { LoopResult } from '@backend/agents/domain/execution';
 import type { AgentRunId, AgentRunResult } from '@core/domain/agents';
 import { unreachable } from '@core/unreachable';
 import { ok, type Result } from 'neverthrow';
 import { buildSuspensionStacks } from './buildSuspensionStacks';
-import type { AgentLoopResult } from './executeAgentLoop';
 
 /**
  * Builds the final AgentRunResult from the loop result and saved state ID.
  *
- * Transforms the internal AgentLoopResult into the public-facing AgentRunResult
+ * Transforms the internal LoopResult into the public-facing AgentRunResult
  * by attaching the runId to each status variant and building suspension stacks
  * for sub-agent suspensions.
  */
 export function buildAgentRunResult(
-  loopResult: AgentLoopResult,
+  loopResult: LoopResult,
   runId: AgentRunId,
   manifest: AgentManifest,
 ): Result<AgentRunResult, never> {

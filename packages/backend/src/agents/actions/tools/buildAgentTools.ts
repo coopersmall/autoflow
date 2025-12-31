@@ -1,12 +1,6 @@
-import type { AgentManifest } from '@backend/agents/domain';
-import type { IAgentCancellationCache } from '@backend/agents/infrastructure/cache';
-import type { IAgentRunLock } from '@backend/agents/infrastructure/lock';
-import type { ICompletionsGateway } from '@backend/ai/completions/domain/CompletionsGateway';
+import type { AgentExecutionDeps, AgentManifest } from '@backend/agents/domain';
 import type { IMCPClient } from '@backend/ai/mcp/domain/MCPClient';
-import type { IMCPService } from '@backend/ai/mcp/domain/MCPService';
 import type { Context } from '@backend/infrastructure/context/Context';
-import type { ILogger } from '@backend/infrastructure/logger/Logger';
-import type { IStorageService } from '@backend/storage/domain/StorageService';
 import {
   type AgentExecuteFunction,
   type AgentTool,
@@ -16,23 +10,8 @@ import {
 import type { AppError } from '@core/errors/AppError';
 import { notFound } from '@core/errors/factories';
 import { err, ok, type Result } from 'neverthrow';
-import type { IAgentStateCache } from '../../infrastructure/cache';
 import { createOutputTool } from './createOutputTool';
 import { createStreamingSubAgentTool } from './createStreamingSubAgentTool';
-
-/**
- * Dependencies required for building agent tools.
- * Defined explicitly to avoid circular dependency with StreamAgentDeps.
- */
-export interface BuildAgentToolsDeps {
-  readonly completionsGateway: ICompletionsGateway;
-  readonly mcpService: IMCPService;
-  readonly stateCache: IAgentStateCache;
-  readonly storageService: IStorageService;
-  readonly logger: ILogger;
-  readonly agentRunLock: IAgentRunLock;
-  readonly cancellationCache: IAgentCancellationCache;
-}
 
 export interface BuildAgentToolsResult {
   readonly tools: AgentTool[];
@@ -59,8 +38,8 @@ export interface BuildAgentToolsResult {
 export async function buildAgentTools(
   ctx: Context,
   manifest: AgentManifest,
-  manifestMap: Map<ManifestKey, AgentManifest>,
-  deps: BuildAgentToolsDeps,
+  manifestMap: ReadonlyMap<ManifestKey, AgentManifest>,
+  deps: AgentExecutionDeps,
 ): Promise<Result<BuildAgentToolsResult, AppError>> {
   const tools: AgentTool[] = [];
   const mcpClients: IMCPClient[] = [];
@@ -83,8 +62,7 @@ export async function buildAgentTools(
 
   // Add manifest tools with executors from hooks
   for (const tool of manifest.config.tools ?? []) {
-    const agentExecute = manifest.hooks?.toolExecutors?.[tool.function.name];
-    const execute = agentExecute;
+    const execute = manifest.hooks?.toolExecutors?.[tool.function.name];
     tools.push({ ...tool, execute });
   }
 

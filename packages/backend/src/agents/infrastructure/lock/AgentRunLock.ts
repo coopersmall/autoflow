@@ -34,10 +34,12 @@ export function createAgentRunLock(ctx: {
   appConfig: IAppConfigurationService;
   ttl?: number;
 }): IAgentRunLock {
-  return createDistributedLock<AgentRunId>('agent-run', {
-    logger: ctx.logger,
-    appConfig: ctx.appConfig,
-    provider: 'redis',
-    defaultTtl: ctx.ttl ?? DEFAULT_AGENT_RUN_LOCK_TTL,
-  });
+  return Object.freeze(
+    createDistributedLock<AgentRunId>('agent-run', {
+      logger: ctx.logger,
+      appConfig: ctx.appConfig,
+      provider: 'redis',
+      defaultTtl: ctx.ttl ?? DEFAULT_AGENT_RUN_LOCK_TTL,
+    }),
+  );
 }

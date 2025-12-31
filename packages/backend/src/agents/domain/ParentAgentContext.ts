@@ -15,4 +15,6 @@ export const parentAgentContextSchema = zod.strictObject({
  * Context about the parent agent when this agent is invoked as a sub-agent.
  * Threaded through the call stack to provide parent info to hooks.
  */
-export type ParentAgentContext = zod.infer<typeof parentAgentContextSchema>;
+export type ParentAgentContext = Readonly<
+  zod.infer<typeof parentAgentContextSchema>
+>;

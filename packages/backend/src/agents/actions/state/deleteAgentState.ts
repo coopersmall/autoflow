@@ -27,11 +27,11 @@ export interface DeleteAgentStateOptions {
 export async function deleteAgentState(
   ctx: Context,
   stateId: AgentRunId,
-  options: DeleteAgentStateOptions,
   deps: StateDeps,
+  options?: DeleteAgentStateOptions,
 ): Promise<Result<void, AppError>> {
   // If recursive, load state to get child IDs
-  if (options.recursive) {
+  if (options?.recursive) {
     const stateResult = await getAgentState(ctx, stateId, deps);
     if (stateResult.isErr()) {
       return err(stateResult.error);
@@ -42,12 +42,9 @@ export async function deleteAgentState(
     // If state exists, recursively delete children first
     if (state) {
       for (const childId of state.childStateIds) {
-        const deleteResult = await deleteAgentState(
-          ctx,
-          childId,
-          { recursive: true },
-          deps,
-        );
+        const deleteResult = await deleteAgentState(ctx, childId, deps, {
+          recursive: true,
+        });
         if (deleteResult.isErr()) {
           return deleteResult;
         }

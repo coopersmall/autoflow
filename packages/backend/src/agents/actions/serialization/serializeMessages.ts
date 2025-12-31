@@ -1,7 +1,8 @@
-import type { AgentRunOptions } from '@backend/agents/domain';
+import type {
+  AgentRunOptions,
+  SerializationDeps,
+} from '@backend/agents/domain';
 import type { Context } from '@backend/infrastructure/context';
-import type { ILogger } from '@backend/infrastructure/logger/Logger';
-import type { IStorageService } from '@backend/storage/domain/StorageService';
 import type {
   AssistantMessage,
   Message,
@@ -11,7 +12,10 @@ import type {
   RequestUserContentPart,
   UserMessage,
 } from '@core/domain/ai/request/completions';
-import { FileAssetId } from '@core/domain/file';
+import {
+  type FileAssetId,
+  FileAssetId as newFileAssetId,
+} from '@core/domain/file';
 import type { AppError } from '@core/errors/AppError';
 import { internalError } from '@core/errors/factories';
 import { unreachable } from '@core/unreachable';
@@ -25,11 +29,6 @@ import {
   getExtensionFromMediaType,
 } from './serializationUtils';
 
-export interface SerializeMessagesDeps {
-  readonly storageService: IStorageService;
-  readonly logger: ILogger;
-}
-
 /**
  * Serialize messages for state persistence.
  * Uploads binary content (images and files with Uint8Array data) to storage and replaces with signed URLs.
@@ -37,7 +36,7 @@ export interface SerializeMessagesDeps {
 export async function serializeMessages(
   ctx: Context,
   messages: Message[],
-  deps: SerializeMessagesDeps,
+  deps: SerializationDeps,
   options?: AgentRunOptions,
 ): Promise<Result<Message[], AppError>> {
   const serialized: Message[] = [];
@@ -56,7 +55,7 @@ export async function serializeMessages(
 async function serializeMessage(
   ctx: Context,
   message: Message,
-  deps: SerializeMessagesDeps,
+  deps: SerializationDeps,
   options?: AgentRunOptions,
 ): Promise<Result<Message, AppError>> {
   switch (message.role) {
@@ -76,7 +75,7 @@ async function serializeMessage(
 async function serializeUserMessage(
   ctx: Context,
   message: UserMessage,
-  deps: SerializeMessagesDeps,
+  deps: SerializationDeps,
   options?: AgentRunOptions,
 ): Promise<Result<UserMessage, AppError>> {
   if (typeof message.content === 'string') {
@@ -109,7 +108,7 @@ async function serializeUserMessage(
 async function serializeAssistantMessage(
   ctx: Context,
   message: AssistantMessage,
-  deps: SerializeMessagesDeps,
+  deps: SerializationDeps,
   options?: AgentRunOptions,
 ): Promise<Result<AssistantMessage, AppError>> {
   if (typeof message.content === 'string') {
@@ -133,28 +132,46 @@ async function serializeAssistantMessage(
   return ok({ role: 'assistant', content: serializedParts });
 }
 
-async function serializeImagePart(
+/**
+ * Parameters for uploading binary content to storage.
+ */
+interface UploadBinaryParams {
+  readonly binary: Uint8Array;
+  readonly mediaType: string;
+  readonly contentType: 'image' | 'file';
+  /** Optional filename override. If not provided, generates from fileId + extension. */
+  readonly filenameOverride?: string;
+}
+
+/**
+ * Result of a successful binary upload.
+ */
+interface UploadBinaryResult {
+  readonly fileId: FileAssetId;
+  readonly filename: string;
+  readonly url: string;
+}
+
+/**
+ * Uploads binary content to storage and returns a signed download URL.
+ * Shared helper for both image and file serialization.
+ */
+async function uploadBinaryContent(
   ctx: Context,
-  part: RequestImagePart,
-  deps: SerializeMessagesDeps,
+  params: UploadBinaryParams,
+  deps: SerializationDeps,
   options?: AgentRunOptions,
-): Promise<Result<RequestImagePart, AppError>> {
-  // Already a string (URL or base64) - pass through
-  if (typeof part.image === 'string') {
-    return ok(part);
-  }
+): Promise<Result<UploadBinaryResult, AppError>> {
+  const { binary, mediaType, contentType, filenameOverride } = params;
+  const fileId = newFileAssetId();
+  const extension = getExtensionFromMediaType(mediaType);
+  const filename = filenameOverride ?? `${fileId}.${extension}`;
 
-  // Binary content (Uint8Array) - upload to storage
-  const binary = part.image;
-  const fileId = FileAssetId();
-  const extension = getExtensionFromMediaType(part.mediaType);
-  const filename = `${fileId}.${extension}`;
-  const mediaType = part.mediaType ?? 'application/octet-stream';
-
-  deps.logger.debug('Uploading binary image to storage', {
+  deps.logger.debug(`Uploading binary ${contentType} to storage`, {
     fileId,
     size: binary.byteLength,
     mediaType,
+    filename,
   });
 
   // Upload binary content
@@ -170,9 +187,13 @@ async function serializeImagePart(
   });
 
   if (uploadResult.isErr()) {
-    deps.logger.error('Failed to upload binary image', uploadResult.error, {
-      fileId,
-    });
+    deps.logger.error(
+      `Failed to upload binary ${contentType}`,
+      uploadResult.error,
+      {
+        fileId,
+      },
+    );
     return err(uploadResult.error);
   }
 
@@ -205,18 +226,53 @@ async function serializeImagePart(
   }
 
   return ok({
+    fileId,
+    filename,
+    url: downloadUrlResult.value.url,
+  });
+}
+
+async function serializeImagePart(
+  ctx: Context,
+  part: RequestImagePart,
+  deps: SerializationDeps,
+  options?: AgentRunOptions,
+): Promise<Result<RequestImagePart, AppError>> {
+  // Already a string (URL or base64) - pass through
+  if (typeof part.image === 'string') {
+    return ok(part);
+  }
+
+  const mediaType = part.mediaType ?? 'application/octet-stream';
+
+  const uploadResult = await uploadBinaryContent(
+    ctx,
+    {
+      binary: part.image,
+      mediaType,
+      contentType: 'image',
+    },
+    deps,
+    options,
+  );
+
+  if (uploadResult.isErr()) {
+    return err(uploadResult.error);
+  }
+
+  return ok({
     type: 'image',
-    image: downloadUrlResult.value.url,
+    image: uploadResult.value.url,
     mediaType: part.mediaType,
-    storageFileId: fileId,
-    storageFilename: filename,
+    storageFileId: uploadResult.value.fileId,
+    storageFilename: uploadResult.value.filename,
   });
 }
 
 async function serializeFilePart(
   ctx: Context,
   part: RequestFilePart,
-  deps: SerializeMessagesDeps,
+  deps: SerializationDeps,
   options?: AgentRunOptions,
 ): Promise<Result<RequestFilePart, AppError>> {
   // Already a string (URL or base64) - pass through
@@ -224,72 +280,28 @@ async function serializeFilePart(
     return ok(part);
   }
 
-  // Binary content (Uint8Array) - upload to storage
-  const binary = part.data;
-  const fileId = FileAssetId();
-  const extension = getExtensionFromMediaType(part.mediaType);
-  const filename = part.filename ?? `${fileId}.${extension}`;
-
-  deps.logger.debug('Uploading binary file to storage', {
-    fileId,
-    size: binary.byteLength,
-    mediaType: part.mediaType,
-    filename,
-  });
-
-  // Upload binary content
-  const uploadResult = await deps.storageService.uploadStream(ctx, {
-    folder: options?.agentContentFolder ?? AGENT_CONTENT_FOLDER,
-    payload: {
-      id: fileId,
-      filename,
+  const uploadResult = await uploadBinaryContent(
+    ctx,
+    {
+      binary: part.data,
       mediaType: part.mediaType,
-      stream: bufferToStream(binary),
-      size: binary.byteLength,
+      contentType: 'file',
+      filenameOverride: part.filename,
     },
-  });
+    deps,
+    options,
+  );
 
   if (uploadResult.isErr()) {
-    deps.logger.error('Failed to upload binary file', uploadResult.error, {
-      fileId,
-    });
     return err(uploadResult.error);
-  }
-
-  const fileAsset = uploadResult.value;
-
-  // Check for failed upload (uploadStream returns Ok with failed state)
-  if (fileAsset.state === 'failed') {
-    return err(
-      internalError(`Upload failed: ${fileAsset.error}`, {
-        metadata: { fileId },
-      }),
-    );
-  }
-
-  // Get signed download URL (uploadStream doesn't return URL)
-  const downloadUrlResult = await deps.storageService.getDownloadUrl(ctx, {
-    fileId,
-    folder: options?.agentContentFolder ?? AGENT_CONTENT_FOLDER,
-    filename,
-    expiresInSeconds:
-      options?.agentDownloadUrlExpirySeconds ??
-      AGENT_DOWNLOAD_URL_EXPIRY_SECONDS,
-  });
-
-  if (downloadUrlResult.isErr()) {
-    deps.logger.error('Failed to get download URL', downloadUrlResult.error, {
-      fileId,
-    });
-    return err(downloadUrlResult.error);
   }
 
   return ok({
     type: 'file',
-    data: downloadUrlResult.value.url,
+    data: uploadResult.value.url,
     mediaType: part.mediaType,
     filename: part.filename,
-    storageFileId: fileId,
-    storageFilename: filename,
+    storageFileId: uploadResult.value.fileId,
+    storageFilename: uploadResult.value.filename,
   });
 }
