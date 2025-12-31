@@ -1,4 +1,5 @@
 import zod from 'zod';
+import { toolMiddlewareConfigSchema } from '../../agents/config/ToolMiddlewareConfig';
 
 /**
  * HTTP transport configuration for MCP connections.
@@ -74,6 +75,11 @@ export const mcpServerConfigSchema = zod.strictObject({
     .positive()
     .optional()
     .describe('Timeout for MCP operations'),
+  /** Middleware applied to all tools from this MCP server */
+  toolMiddleware: zod
+    .array(toolMiddlewareConfigSchema)
+    .optional()
+    .describe('Middleware applied to all tools from this MCP server'),
 });
 
 export type MCPServerConfig = zod.infer<typeof mcpServerConfigSchema>;

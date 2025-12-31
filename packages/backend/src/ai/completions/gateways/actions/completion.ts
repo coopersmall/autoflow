@@ -11,6 +11,7 @@ import { err, ok, type Result } from 'neverthrow';
 import type { CompletionsProvider } from '../../providers/CompletionsProviders';
 import { closeMCPClients } from './utils/closeMCPClients';
 import { convertCompletionRequest } from './utils/convertCompletionRequest';
+import { convertFromContentParts } from './utils/convertContentParts';
 import { withMCPTools } from './utils/withMCPTools';
 
 export interface CompletionRequest {
@@ -50,7 +51,11 @@ export async function completion(
       maxRetries: 0,
       abortSignal: ctx.signal,
     });
-    return ok(response);
+
+    return ok({
+      ...response,
+      content: convertFromContentParts(response.content),
+    });
   } catch (error) {
     return err(
       badRequest('Failed to generate completion', {

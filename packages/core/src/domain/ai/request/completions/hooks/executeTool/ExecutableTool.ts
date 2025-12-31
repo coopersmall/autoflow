@@ -1,18 +1,19 @@
-import zod from 'zod';
-import { messageSchema } from '../../messages';
+import type { AgentContext } from '@core/domain/agents';
+import type { Message } from '../../messages';
 
-export type ExecuteFunction = zod.infer<typeof executeFunctionSchema>;
+export interface ExecuteFunctionOptions {
+  messages: Message[];
+}
 
-const executeFunctionSchemaOptions = zod
-  .strictObject({
-    messages: zod
-      .array(messageSchema)
-      .describe('The messages in the conversation.'),
-  })
-  .describe('The options provided to the execute function.');
-
-export const executeFunctionSchema = zod
-  .function()
-  .args(zod.unknown(), executeFunctionSchemaOptions)
-  .returns(zod.promise(zod.any()))
-  .describe('The function to execute the tool.');
+/**
+ * Execute function for tools.
+ *
+ * @param ctx - Agent context with correlation ID and abort signal for cancellation
+ * @param input - Tool input parsed from LLM response
+ * @param options - Additional execution options including message history
+ */
+export type ExecuteFunction = (
+  ctx: AgentContext,
+  input: unknown,
+  options: ExecuteFunctionOptions,
+) => Promise<unknown>;

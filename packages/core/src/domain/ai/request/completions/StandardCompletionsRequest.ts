@@ -1,12 +1,8 @@
 import zod from 'zod';
 import { mcpServerConfigSchema } from '../../mcp';
 import { baseCompletionsRequestSchema } from './BaseCompletionsRequest';
-import {
-  onStepFinishFunctionSchema,
-  prepareStepFunctionSchema,
-  stopWhenSchema,
-} from './hooks';
-import { toolWithExecutionSchema } from './tools';
+import { stopWhenSchema } from './hooks';
+import { toolSchema } from './tools';
 import { toolChoiceSchema } from './tools/ToolChoice';
 
 export type StandardCompletionsRequest = zod.infer<
@@ -16,7 +12,7 @@ export type StandardCompletionsRequest = zod.infer<
 export const standardCompletionsRequestSchema = baseCompletionsRequestSchema
   .extend({
     tools: zod
-      .array(toolWithExecutionSchema)
+      .array(toolSchema)
       .optional()
       .describe('Tools available for the model to call.'),
     activeTools: zod
@@ -30,14 +26,6 @@ export const standardCompletionsRequestSchema = baseCompletionsRequestSchema
       .optional()
       .describe('Conditions to stop generation.'),
     toolChoice: toolChoiceSchema,
-    prepareStep: prepareStepFunctionSchema
-      .optional()
-      .describe(
-        'Optional function to provide different settings for each step. Can modify tool choice, active tools, system prompt, and messages.',
-      ),
-    onStepFinish: onStepFinishFunctionSchema
-      .optional()
-      .describe('Callback that is called when a step is finished.'),
     /**
      * MCP server configurations. If provided, the CompletionsService will:
      * 1. Create MCP clients for each config

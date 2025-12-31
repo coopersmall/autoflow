@@ -63,6 +63,13 @@ export type IStandardCache<
   T extends Item<ID> = Item<ID>,
 > = ExtractMethods<StandardCache<ID, T>>;
 
+export function createStandardCache<
+  ID extends Id<string> = Id<string>,
+  T extends Item<ID> = Item<ID>,
+>(namespace: string, ctx: StandardCacheConfig<T>): IStandardCache<ID, T> {
+  return new StandardCache<ID, T>(namespace, ctx);
+}
+
 /**
  * Configuration for StandardCache construction.
  */
@@ -70,6 +77,7 @@ export interface StandardCacheConfig<T> {
   logger: ILogger;
   appConfig: IAppConfigurationService;
   validator: Validator<T>;
+  defaultTtl?: number;
 }
 
 interface StandardCacheDependencies {
@@ -187,16 +195,19 @@ export class StandardCache<
     ctx: Context,
     item: T,
     userId: UserId,
-    ttl: number = 3600,
+    ttl?: number,
   ): Promise<Result<void, AppError>> {
     const adapter = this.getAdapter();
     if (adapter.isErr()) {
       return err(adapter.error);
     }
-
     return this.standardCacheActions.setCached(
       ctx,
-      { item, userId, ttl },
+      {
+        item,
+        userId,
+        ttl: ttl ?? this.ctx.defaultTtl,
+      },
       {
         adapter: adapter.value,
         generateKey: this.generateKey.bind(this),

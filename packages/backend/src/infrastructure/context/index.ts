@@ -1,2 +1,2 @@
 export type { Context } from './Context';
-export { createContext } from './Context';
+export { createContext, deriveContext } from './Context';

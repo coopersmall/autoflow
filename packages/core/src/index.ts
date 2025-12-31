@@ -1,5 +1,7 @@
 // Domain - Core
 
+// Domain - Agents
+export * from './domain/agents';
 // Domain - AI
 export * from './domain/ai/mcp';
 export * from './domain/ai/providers/AIProviders';

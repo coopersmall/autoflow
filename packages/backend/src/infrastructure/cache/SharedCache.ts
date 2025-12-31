@@ -58,6 +58,13 @@ export type ISharedCache<
   T extends Item<ID> = Item<ID>,
 > = ExtractMethods<SharedCache<ID, T>>;
 
+export function createSharedCache<
+  ID extends Id<string> = Id<string>,
+  T extends Item<ID> = Item<ID>,
+>(namespace: string, ctx: SharedCacheConfig<T>): ISharedCache<ID, T> {
+  return new SharedCache<ID, T>(namespace, ctx);
+}
+
 /**
  * Configuration for SharedCache construction.
  */
@@ -65,6 +72,7 @@ export interface SharedCacheConfig<T> {
   logger: ILogger;
   appConfig: IAppConfigurationService;
   validator: Validator<T>;
+  defaultTtl?: number;
 }
 
 interface SharedCacheDependencies {
@@ -174,7 +182,7 @@ export class SharedCache<
     ctx: Context,
     id: ID,
     item: T,
-    ttl: number = 3600,
+    ttl?: number,
   ): Promise<Result<void, AppError>> {
     const adapter = this.getAdapter();
     if (adapter.isErr()) {
@@ -183,7 +191,11 @@ export class SharedCache<
 
     return this.sharedCacheActions.setCached(
       ctx,
-      { id, item, ttl },
+      {
+        id,
+        item,
+        ttl: ttl ?? this.ctx.defaultTtl,
+      },
       {
         adapter: adapter.value,
         generateKey: this.generateKey.bind(this),

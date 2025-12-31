@@ -154,6 +154,16 @@ export function fromStreamPart(
         },
       };
 
+    case 'tool-approval-request':
+      // Tool requires approval before execution
+      return {
+        event: {
+          type: 'tool-approval-request',
+          approvalId: streamPart.approvalId,
+          toolCall: streamPart.toolCall,
+        },
+      };
+
     // Lifecycle events
     case 'start':
       return { event: { type: 'start' } };

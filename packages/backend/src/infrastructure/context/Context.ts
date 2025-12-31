@@ -41,6 +41,34 @@ export function createContext(
   return Object.freeze(new _Context(correlationId, controller));
 }
 
+/**
+ * Creates a derived context with a new AbortController.
+ * The derived signal aborts when:
+ * - Parent signal aborts (automatically propagated)
+ * - The returned cancel function is called
+ *
+ * Uses { once: true } for event listeners to prevent memory leaks.
+ *
+ * @param parentCtx - The parent context to derive from
+ * @returns A derived context with its own cancel function
+ */
+export function deriveContext(parentCtx: Context): Context {
+  const controller = new AbortController();
+
+  // Link parent abort to child
+  if (parentCtx.signal.aborted) {
+    controller.abort(parentCtx.signal.reason);
+  } else {
+    parentCtx.signal.addEventListener(
+      'abort',
+      () => controller.abort(parentCtx.signal.reason),
+      { once: true }, // Prevents memory leak
+    );
+  }
+
+  return createContext(parentCtx.correlationId, controller);
+}
+
 class _Context {
   constructor(
     public readonly correlationId: CorrelationId,

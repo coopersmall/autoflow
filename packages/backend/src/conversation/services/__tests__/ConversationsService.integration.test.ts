@@ -685,6 +685,200 @@ describe('ConversationsService Integration Tests', () => {
     });
   });
 
+  describe('getNextTurnIndex()', () => {
+    it('should return 0 for a conversation with no items', async () => {
+      const { usersService, conversationsService } = setup();
+
+      // Create a real user first
+      const userResult = await usersService.create(createMockContext(), {
+        schemaVersion: 1,
+      });
+      const userId = userResult._unsafeUnwrap().id;
+
+      // Create conversation with no items
+      const convResult = await conversationsService.create(
+        createMockContext(),
+        userId,
+        {
+          schemaVersion: 1,
+          status: 'active',
+          channel: 'chat',
+        },
+      );
+      const conversation = convResult._unsafeUnwrap();
+
+      // Get next turn index
+      const result = await conversationsService.getNextTurnIndex(
+        createMockContext(),
+        conversation.id,
+        userId,
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(result._unsafeUnwrap()).toBe(0);
+    });
+
+    it('should return max turn index + 1 for a conversation with items', async () => {
+      const { usersService, conversationsService } = setup();
+
+      // Create a real user first
+      const userResult = await usersService.create(createMockContext(), {
+        schemaVersion: 1,
+      });
+      const userId = userResult._unsafeUnwrap().id;
+
+      // Create conversation
+      const convResult = await conversationsService.create(
+        createMockContext(),
+        userId,
+        {
+          schemaVersion: 1,
+          status: 'active',
+          channel: 'chat',
+        },
+      );
+      const conversation = convResult._unsafeUnwrap();
+
+      // Add items with turn indices 0, 1, 2
+      for (let i = 0; i < 3; i++) {
+        await conversationsService.appendItem(
+          createMockContext(),
+          conversation.id,
+          userId,
+          {
+            schemaVersion: 1,
+            type: 'message',
+            turnIndex: i,
+            message: {
+              role: 'user',
+              text: `Message ${i}`,
+            },
+          },
+        );
+      }
+
+      // Get next turn index - should be 3
+      const result = await conversationsService.getNextTurnIndex(
+        createMockContext(),
+        conversation.id,
+        userId,
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(result._unsafeUnwrap()).toBe(3);
+    });
+
+    it('should handle non-sequential turn indices', async () => {
+      const { usersService, conversationsService } = setup();
+
+      // Create a real user first
+      const userResult = await usersService.create(createMockContext(), {
+        schemaVersion: 1,
+      });
+      const userId = userResult._unsafeUnwrap().id;
+
+      // Create conversation
+      const convResult = await conversationsService.create(
+        createMockContext(),
+        userId,
+        {
+          schemaVersion: 1,
+          status: 'active',
+          channel: 'chat',
+        },
+      );
+      const conversation = convResult._unsafeUnwrap();
+
+      // Add items with non-sequential turn indices: 5, 10, 3
+      const turnIndices = [5, 10, 3];
+      for (const turnIndex of turnIndices) {
+        await conversationsService.appendItem(
+          createMockContext(),
+          conversation.id,
+          userId,
+          {
+            schemaVersion: 1,
+            type: 'message',
+            turnIndex,
+            message: {
+              role: 'user',
+              text: `Message at turn ${turnIndex}`,
+            },
+          },
+        );
+      }
+
+      // Get next turn index - should be max(5, 10, 3) + 1 = 11
+      const result = await conversationsService.getNextTurnIndex(
+        createMockContext(),
+        conversation.id,
+        userId,
+      );
+
+      expect(result.isOk()).toBe(true);
+      expect(result._unsafeUnwrap()).toBe(11);
+    });
+
+    it('should return correct turn index with property-based testing', async () => {
+      const { usersService, conversationsService } = setup();
+
+      // Create a real user first
+      const userResult = await usersService.create(createMockContext(), {
+        schemaVersion: 1,
+      });
+      const userId = userResult._unsafeUnwrap().id;
+
+      await fc.assert(
+        fc.asyncProperty(
+          fc.array(turnIndexArb, { minLength: 1, maxLength: 10 }),
+          async (turnIndices) => {
+            // Create conversation
+            const convResult = await conversationsService.create(
+              createMockContext(),
+              userId,
+              {
+                schemaVersion: 1,
+                status: 'active',
+                channel: 'chat',
+              },
+            );
+            const conversation = convResult._unsafeUnwrap();
+
+            // Add items with the generated turn indices
+            for (const turnIndex of turnIndices) {
+              await conversationsService.appendItem(
+                createMockContext(),
+                conversation.id,
+                userId,
+                {
+                  schemaVersion: 1,
+                  type: 'message',
+                  turnIndex,
+                  message: {
+                    role: 'user',
+                    text: `Message at turn ${turnIndex}`,
+                  },
+                },
+              );
+            }
+
+            // Get next turn index
+            const result = await conversationsService.getNextTurnIndex(
+              createMockContext(),
+              conversation.id,
+              userId,
+            );
+
+            expect(result.isOk()).toBe(true);
+            const expectedNextIndex = Math.max(...turnIndices) + 1;
+            expect(result._unsafeUnwrap()).toBe(expectedNextIndex);
+          },
+        ),
+        { numRuns: 20 },
+      );
+    });
+  });
+
   describe('all()', () => {
     it('should return all conversations for user', async () => {
       const { usersService, conversationsService } = setup();

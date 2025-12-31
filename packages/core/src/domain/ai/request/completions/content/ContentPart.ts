@@ -2,8 +2,12 @@ import zod from 'zod';
 import { requestFilePartSchema } from './FilePart';
 import { requestImagePartSchema } from './ImagePart';
 import { requestReasoningPartSchema } from './ReasoningPart';
+import { requestSourcePartSchema } from './SourcePart';
 import { requestTextPartSchema } from './TextPart';
+import { requestToolApprovalRequestPartSchema } from './ToolApprovalRequestPart';
+import { requestToolApprovalResponsePartSchema } from './ToolApprovalResponsePart';
 import { requestToolCallPartSchema } from './ToolCallPart';
+import { requestToolErrorPartSchema } from './ToolPartError';
 import { requestToolResultPartSchema } from './ToolResultPart';
 
 export type RequestUserContentPart = zod.infer<
@@ -23,7 +27,7 @@ export const requestUserContentPartSchema = zod.discriminatedUnion('type', [
   requestFilePartSchema,
 ]);
 
-// Assistant messages can contain text, files, reasoning, tool calls, and tool results
+// Assistant messages can contain text, files, reasoning, tool calls, tool results, and tool approval requests
 export const requestAssistantContentPartSchema = zod.discriminatedUnion(
   'type',
   [
@@ -32,8 +36,14 @@ export const requestAssistantContentPartSchema = zod.discriminatedUnion(
     requestReasoningPartSchema,
     requestToolCallPartSchema,
     requestToolResultPartSchema,
+    requestToolApprovalRequestPartSchema,
+    requestToolErrorPartSchema,
+    requestSourcePartSchema,
   ],
 );
 
-// Tool messages contain tool results
-export const requestToolContentPartSchema = requestToolResultPartSchema;
+// Tool messages contain tool results and tool approval responses
+export const requestToolContentPartSchema = zod.discriminatedUnion('type', [
+  requestToolResultPartSchema,
+  requestToolApprovalResponsePartSchema,
+]);

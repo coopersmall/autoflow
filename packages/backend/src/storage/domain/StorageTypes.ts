@@ -1,10 +1,11 @@
 /**
  * Request/response types for the StorageService.
  */
-import type {
-  FileAsset,
-  FilePayload,
-  FileStreamPayload,
+import {
+  type FileAsset,
+  type FilePayload,
+  type FileStreamPayload,
+  fileAssetIdSchema,
 } from '@core/domain/file';
 import zod from 'zod';
 
@@ -64,7 +65,7 @@ export interface UploadStreamRequest {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const getFileRequestSchema = zod.strictObject({
-  fileId: zod.string().min(1),
+  fileId: fileAssetIdSchema,
   folder: zod.string().min(1),
   filename: zod.string().min(1),
 });
@@ -72,7 +73,7 @@ export const getFileRequestSchema = zod.strictObject({
 export type GetFileRequest = Readonly<zod.infer<typeof getFileRequestSchema>>;
 
 export const getDownloadUrlRequestSchema = zod.strictObject({
-  fileId: zod.string().min(1),
+  fileId: fileAssetIdSchema,
   folder: zod.string().min(1),
   filename: zod.string().min(1),
   expiresInSeconds: zod.number().int().positive().optional(),
@@ -98,7 +99,7 @@ export interface ListFilesResponse {
 }
 
 export const deleteFileRequestSchema = zod.strictObject({
-  fileId: zod.string().min(1),
+  fileId: fileAssetIdSchema,
   folder: zod.string().min(1),
   filename: zod.string().min(1),
 });
