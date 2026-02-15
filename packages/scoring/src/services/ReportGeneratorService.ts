@@ -5,13 +5,13 @@ import {
   type EvidenceExcerpt,
 } from '../domain/scores.js';
 import {
-  ReportId,
   type ReportContext,
   type RiskLevel,
   type RiskReport,
   getRiskLevel,
   reportContextSchema,
 } from '../domain/report.js';
+import { ReportId } from '../domain/ids.js';
 
 // Report generator context
 export interface ReportGeneratorContext {

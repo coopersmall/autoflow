@@ -20,6 +20,7 @@
   "dependencies": {
     "@autoflow/core": "workspace:*",
     "@autoflow/capture": "workspace:*",
+    "@autoflow/scoring": "workspace:*",
     "playwright": "^1.52.0",
     "zod": "catalog:",
     "neverthrow": "catalog:",

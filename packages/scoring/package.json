@@ -21,7 +21,7 @@
     "zod": "catalog:",
     "neverthrow": "catalog:",
     "nanoid": "catalog:",
-    "ai": "catalog:"
+    "ai": "catalog:ai"
   },
   "devDependencies": {
     "@types/bun": "latest"
