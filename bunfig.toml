@@ -4,3 +4,4 @@ env = "BUN_PUBLIC_*"
 
 [test]
 root = "./packages"
+preload = ["./packages/capture/testing/happy-dom-preload.ts"]
