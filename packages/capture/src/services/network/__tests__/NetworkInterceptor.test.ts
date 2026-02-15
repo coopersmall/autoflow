@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, expect, it, mock } from 'bun:test';
 import { createNetworkInterceptor } from '@capture/services/network/NetworkInterceptor';
 
 describe('createNetworkInterceptor', () => {
@@ -26,9 +26,7 @@ describe('createNetworkInterceptor', () => {
     const result2 = interceptor.intercept(fakeWindow);
     expect(result2.isErr()).toBe(true);
     if (result2.isErr()) {
-      expect(result2.error.message).toBe(
-        'Network interception already active',
-      );
+      expect(result2.error.message).toBe('Network interception already active');
     }
 
     interceptor.stopIntercepting();
@@ -167,13 +165,9 @@ function createFakeWindow(options?: {
 }): Window & typeof globalThis {
   const originalFetch = mock(async () => {
     if (options?.fetchError) {
-      // biome-ignore lint: Re-throwing for test simulation
       throw options.fetchError;
     }
-    return (
-      options?.fetchResponse?.clone() ??
-      new Response('', { status: 200 })
-    );
+    return options?.fetchResponse?.clone() ?? new Response('', { status: 200 });
   });
 
   const fakeXhrProto = {

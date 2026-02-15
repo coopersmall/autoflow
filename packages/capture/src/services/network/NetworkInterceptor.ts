@@ -1,11 +1,11 @@
-import { ok, err, type Result } from 'neverthrow';
-import type { AppError } from '@core/errors/AppError';
-import { internalError } from '@core/errors/factories';
 import { EventId } from '@capture/domain/EventId';
 import type {
   NetworkRequestEvent,
   StreamingChunk,
 } from '@capture/domain/events/NetworkRequestEvent';
+import type { AppError } from '@core/errors/AppError';
+import { internalError } from '@core/errors/factories';
+import { err, ok, type Result } from 'neverthrow';
 
 export interface NetworkInterceptorConfig {
   readonly logger?: {
@@ -61,26 +61,15 @@ function isStreamingResponse(response: Response): boolean {
 class NetworkInterceptor implements INetworkInterceptor {
   private requests: NetworkRequestEvent[] = [];
   private originalFetch: typeof fetch | null = null;
-  private originalXhrOpen:
-    | typeof XMLHttpRequest.prototype.open
-    | null = null;
-  private originalXhrSend:
-    | typeof XMLHttpRequest.prototype.send
-    | null = null;
-  private interceptedWindow: (Window & typeof globalThis) | null =
-    null;
+  private originalXhrOpen: typeof XMLHttpRequest.prototype.open | null = null;
+  private originalXhrSend: typeof XMLHttpRequest.prototype.send | null = null;
+  private interceptedWindow: (Window & typeof globalThis) | null = null;
 
-  constructor(
-    private readonly config?: NetworkInterceptorConfig,
-  ) {}
+  constructor(private readonly config?: NetworkInterceptorConfig) {}
 
-  intercept(
-    win: Window & typeof globalThis,
-  ): Result<void, AppError> {
+  intercept(win: Window & typeof globalThis): Result<void, AppError> {
     if (this.interceptedWindow) {
-      return err(
-        internalError('Network interception already active'),
-      );
+      return err(internalError('Network interception already active'));
     }
 
     this.interceptedWindow = win;
@@ -122,9 +111,7 @@ class NetworkInterceptor implements INetworkInterceptor {
     });
   }
 
-  private interceptFetch(
-    win: Window & typeof globalThis,
-  ): void {
+  private interceptFetch(win: Window & typeof globalThis): void {
     this.originalFetch = win.fetch.bind(win);
     const self = this;
     const originalFetch = this.originalFetch;
@@ -142,8 +129,7 @@ class NetworkInterceptor implements INetworkInterceptor {
             ? input.toString()
             : input;
       const method =
-        init?.method ??
-        (input instanceof Request ? input.method : 'GET');
+        init?.method ?? (input instanceof Request ? input.method : 'GET');
 
       const event: NetworkRequestEvent = {
         id: EventId(),
@@ -152,14 +138,9 @@ class NetworkInterceptor implements INetworkInterceptor {
         method: method.toUpperCase(),
         url,
         requestHeaders: init?.headers
-          ? headersToRecord(
-              new Headers(
-                init.headers as HeadersInit,
-              ),
-            )
+          ? headersToRecord(new Headers(init.headers as HeadersInit))
           : undefined,
-        requestBody:
-          typeof init?.body === 'string' ? init.body : undefined,
+        requestBody: typeof init?.body === 'string' ? init.body : undefined,
       };
 
       try {
@@ -167,10 +148,7 @@ class NetworkInterceptor implements INetworkInterceptor {
         event.status = response.status;
         event.responseHeaders = headersToRecord(response.headers);
 
-        if (
-          isStreamingResponse(response) &&
-          response.body
-        ) {
+        if (isStreamingResponse(response) && response.body) {
           const clonedResponse = response.clone();
           self.captureStream(event, clonedResponse, startTime);
         } else {
@@ -202,13 +180,9 @@ class NetworkInterceptor implements INetworkInterceptor {
     };
   }
 
-  private interceptXhr(
-    win: Window & typeof globalThis,
-  ): void {
-    this.originalXhrOpen =
-      win.XMLHttpRequest.prototype.open;
-    this.originalXhrSend =
-      win.XMLHttpRequest.prototype.send;
+  private interceptXhr(win: Window & typeof globalThis): void {
+    this.originalXhrOpen = win.XMLHttpRequest.prototype.open;
+    this.originalXhrSend = win.XMLHttpRequest.prototype.send;
 
     const self = this;
     const originalOpen = this.originalXhrOpen;
@@ -225,8 +199,7 @@ class NetworkInterceptor implements INetworkInterceptor {
       url: string | URL,
     ) {
       this._captureMethod = method;
-      this._captureUrl =
-        url instanceof URL ? url.toString() : url;
+      this._captureUrl = url instanceof URL ? url.toString() : url;
       return originalOpen.apply(this, [
         method,
         url,
@@ -246,8 +219,7 @@ class NetworkInterceptor implements INetworkInterceptor {
         timestamp: new Date(),
         method: (this._captureMethod ?? 'GET').toUpperCase(),
         url: this._captureUrl ?? '',
-        requestBody:
-          typeof body === 'string' ? body : undefined,
+        requestBody: typeof body === 'string' ? body : undefined,
       };
 
       this.addEventListener('load', function onLoad() {
@@ -261,8 +233,9 @@ class NetworkInterceptor implements INetworkInterceptor {
           for (const line of rawHeaders.trim().split(/[\r\n]+/)) {
             const idx = line.indexOf(':');
             if (idx > 0) {
-              headers[line.substring(0, idx).trim().toLowerCase()] =
-                line.substring(idx + 1).trim();
+              headers[line.substring(0, idx).trim().toLowerCase()] = line
+                .substring(idx + 1)
+                .trim();
             }
           }
           event.responseHeaders = headers;

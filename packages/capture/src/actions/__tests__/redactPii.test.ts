@@ -10,9 +10,9 @@ describe('redactPii', () => {
     });
 
     it('should redact multiple emails', () => {
-      expect(
-        redactPii('From alice@test.org to bob@company.co.uk'),
-      ).toBe('From [REDACTED] to [REDACTED]');
+      expect(redactPii('From alice@test.org to bob@company.co.uk')).toBe(
+        'From [REDACTED] to [REDACTED]',
+      );
     });
 
     it('should redact emails with special characters', () => {
@@ -20,9 +20,7 @@ describe('redactPii', () => {
     });
 
     it('should redact emails with dots and dashes', () => {
-      expect(redactPii('first.last@sub-domain.example.com')).toBe(
-        '[REDACTED]',
-      );
+      expect(redactPii('first.last@sub-domain.example.com')).toBe('[REDACTED]');
     });
 
     it('should not redact non-email text', () => {
@@ -36,41 +34,31 @@ describe('redactPii', () => {
     });
 
     it('should redact phone with dots', () => {
-      expect(redactPii('Phone: 555.123.4567')).toBe(
-        'Phone: [REDACTED]',
-      );
+      expect(redactPii('Phone: 555.123.4567')).toBe('Phone: [REDACTED]');
     });
 
     it('should redact phone with spaces', () => {
-      expect(redactPii('Number: 555 123 4567')).toBe(
-        'Number: [REDACTED]',
-      );
+      expect(redactPii('Number: 555 123 4567')).toBe('Number: [REDACTED]');
     });
 
     it('should redact phone with country code', () => {
-      expect(redactPii('Call +1-555-123-4567')).toBe(
-        'Call [REDACTED]',
-      );
+      expect(redactPii('Call +1-555-123-4567')).toBe('Call [REDACTED]');
     });
 
     it('should redact phone with parentheses', () => {
-      expect(redactPii('Fax: (555) 123-4567')).toBe(
-        'Fax: [REDACTED]',
-      );
+      expect(redactPii('Fax: (555) 123-4567')).toBe('Fax: [REDACTED]');
     });
   });
 
   describe('SSN', () => {
     it('should redact SSN format', () => {
-      expect(redactPii('SSN: 123-45-6789')).toBe(
-        'SSN: [REDACTED]',
-      );
+      expect(redactPii('SSN: 123-45-6789')).toBe('SSN: [REDACTED]');
     });
 
     it('should redact multiple SSNs', () => {
-      expect(
-        redactPii('A: 123-45-6789, B: 987-65-4321'),
-      ).toBe('A: [REDACTED], B: [REDACTED]');
+      expect(redactPii('A: 123-45-6789, B: 987-65-4321')).toBe(
+        'A: [REDACTED], B: [REDACTED]',
+      );
     });
 
     it('should not redact non-SSN dash patterns', () => {
@@ -83,21 +71,15 @@ describe('redactPii', () => {
   describe('credit cards', () => {
     it('should redact a valid Visa card number', () => {
       // 4111111111111111 passes Luhn
-      expect(redactPii('Card: 4111111111111111')).toBe(
-        'Card: [REDACTED]',
-      );
+      expect(redactPii('Card: 4111111111111111')).toBe('Card: [REDACTED]');
     });
 
     it('should redact a valid card with spaces', () => {
-      expect(redactPii('Card: 4111 1111 1111 1111')).toBe(
-        'Card: [REDACTED]',
-      );
+      expect(redactPii('Card: 4111 1111 1111 1111')).toBe('Card: [REDACTED]');
     });
 
     it('should redact a valid card with dashes', () => {
-      expect(redactPii('Card: 4111-1111-1111-1111')).toBe(
-        'Card: [REDACTED]',
-      );
+      expect(redactPii('Card: 4111-1111-1111-1111')).toBe('Card: [REDACTED]');
     });
 
     it('should not redact numbers that fail Luhn check', () => {
@@ -108,9 +90,7 @@ describe('redactPii', () => {
 
     it('should redact a valid Mastercard number', () => {
       // 5500000000000004 passes Luhn
-      expect(redactPii('MC: 5500000000000004')).toBe(
-        'MC: [REDACTED]',
-      );
+      expect(redactPii('MC: 5500000000000004')).toBe('MC: [REDACTED]');
     });
   });
 
@@ -141,10 +121,9 @@ describe('redactPii', () => {
 
       redactPii('email: test@example.com', ctx);
 
-      expect(debugFn).toHaveBeenCalledWith(
-        'Redacted PII from text',
-        { redactionCount: 1 },
-      );
+      expect(debugFn).toHaveBeenCalledWith('Redacted PII from text', {
+        redactionCount: 1,
+      });
     });
 
     it('should not log when no PII is found', () => {

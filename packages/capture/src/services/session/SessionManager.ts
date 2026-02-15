@@ -1,22 +1,24 @@
-import { ok, err, type Result } from 'neverthrow';
-import type { AppError } from '@core/errors/AppError';
-import { internalError } from '@core/errors/factories';
-import { CaptureSessionId } from '@capture/domain/CaptureSessionId';
 import type { CaptureSession } from '@capture/domain/CaptureSession';
+import { CaptureSessionId } from '@capture/domain/CaptureSessionId';
 import { EventId } from '@capture/domain/EventId';
 import type { CaptureEvent } from '@capture/domain/events/CaptureEvent';
-import type { UserActionEvent } from '@capture/domain/events/UserActionEvent';
-import type { UserActionType } from '@capture/domain/events/UserActionEvent';
+import type {
+  UserActionEvent,
+  UserActionType,
+} from '@capture/domain/events/UserActionEvent';
 import {
   createDomCaptureService,
-  type IDomCaptureService,
   type DomCaptureServiceConfig,
+  type IDomCaptureService,
 } from '@capture/services/dom/DomCaptureService';
 import {
   createNetworkInterceptor,
   type INetworkInterceptor,
   type NetworkInterceptorConfig,
 } from '@capture/services/network/NetworkInterceptor';
+import type { AppError } from '@core/errors/AppError';
+import { internalError } from '@core/errors/factories';
+import { err, ok, type Result } from 'neverthrow';
 
 export interface SessionManagerConfig {
   readonly domCaptureConfig?: DomCaptureServiceConfig;
@@ -72,9 +74,9 @@ class SessionManager implements ISessionManager {
   private networkInterceptor: INetworkInterceptor | null = null;
   private userActions: UserActionEvent[] = [];
   private boundHandlers: {
-    click: (e: MouseEvent) => void;
-    input: (e: Event) => void;
-    submit: (e: SubmitEvent) => void;
+    click: EventListener;
+    input: EventListener;
+    submit: EventListener;
   } | null = null;
   private rootElement: Element | null = null;
 
@@ -92,9 +94,7 @@ class SessionManager implements ISessionManager {
     win: Window & typeof globalThis,
   ): Result<CaptureSessionId, AppError> {
     if (this.sessionId) {
-      return err(
-        internalError('Session already in progress'),
-      );
+      return err(internalError('Session already in progress'));
     }
 
     this.sessionId = CaptureSessionId();
@@ -111,10 +111,9 @@ class SessionManager implements ISessionManager {
       return err(domResult.error);
     }
 
-    this.networkInterceptor =
-      this.dependencies.createNetworkIntercept(
-        this.config?.networkInterceptorConfig,
-      );
+    this.networkInterceptor = this.dependencies.createNetworkIntercept(
+      this.config?.networkInterceptorConfig,
+    );
     const netResult = this.networkInterceptor.intercept(win);
     if (netResult.isErr()) {
       this.domCapture.stopCapture();
@@ -146,9 +145,7 @@ class SessionManager implements ISessionManager {
     return this.buildSession(false);
   }
 
-  private buildSession(
-    ending: boolean,
-  ): Result<CaptureSession, AppError> {
+  private buildSession(ending: boolean): Result<CaptureSession, AppError> {
     if (!this.sessionId || !this.targetUrl || !this.startedAt) {
       return err(internalError('No active session'));
     }
@@ -165,9 +162,7 @@ class SessionManager implements ISessionManager {
 
     events.push(...this.userActions);
 
-    events.sort(
-      (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
-    );
+    events.sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
 
     const session: CaptureSession = {
       schemaVersion: 1,
@@ -185,7 +180,10 @@ class SessionManager implements ISessionManager {
     const self = this;
 
     this.boundHandlers = {
-      click(e: MouseEvent) {
+      click(e: Event) {
+        if (!(e instanceof MouseEvent)) {
+          return;
+        }
         const target = e.target;
         if (!(target instanceof Element)) {
           return;
@@ -218,7 +216,10 @@ class SessionManager implements ISessionManager {
           value: target.value,
         });
       },
-      submit(e: SubmitEvent) {
+      submit(e: Event) {
+        if (!(e instanceof SubmitEvent)) {
+          return;
+        }
         const target = e.target;
         if (!(target instanceof HTMLFormElement)) {
           return;
@@ -234,18 +235,9 @@ class SessionManager implements ISessionManager {
       },
     };
 
-    root.addEventListener(
-      'click',
-      this.boundHandlers.click as EventListener,
-    );
-    root.addEventListener(
-      'input',
-      this.boundHandlers.input as EventListener,
-    );
-    root.addEventListener(
-      'submit',
-      this.boundHandlers.submit as EventListener,
-    );
+    root.addEventListener('click', this.boundHandlers.click);
+    root.addEventListener('input', this.boundHandlers.input);
+    root.addEventListener('submit', this.boundHandlers.submit);
   }
 
   private cleanup(): void {
@@ -258,18 +250,9 @@ class SessionManager implements ISessionManager {
     }
 
     if (this.rootElement && this.boundHandlers) {
-      this.rootElement.removeEventListener(
-        'click',
-        this.boundHandlers.click as EventListener,
-      );
-      this.rootElement.removeEventListener(
-        'input',
-        this.boundHandlers.input as EventListener,
-      );
-      this.rootElement.removeEventListener(
-        'submit',
-        this.boundHandlers.submit as EventListener,
-      );
+      this.rootElement.removeEventListener('click', this.boundHandlers.click);
+      this.rootElement.removeEventListener('input', this.boundHandlers.input);
+      this.rootElement.removeEventListener('submit', this.boundHandlers.submit);
     }
 
     this.config?.logger?.debug('Capture session ended', {

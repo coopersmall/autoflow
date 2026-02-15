@@ -1,10 +1,10 @@
-import { describe, expect, it, beforeEach, afterEach, mock } from 'bun:test';
-import { ok, err } from 'neverthrow';
-import { internalError } from '@core/errors/factories';
+import { afterEach, beforeEach, describe, expect, it, mock } from 'bun:test';
 import { EventId } from '@capture/domain/EventId';
 import type { IDomCaptureService } from '@capture/services/dom/DomCaptureService';
 import type { INetworkInterceptor } from '@capture/services/network/NetworkInterceptor';
 import { createSessionManager } from '@capture/services/session/SessionManager';
+import { internalError } from '@core/errors/factories';
+import { err, ok } from 'neverthrow';
 
 describe('createSessionManager', () => {
   let root: HTMLDivElement;
@@ -130,9 +130,7 @@ describe('createSessionManager', () => {
 
   it('should propagate DOM capture errors', () => {
     const mockDomService: IDomCaptureService = {
-      startCapture: mock(() =>
-        err(internalError('DOM capture failed')),
-      ),
+      startCapture: mock(() => err(internalError('DOM capture failed'))),
       stopCapture: mock(),
       getEvents: mock(() => []),
     };
@@ -184,9 +182,7 @@ describe('createSessionManager', () => {
 
     expect(result.isErr()).toBe(true);
     if (result.isErr()) {
-      expect(result.error.message).toBe(
-        'Network interception failed',
-      );
+      expect(result.error.message).toBe('Network interception failed');
     }
     // DOM capture should have been cleaned up
     expect(mockDomService.stopCapture).toHaveBeenCalled();
@@ -242,9 +238,9 @@ describe('createSessionManager', () => {
     if (result.isOk()) {
       const events = result.value.events;
       for (let i = 1; i < events.length; i++) {
-        expect(
-          events[i].timestamp.getTime(),
-        ).toBeGreaterThanOrEqual(events[i - 1].timestamp.getTime());
+        expect(events[i].timestamp.getTime()).toBeGreaterThanOrEqual(
+          events[i - 1].timestamp.getTime(),
+        );
       }
     }
 

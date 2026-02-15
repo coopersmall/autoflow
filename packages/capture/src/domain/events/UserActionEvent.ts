@@ -1,5 +1,5 @@
-import zod from 'zod';
 import { eventIdSchema } from '@capture/domain/EventId';
+import zod from 'zod';
 
 export const userActionTypeSchema = zod.enum([
   'click',
@@ -17,10 +17,7 @@ export const userActionEventSchema = zod.object({
   actionType: userActionTypeSchema.describe('the kind of user action'),
   selector: zod.string().describe('CSS selector of the target element'),
   tagName: zod.string().describe('the tag name of the target element'),
-  value: zod
-    .string()
-    .optional()
-    .describe('input value or key pressed'),
+  value: zod.string().optional().describe('input value or key pressed'),
   coordinates: zod
     .object({
       x: zod.number(),

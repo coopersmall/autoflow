@@ -1,5 +1,5 @@
-import zod from 'zod';
 import { eventIdSchema } from '@capture/domain/EventId';
+import zod from 'zod';
 
 export const streamingChunkSchema = zod.object({
   data: zod.string().describe('the chunk data'),
@@ -32,6 +32,9 @@ export const networkRequestEventSchema = zod.object({
     .number()
     .optional()
     .describe('total request duration in milliseconds'),
-  error: zod.string().optional().describe('error message if the request failed'),
+  error: zod
+    .string()
+    .optional()
+    .describe('error message if the request failed'),
 });
 export type NetworkRequestEvent = zod.infer<typeof networkRequestEventSchema>;

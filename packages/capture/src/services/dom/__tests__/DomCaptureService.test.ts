@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach, afterEach } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test';
 import { createDomCaptureService } from '@capture/services/dom/DomCaptureService';
 
 // Bun provides a minimal DOM environment via happy-dom
@@ -64,9 +64,7 @@ describe('createDomCaptureService', () => {
     expect(events[0].type).toBe('dom-change');
     expect(events[0].mutations.length).toBeGreaterThan(0);
 
-    const addedMutation = events[0].mutations.find(
-      (m) => m.type === 'added',
-    );
+    const addedMutation = events[0].mutations.find((m) => m.type === 'added');
     expect(addedMutation).toBeDefined();
     expect(addedMutation?.tagName).toBe('span');
   });

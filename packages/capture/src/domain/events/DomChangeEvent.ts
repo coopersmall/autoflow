@@ -1,5 +1,5 @@
-import zod from 'zod';
 import { eventIdSchema } from '@capture/domain/EventId';
+import zod from 'zod';
 
 export const domMutationTypeSchema = zod.enum([
   'added',
@@ -17,10 +17,7 @@ export const domMutationSchema = zod.object({
     .record(zod.string())
     .optional()
     .describe('changed attributes'),
-  textContent: zod
-    .string()
-    .optional()
-    .describe('text content if changed'),
+  textContent: zod.string().optional().describe('text content if changed'),
   shadowRoot: zod
     .enum(['open', 'closed', 'none'])
     .optional()

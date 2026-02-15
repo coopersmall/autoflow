@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'bun:test';
-import { validate } from '@core/validation/validate';
-import { EventId } from '@capture/domain/EventId';
+import { captureSessionSchema } from '@capture/domain/CaptureSession';
 import { CaptureSessionId } from '@capture/domain/CaptureSessionId';
+import { EventId } from '@capture/domain/EventId';
+import { captureEventSchema } from '@capture/domain/events/CaptureEvent';
 import { domChangeEventSchema } from '@capture/domain/events/DomChangeEvent';
 import { networkRequestEventSchema } from '@capture/domain/events/NetworkRequestEvent';
 import { userActionEventSchema } from '@capture/domain/events/UserActionEvent';
-import { captureEventSchema } from '@capture/domain/events/CaptureEvent';
-import { captureSessionSchema } from '@capture/domain/CaptureSession';
+import { validate } from '@core/validation/validate';
 
 describe('CaptureSessionId', () => {
   it('should generate a unique id', () => {
@@ -262,9 +262,7 @@ describe('CaptureEvent discriminated union', () => {
       id: EventId(),
       type: 'dom-change' as const,
       timestamp: new Date(),
-      mutations: [
-        { type: 'added' as const, selector: 'div', tagName: 'div' },
-      ],
+      mutations: [{ type: 'added' as const, selector: 'div', tagName: 'div' }],
     };
 
     const result = validate(captureEventSchema, event);

@@ -1,12 +1,12 @@
-import { ok, err, type Result } from 'neverthrow';
-import type { AppError } from '@core/errors/AppError';
-import { internalError } from '@core/errors/factories';
 import { EventId } from '@capture/domain/EventId';
 import type {
   DomChangeEvent,
   DomMutation,
   DomMutationType,
 } from '@capture/domain/events/DomChangeEvent';
+import type { AppError } from '@core/errors/AppError';
+import { internalError } from '@core/errors/factories';
+import { err, ok, type Result } from 'neverthrow';
 
 export interface DomCaptureServiceConfig {
   readonly debounceMs?: number;
@@ -17,9 +17,7 @@ export interface DomCaptureServiceConfig {
 }
 
 export interface IDomCaptureService {
-  readonly startCapture: (
-    rootElement: Element,
-  ) => Result<void, AppError>;
+  readonly startCapture: (rootElement: Element) => Result<void, AppError>;
   readonly stopCapture: () => void;
   readonly getEvents: () => ReadonlyArray<DomChangeEvent>;
 }
@@ -62,27 +60,19 @@ function buildSelector(element: Element): string {
   return parts.join(' > ');
 }
 
-function detectShadowRoot(
-  element: Element,
-): 'open' | 'closed' | 'none' {
+function detectShadowRoot(element: Element): 'open' | 'closed' | 'none' {
   if (element.shadowRoot) {
     return 'open';
   }
   // If there's no shadowRoot property but the element is a custom element,
   // it might have a closed shadow root
-  if (
-    element.tagName.includes('-') &&
-    !element.shadowRoot
-  ) {
+  if (element.tagName.includes('-') && !element.shadowRoot) {
     return 'closed';
   }
   return 'none';
 }
 
-function traverseShadowRoots(
-  root: Element,
-  observer: MutationObserver,
-): void {
+function traverseShadowRoots(root: Element, observer: MutationObserver): void {
   if (root.shadowRoot) {
     observer.observe(root.shadowRoot, {
       childList: true,
@@ -117,16 +107,12 @@ class DomCaptureService implements IDomCaptureService {
 
   startCapture(rootElement: Element): Result<void, AppError> {
     if (this.observer) {
-      return err(
-        internalError('DOM capture already started'),
-      );
+      return err(internalError('DOM capture already started'));
     }
 
-    this.observer = new MutationObserver(
-      (mutations: MutationRecord[]) => {
-        this.handleMutations(mutations);
-      },
-    );
+    this.observer = new MutationObserver((mutations: MutationRecord[]) => {
+      this.handleMutations(mutations);
+    });
 
     this.observer.observe(rootElement, {
       childList: true,
@@ -202,10 +188,7 @@ class DomCaptureService implements IDomCaptureService {
         }
       }
 
-      if (
-        mutation.type === 'attributes' &&
-        target instanceof Element
-      ) {
+      if (mutation.type === 'attributes' && target instanceof Element) {
         const attrName = mutation.attributeName;
         if (attrName) {
           this.pendingMutations.push({
@@ -219,10 +202,7 @@ class DomCaptureService implements IDomCaptureService {
         }
       }
 
-      if (
-        mutation.type === 'characterData' &&
-        target.parentElement
-      ) {
+      if (mutation.type === 'characterData' && target.parentElement) {
         this.pendingMutations.push({
           type: 'text-changed' satisfies DomMutationType,
           selector: buildSelector(target.parentElement),
