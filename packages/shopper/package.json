@@ -1,0 +1,30 @@
+{
+  "name": "@autoflow/shopper",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./domain/*": "./src/domain/*",
+    "./actions/*": "./src/actions/*",
+    "./services/*": "./src/services/*"
+  },
+  "scripts": {
+    "test": "bun test --ignore '**/integration*'",
+    "tsc": "tsc --noEmit",
+    "lint": "biome check src/"
+  },
+  "dependencies": {
+    "@autoflow/core": "workspace:*",
+    "@autoflow/capture": "workspace:*",
+    "playwright": "^1.52.0",
+    "zod": "catalog:",
+    "neverthrow": "catalog:",
+    "nanoid": "catalog:"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}
