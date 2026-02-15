@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./domain/*": "./src/domain/*",
     "./actions/*": "./src/actions/*",
+    "./scenarios/*": "./src/scenarios/*",
     "./services/*": "./src/services/*"
   },
   "scripts": {
