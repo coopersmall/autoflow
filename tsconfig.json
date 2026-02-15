@@ -23,7 +23,9 @@
       "@core/*": ["./packages/core/src/*"],
       "@backend/*": ["./packages/backend/src/*", "./packages/backend/*"],
       "@client/*": ["./packages/client/src/*"],
-      "@web/*": ["./packages/web/src/*"]
+      "@web/*": ["./packages/web/src/*"],
+      "@autoflow/capture": ["./packages/capture/src"],
+      "@capture/*": ["./packages/capture/src/*"]
     }
   },
   "include": [
